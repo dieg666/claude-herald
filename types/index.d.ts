@@ -1,7 +1,139 @@
-export type NewsPlaceholder = never
+/**
+ * How a source is read: an RSS/Atom `feed`, or a web `page` a model extracts items from.
+ */
+export type SourceKind = 'feed' | 'page'
+
+/**
+ * One place news comes from, factory or user-added.
+ */
+export type Source = {
+  /** Stable id, unique among sources; prefixes the ids of its items. */
+  id: string
+  /** What the band, pane and commands call it. */
+  name: string
+  /** The feed or page URL. */
+  url: string
+  kind: SourceKind
+  /** Disabled sources are kept but never fetched or shown. */
+  isEnabled: boolean
+  /** A single-width text glyph drawn before its headlines. */
+  icon: string
+  /** Fetched when `url` fails. */
+  fallbackUrl?: string
+  /** Whether it came with the mod (restored by a reset). */
+  isFactory: boolean
+}
+
+/**
+ * One news entry, as the band and pane draw it.
+ */
+export type Item = {
+  /** `<sourceId>:<guid, id, link or title hash>`, unique across sources. */
+  id: string
+  sourceId: string
+  title: string
+  url: string
+  /** ISO 8601, absent when the source gives no usable date. */
+  publishedAt?: string
+  /** A capped plain-text excerpt, what summaries read. */
+  text: string
+  /** The language the source declares for it, when it does. */
+  lang?: string
+}
+
+/**
+ * An item the user saved for later, with when (ms since the epoch).
+ */
+export type SavedItem = Item & {
+  savedAt: number
+}
+
+/**
+ * The summary language: the item's own (`feed`), Claude Code's `language` setting (`user`), or a fixed code.
+ */
+export type SummaryLang = 'feed' | 'user' | (string & {})
+
+/**
+ * Which summary: the one-line band/pane line, or the 3-5 line Summarize text.
+ */
+export type SummaryKind = 'short' | 'long'
+
+/**
+ * One cached summary; the cache is a list of these, oldest first.
+ */
+export type SummaryEntry = {
+  itemId: string
+  /** The resolved language the text is in (never `user`). */
+  lang: string
+  kind: SummaryKind
+  text: string
+}
+
+/**
+ * The user's settings; a stored partial object is completed with the defaults.
+ */
+export type Settings = {
+  /** Minutes between refreshes. */
+  refreshMinutes: number
+  /** Seconds between band rotations. */
+  rotateSeconds: number
+  lang: SummaryLang
+  /** The copy-for-Claude text, with `{title}`, `{url}` and `{source}` placeholders. */
+  template: string
+}
+
+/**
+ * Items by source id, newest first.
+ */
+export type ItemsBySource = Record<string, Item[]>
+
+/**
+ * The band's page and selection.
+ */
+export type BandState = {
+  /** Index of the first item shown in the flattened list. */
+  offset: number
+  /** Index of the selected item within the shown page. */
+  selected: number
+  /** Whether auto-rotation is paused. */
+  isPaused: boolean
+}
+
+/**
+ * The pane's active tab (a source id or `saved`) and its selected row.
+ */
+export type PaneState = {
+  tab: string
+  selected: number
+}
+
+/**
+ * What the refresh loop last did.
+ */
+export type RefreshStatus = {
+  /** When the last refresh run ended (ms since the epoch), null before the first. */
+  lastRefreshAt: number | null
+  /** Whether a refresh run is in progress. */
+  isRefreshing: boolean
+  /** The last failure per source id; absent once the source refreshes cleanly. */
+  errors: Record<string, string>
+}
 
 declare module 'claude-code' {
+  /**
+   * Every value the mod keeps in `$.state`, by key: what the band and pane draw.
+   */
   interface PluginState {
-    news: {}
+    news: {
+      sources: Source[]
+      settings: Settings
+      items: ItemsBySource
+      saved: SavedItem[]
+      /** One-line summaries by item id, in the current summary language. */
+      summaries: Record<string, string>
+      band: BandState
+      pane: PaneState
+      status: RefreshStatus
+    }
   }
 }
