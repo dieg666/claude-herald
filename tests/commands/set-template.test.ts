@@ -43,4 +43,13 @@ describe('set-template', () => {
     )
     expect(stored.has('settings')).toBe(false)
   })
+
+  test('quotes that open and close inside the text are kept', async ($, on) => {
+    const stored = Fixtures.storeOn(on)
+    const template = '"Read" {title} and "say why"'
+
+    await $.command.run(Fixtures.newsOf(`template ${template}`))
+
+    expect(stored.get('settings')).toMatchObject({ template })
+  })
 })

@@ -10,14 +10,15 @@ import { TEMPLATE_PLACEHOLDERS } from './template-placeholders.js'
 const TEMPLATE_CHARS = 1000
 
 /**
- * The template as typed, one pair of quotes around the whole of it removed.
+ * The template as typed, without a pair of quotes that encloses all of it and appears nowhere inside.
  *
  * @param rest what follows `template`
  */
 function unquoted(rest: string): string {
   const match = /^(["'])([\s\S]*)\1$/.exec(rest)
+  const [, quote = '', inner = ''] = match ?? []
 
-  return (match?.[2] ?? rest).trim()
+  return (match === null || inner.includes(quote) ? rest : inner).trim()
 }
 
 /**
