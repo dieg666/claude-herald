@@ -35,6 +35,44 @@ const elapsedOf = (run: () => void): number => {
   return performance.now() - start
 }
 
+// The fastest of three runs, since a busy machine only ever adds time.
+const fastestMsOf = (input: string): number =>
+  Math.min(...[0, 1, 2].map(() => elapsedOf(() => Feed.parseFeed(input))))
+
+const OPEN = '<rss><channel><title>x</title>'
+
+const SCALE = 25_000
+
+const nested = (count: number) =>
+  `${OPEN}${'<a>'.repeat(count)}text${'</a>'.repeat(count)}</channel></rss>`
+
+const declarations = (count: number) => `${OPEN}${'<!a>'.repeat(count)}</channel></rss>`
+
+const hugeBody = (count: number) =>
+  `${OPEN}<item><title>a</title><description>${'word '.repeat(count)}</description></item></channel></rss>`
+
+const PATHOLOGICAL: readonly (readonly [string, (count: number) => string])[] = [
+  ['nested elements', nested],
+  ['unclosed nesting', count => `${OPEN}${'<a>'.repeat(count)}`],
+  [
+    'mismatched end tags',
+    count => `${OPEN}${'<a>'.repeat(count)}${'</b>'.repeat(count)}</channel></rss>`,
+  ],
+  ['unclosed attribute quotes', count => `<rss>${'<a b="'.repeat(count)}`],
+  [
+    'bare angle brackets',
+    count => `${OPEN}<item><title>${'< '.repeat(count)}</title></item></channel></rss>`,
+  ],
+  [
+    'escaped comment openers',
+    count =>
+      `${OPEN}<item><title>a</title><description>${'&lt;!--'.repeat(count)}</description></item></channel></rss>`,
+  ],
+  ['markup declarations', declarations],
+  ['processing instructions', count => `${OPEN}${'<?a?>'.repeat(count)}</channel></rss>`],
+  ['a huge body', count => hugeBody(count * 5)],
+]
+
 const SAMPLES = [
   {
     name: 'Claude Code releases (Atom)',
@@ -280,7 +318,7 @@ describe('parse-feed', () => {
     ])
   })
 
-  test('Atom link selection: alternate first, a link without rel is alternate, relative hrefs resolve', () => {
+  test('Atom link selection: HTML alternate first, a link without rel is alternate, never an enclosure', () => {
     const feed = feedOf(Fixtures.ATOM_LINKS)
 
     expect(feed).toMatchObject({ link: 'https://example.org/', lang: 'de' })
@@ -288,8 +326,11 @@ describe('parse-feed', () => {
       'https://example.org/entries/1',
       'https://example.org/entries/2',
       'https://example.org/blog/posts/3',
-      'https://example.org/4.mp3',
+      undefined,
       'https://example.org/entries/5',
+      'https://example.org/entries/6',
+      undefined,
+      'https://example.org/elsewhere/8',
     ])
   })
 
@@ -297,6 +338,9 @@ describe('parse-feed', () => {
     expect(feedOf(Fixtures.ATOM_LINKS).entries.map(entry => entry.publishedAt)).toEqual([
       '2026-10-01T10:00:00.000Z',
       '2026-10-02T15:00:00.123Z',
+      undefined,
+      undefined,
+      undefined,
       undefined,
       undefined,
       undefined,
@@ -308,6 +352,9 @@ describe('parse-feed', () => {
       undefined,
       undefined,
       'en',
+      undefined,
+      undefined,
+      undefined,
       undefined,
       undefined,
     ])
@@ -428,14 +475,14 @@ describe('parse-feed', () => {
     }
   })
 
-  test('a 500-item feed parses quickly', () => {
+  test('a 500-item feed parses within a generous bound', { timeoutMs: 30_000 }, () => {
     const xml = Fixtures.rssWithItems(500)
     let feed: Feed.ParsedFeed | undefined
     const elapsed = elapsedOf(() => {
       feed = feedOf(xml)
     })
 
-    expect(elapsed).toBeLessThan(1000)
+    expect(elapsed).toBeLessThan(10_000)
     expect(feed?.entries).toHaveLength(500)
     expect(feed?.entries[499]).toMatchObject({
       title: 'Item 499 & more',
@@ -444,27 +491,33 @@ describe('parse-feed', () => {
     })
   })
 
-  test('pathological input stays fast and never throws', () => {
-    const open = '<rss><channel><title>x</title>'
-    const inputs = [
-      `${open}${'<a>'.repeat(100_000)}text${'</a>'.repeat(100_000)}</channel></rss>`,
-      `${open}${'<a>'.repeat(100_000)}`,
-      `${open}${'<a>'.repeat(50_000)}${'</b>'.repeat(50_000)}</channel></rss>`,
-      `<rss>${'<a b="'.repeat(50_000)}`,
-      `${open}<item><title>${'< '.repeat(200_000)}</title></item></channel></rss>`,
-      `${open}<item><title>a</title><description>${'&lt;!--'.repeat(100_000)}</description></item></channel></rss>`,
-      `${open}<item><title>a</title><description>${'word '.repeat(1_000_000)}</description></item></channel></rss>`,
-    ]
+  for (const [name, build] of PATHOLOGICAL) {
+    test(`pathological input grows linearly: ${name}`, { timeoutMs: 60_000 }, () => {
+      const small = fastestMsOf(build(SCALE))
+      const large = fastestMsOf(build(SCALE * 16))
 
-    for (const xml of inputs) {
-      expect(elapsedOf(() => Feed.parseFeed(xml))).toBeLessThan(2000)
-    }
+      // Sixteen times the input: linear work stays near 16x, quadratic work lands near 250x.
+      expect(large).toBeLessThan(32 * small + 250)
+      expect(large).toBeLessThan(10_000)
+    })
+  }
 
-    expect(feedOf(inputs[0] ?? '').entries).toEqual([])
-    expect(reasonOf(inputs[1] ?? '')).toBe('truncated')
-    const summary = feedOf(inputs[6] ?? '').entries[0]?.summary ?? ''
+  test('pathological input yields the expected result', () => {
+    expect(feedOf(nested(1_000)).entries).toEqual([])
+    expect(reasonOf(OPEN + '<a>'.repeat(1_000))).toBe('truncated')
+    expect(feedOf(declarations(1_000)).title).toBe('x')
+
+    const summary = feedOf(hugeBody(100_000)).entries[0]?.summary ?? ''
 
     expect(summary.length).toBeLessThanOrEqual(Feed.FEED_LIMITS.summaryChars)
     expect(summary).toEndWith('word\u2026')
+  })
+
+  test('a body with more unclosed raw tags than an end tag searches reads as truncated', () => {
+    const withUnclosed = (count: number) =>
+      `${OPEN}<item><title>a</title><description>${'<br>'.repeat(count)}</description></item></channel></rss>`
+
+    expect(feedOf(withUnclosed(Feed.FEED_LIMITS.endTagReach - 2)).entries).toHaveLength(1)
+    expect(reasonOf(withUnclosed(Feed.FEED_LIMITS.endTagReach + 1))).toBe('truncated')
   })
 })

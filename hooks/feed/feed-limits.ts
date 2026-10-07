@@ -8,7 +8,7 @@ export const FEED_LIMITS = {
   htmlSourceChars: 20_000,
   /** Deepest element nesting kept as a tree; deeper markup only adds text. */
   depth: 64,
-  /** How many open elements an end tag searches for its match. */
+  /** How many open elements an end tag searches; a body with more unclosed raw tags reads as truncated. */
   endTagReach: 16,
   /** Extra entity-decoding passes a title gets for double-encoded text. */
   entityPasses: 3,

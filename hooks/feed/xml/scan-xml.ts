@@ -142,10 +142,10 @@ export function scanXml(xml: string): XmlScan {
 
     if (xml.startsWith('<!', lt)) {
       let end = xml.indexOf('>', lt + 2)
-      const subset = xml.indexOf('[', lt + 2)
+      const subset = end < 0 ? -1 : xml.slice(lt + 2, end).indexOf('[')
 
-      if (subset >= 0 && subset < end) {
-        const subsetEnd = xml.indexOf(']', subset)
+      if (subset >= 0) {
+        const subsetEnd = xml.indexOf(']', lt + 2 + subset)
         end = subsetEnd < 0 ? -1 : xml.indexOf('>', subsetEnd)
       }
 
