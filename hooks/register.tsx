@@ -2,6 +2,7 @@ import type { EngineInterface, Register } from 'claude-code'
 import { atom, read, update } from 'claude-code'
 
 import type { Host } from './host'
+import Refresh from './refresh'
 import State from './state'
 import Store from './store'
 
@@ -13,6 +14,9 @@ const SUMMARIES = atom({ plugin: 'news', key: 'summaries' } as const, State.INIT
 const BAND = atom({ plugin: 'news', key: 'band' } as const, State.INITIAL_STATE.band)
 const PANE = atom({ plugin: 'news', key: 'pane' } as const, State.INITIAL_STATE.pane)
 const STATUS = atom({ plugin: 'news', key: 'status' } as const, State.INITIAL_STATE.status)
+
+// The refresh timer and the run in flight, for this load of the module.
+const REFRESH = Refresh.refreshLoopOf()
 
 /**
  * Binds the Host from a hook's `$`, each engine call spelled in full.
@@ -47,6 +51,15 @@ function hostOf($: EngineInterface): Host {
 }
 
 /**
+ * Restarts the refresh timer at the stored interval, cancelling the one before, and kicks one refresh off, not awaited.
+ *
+ * @param $ the hook's engine
+ */
+function restartRefresh($: EngineInterface): void {
+  void Refresh.restartRefresh(hostOf($), REFRESH)
+}
+
+/**
  * Registers the news mod's hooks.
  *
  * @param on the engine's registrar
@@ -54,6 +67,7 @@ function hostOf($: EngineInterface): Host {
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     await State.hydrate(hostOf($)).catch(() => undefined)
+    restartRefresh($)
 
     return next(e)
   })

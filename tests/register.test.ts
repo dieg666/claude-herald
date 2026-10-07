@@ -1,7 +1,9 @@
-import { describe, expect, test } from 'claude-code/testing'
+import type { On } from 'claude-code'
+import { describe, expect, mock, test } from 'claude-code/testing'
 
 import Defaults from '../hooks/defaults'
 import Fixtures from './fixtures'
+import Feeds from './fixtures/feeds'
 
 describe('register', () => {
   const OWN_SOURCE = { ...Defaults.FACTORY_SOURCES[6], id: 'own', isFactory: false }
@@ -153,4 +155,134 @@ describe('register', () => {
       })
     },
   )
+
+  const FEED = Fixtures.sourceAt('feed')
+  const OFF = Fixtures.sourceAt('off', { isEnabled: false })
+  const PERIOD = 2 * 60_000
+
+  const webOn = (on: On, pages: Map<string, string>) => {
+    const fetched: string[] = []
+
+    on('http.fetch', ($, e) => {
+      fetched.push(e.url)
+
+      const text = pages.get(e.url)
+
+      return text === undefined
+        ? { deny: 'offline' }
+        : { value: { status: 200, ok: true, headers: {}, text } }
+    })
+
+    return fetched
+  }
+
+  test('session.start refreshes at once, then every refreshMinutes on the clock', async ($, on) => {
+    const clock = mock.clock(on)
+    const stored = Fixtures.storeOn(on, { sources: [FEED, OFF], settings: { refreshMinutes: 2 } })
+    const fetched = webOn(on, new Map([[FEED.url, Feeds.rssWithItems(2)]]))
+
+    on('session.start', () => ({ cwd: '/work' }))
+
+    await $.session.start(Fixtures.SESSION)
+    await clock.settle()
+
+    expect(fetched).toEqual([FEED.url])
+    expect(Object.keys(stored.get('items') as object)).toEqual(['feed'])
+
+    await clock.advance(PERIOD - 1)
+
+    expect(fetched.length).toBe(1)
+
+    await clock.advance(1)
+
+    expect(fetched).toEqual([FEED.url, FEED.url])
+
+    await clock.advance(PERIOD)
+
+    expect(fetched.length).toBe(3)
+  })
+
+  test('a second session.start replaces the timer instead of adding one', async ($, on) => {
+    const clock = mock.clock(on)
+
+    Fixtures.storeOn(on, { sources: [FEED], settings: { refreshMinutes: 2 } })
+
+    const fetched = webOn(on, new Map([[FEED.url, Feeds.rssWithItems(2)]]))
+
+    on('session.start', () => ({ cwd: '/work' }))
+
+    await $.session.start(Fixtures.SESSION)
+    await clock.settle()
+    await $.session.start(Fixtures.SESSION)
+    await clock.settle()
+
+    const before = fetched.length
+
+    await clock.advance(PERIOD)
+
+    expect(fetched.length).toBe(before + 1)
+
+    await clock.advance(PERIOD)
+
+    expect(fetched.length).toBe(before + 2)
+  })
+
+  test('new items after the first load show one grouped toast', async ($, on) => {
+    const clock = mock.clock(on)
+    const toasts: string[] = []
+    const pages = new Map([[FEED.url, Feeds.rssWithItems(2)]])
+
+    Fixtures.storeOn(on, { sources: [FEED], settings: { refreshMinutes: 2 } })
+    webOn(on, pages)
+    on('ui.toast', ($, e) => {
+      toasts.push(e.text)
+
+      return { value: undefined }
+    })
+    on('session.start', () => ({ cwd: '/work' }))
+
+    await $.session.start(Fixtures.SESSION)
+    await clock.settle()
+
+    expect(toasts).toEqual([])
+
+    pages.set(FEED.url, Feeds.rssWithItems(5))
+    await clock.advance(PERIOD)
+
+    expect(toasts).toEqual(['3 new: Item 2 & more …'])
+  })
+
+  test('network and model failures keep the items, log to debug and retry next interval', async ($, on) => {
+    const clock = mock.clock(on)
+    const page = Fixtures.sourceAt('page', { kind: 'page', url: 'https://example.com/news' })
+    const kept = { feed: [Fixtures.itemAt('a')], page: [Fixtures.itemAt('b')] }
+    const logs: string[] = []
+
+    const stored = Fixtures.storeOn(on, {
+      sources: [FEED, page],
+      settings: { refreshMinutes: 2 },
+      items: kept,
+    })
+    const fetched = webOn(on, new Map([[page.url, '<a href="/news/a">A</a>']]))
+
+    on('model.complete', () => ({ deny: 'model unavailable' }))
+    on('ui.log', ($, e) => {
+      logs.push(`${e.to ?? 'transcript'}: ${e.text}`)
+
+      return { value: undefined }
+    })
+    on('session.start', () => ({ cwd: '/work' }))
+
+    await $.session.start(Fixtures.SESSION)
+    await clock.settle()
+
+    expect(stored.get('items')).toEqual(kept)
+    expect(logs.length).toBe(2)
+    expect(logs.every(line => line.startsWith('debug: news: '))).toBe(true)
+
+    await clock.advance(PERIOD)
+
+    expect(fetched.length).toBe(4)
+    expect(stored.get('items')).toEqual(kept)
+  })
 })
