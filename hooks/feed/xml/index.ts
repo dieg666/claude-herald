@@ -1,0 +1,13 @@
+export * from './child-of.js'
+export * from './children-of.js'
+export * from './decode-entities.js'
+export * from './inner-html-of.js'
+export * from './local-name-of.js'
+export * from './named-entities.js'
+export * from './scan-xml.js'
+export * from './text-of.js'
+export * from './windows-1252.js'
+export * from './xml-element.js'
+export * from './xml-scan.js'
+
+export * as default from '.'
