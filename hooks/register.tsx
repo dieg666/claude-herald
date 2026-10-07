@@ -5,6 +5,7 @@ import type { Host } from './host'
 import Refresh from './refresh'
 import State from './state'
 import Store from './store'
+import Summaries from './summaries'
 
 const SOURCES = atom({ plugin: 'news', key: 'sources' } as const, State.INITIAL_STATE.sources)
 const SETTINGS = atom({ plugin: 'news', key: 'settings' } as const, State.INITIAL_STATE.settings)
@@ -15,8 +16,16 @@ const BAND = atom({ plugin: 'news', key: 'band' } as const, State.INITIAL_STATE.
 const PANE = atom({ plugin: 'news', key: 'pane' } as const, State.INITIAL_STATE.pane)
 const STATUS = atom({ plugin: 'news', key: 'status' } as const, State.INITIAL_STATE.status)
 
-// The refresh timer and the run in flight, for this load of the module.
-const REFRESH = Refresh.refreshLoopOf()
+// Bounds the mod's model calls for summaries, at most two in flight; other model work may share it.
+const MODEL_LIMITER = Summaries.limiterOf(Summaries.SUMMARY_LIMITS.concurrentRequests)
+
+// The summary requests in flight and the queue ordering their writes, for this load of the module.
+const SUMMARY_JOBS = Summaries.summaryJobsOf(MODEL_LIMITER)
+
+// The refresh timer and the run in flight, for this load of the module; new items get one-line summaries.
+const REFRESH = Refresh.refreshLoopOf((host, run, signal) =>
+  Summaries.summarizeNew(host, SUMMARY_JOBS, run.newItems, signal),
+)
 
 /**
  * Binds the Host from a hook's `$`, each engine call spelled in full.

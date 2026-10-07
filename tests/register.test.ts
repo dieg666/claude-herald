@@ -326,4 +326,93 @@ describe('register', () => {
     expect(fetched.length).toBe(2)
     expect(Object.keys(stored.get('items') as object)).toEqual(['feed'])
   })
+  test(
+    'a first load makes no summary call; a later run with one new item makes exactly one, cached and in state',
+    { plugins: [Fixtures.STATE_PEEK] },
+    async ($, on) => {
+      const clock = mock.clock(on)
+      const pages = new Map([[FEED.url, Feeds.rssWithItems(2)]])
+      const stored = Fixtures.storeOn(on, { sources: [FEED], settings: { refreshMinutes: 2 } })
+      const asked: string[] = []
+      const NEW = 'feed:https://example.com/2'
+
+      webOn(on, pages)
+      on('ui.toast', () => ({ value: undefined }))
+      on('model.complete', ($, e) => {
+        asked.push(e.prompt)
+
+        return { value: Fixtures.answerOf('One line.\nAnother line.') }
+      })
+      on('session.start', () => ({ cwd: '/work' }))
+
+      await $.session.start(Fixtures.SESSION)
+      await clock.settle()
+
+      expect(asked).toEqual([])
+
+      pages.set(FEED.url, Feeds.rssWithItems(3))
+      await clock.advance(PERIOD)
+
+      expect(asked.length).toBe(1)
+      expect(asked[0]).toContain('Title: Item 2 & more')
+      expect(stored.get('summaries')).toEqual([
+        { itemId: NEW, lang: 'feed', kind: 'short', text: 'One line. Another line.' },
+      ])
+      expect(peeked((await $.command.run(Fixtures.PEEK)).text)).toMatchObject({
+        summaries: { [NEW]: 'One line. Another line.' },
+      })
+
+      await clock.advance(PERIOD)
+
+      expect(asked.length).toBe(1)
+    },
+  )
+
+  test(
+    'summary requests for new items run at most two at a time',
+    { timeoutMs: 20_000 },
+    async ($, on) => {
+      const clock = mock.clock(on)
+      const pages = new Map([[FEED.url, Feeds.rssWithItems(1)]])
+      const stored = Fixtures.storeOn(on, { sources: [FEED], settings: { refreshMinutes: 2 } })
+      let calls = 0
+      let inFlight = 0
+      let most = 0
+
+      webOn(on, pages)
+      on('ui.toast', () => ({ value: undefined }))
+      on('model.complete', async () => {
+        calls += 1
+        inFlight += 1
+        most = Math.max(most, inFlight)
+        await clock.sleep(1000)
+        inFlight -= 1
+
+        return { value: Fixtures.answerOf('Summary.') }
+      })
+      on('session.start', () => ({ cwd: '/work' }))
+
+      await $.session.start(Fixtures.SESSION)
+      await clock.settle()
+
+      pages.set(FEED.url, Feeds.rssWithItems(6))
+      await clock.advance(PERIOD)
+
+      expect([calls, inFlight]).toEqual([2, 2])
+
+      await clock.advance(1000)
+
+      expect([calls, inFlight]).toEqual([4, 2])
+
+      await clock.advance(1000)
+
+      expect([calls, inFlight]).toEqual([5, 1])
+
+      await clock.advance(1000)
+
+      expect(inFlight).toBe(0)
+      expect(most).toBe(2)
+      expect((stored.get('summaries') as unknown[]).length).toBe(5)
+    },
+  )
 })
