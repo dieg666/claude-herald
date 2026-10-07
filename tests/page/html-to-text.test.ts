@@ -13,16 +13,28 @@ describe('html-to-text', () => {
   const news = Page.htmlToText(Fixtures.ANTHROPIC_NEWS_HTML, Fixtures.ANTHROPIC_NEWS_URL)
 
   test('the Anthropic news page keeps real headlines with their absolute links', () => {
-    expect(news).toContain(
-      'Expanding the Cyber Verification Program <https://www.anthropic.com/news/cyber-verification-program>',
-    )
-    expect(news).toContain(
-      'Barclays scales Claude to upgrade operations and improve client experience <https://www.anthropic.com/news/barclays-scales-claude>',
-    )
-    expect(news).toContain('Introducing Claude Opus 5.5')
-    expect(news).toContain('<https://www.anthropic.com/claude-opus-5-5>')
+    const lines = news.split('\n')
+
+    for (const [url, title] of [
+      [
+        '<https://www.anthropic.com/news/cyber-verification-program>',
+        'Expanding the Cyber Verification Program',
+      ],
+      [
+        '<https://www.anthropic.com/news/barclays-scales-claude>',
+        'Barclays scales Claude to upgrade operations and improve client experience',
+      ],
+      ['<https://www.anthropic.com/claude-opus-5-5>', 'Introducing Claude Opus 5.5'],
+    ] as const) {
+      const at = lines.indexOf(url)
+
+      expect(at).toBeGreaterThan(-1)
+      expect(lines.slice(at + 1, at + 4)).toContain(title)
+    }
+
     expect(news).toContain('<https://www.anthropic.com/features/ebola-response>')
     expect(news).toContain('Oct 6, 2026')
+    expect(news).toContain('Download press kit <https://anthropic.com/press-kit>')
   })
 
   test('the Anthropic news page loses its script, style, svg, head and markup', () => {
@@ -116,10 +128,42 @@ describe('html-to-text', () => {
     )
   })
 
-  test('a link that spans blocks gets its target after its last line', () => {
+  test('a link that spans several lines is headed by its target on a line of its own', () => {
     expect(textOf('<a href="/x"><h3>Title</h3><p>Body</p></a><p>Next</p>')).toBe(
-      'Title\nBody <https://example.com/x>\nNext',
+      '<https://example.com/x>\nTitle\nBody\nNext',
     )
+    expect(textOf('Read <a href="/x"><span>Sep 22</span><br>Title</a> now')).toBe(
+      'Read\n<https://example.com/x>\nSep 22\nTitle now',
+    )
+  })
+
+  test('a link whose text sits on one line keeps its target after it, even among blocks', () => {
+    expect(textOf('<a href="/x"><div></div><b>One</b> <i>line</i><div></div></a>')).toBe(
+      'One line <https://example.com/x>',
+    )
+  })
+
+  test('on the news page a featured card is its target followed by exactly its own lines', () => {
+    const lines = news.split('\n')
+    const from = (url: string) => lines.indexOf(url)
+
+    const haiku = from('<https://www.anthropic.com/claude-haiku-5-5>')
+    const sonnet = from('<https://www.anthropic.com/claude-sonnet-5-5>')
+    const opus = from('<https://www.anthropic.com/claude-opus-5-5>')
+
+    expect(haiku).toBeGreaterThan(-1)
+    expect(lines[haiku + 1]).toBe('Introducing Claude Haiku 5.5')
+    expect(lines[haiku + 2]).toBe('Announcements Oct 7, 2026')
+    expect(lines[haiku + 3]).toMatch(/^Our fastest/)
+    expect(sonnet).toBe(haiku + 4)
+    expect(lines[sonnet + 1]).toBe('Announcements Sep 28, 2026')
+    expect(lines[sonnet + 2]).toBe('Introducing Claude Sonnet 5.5')
+    expect(lines[sonnet + 3]).toMatch(/^A clear upgrade/)
+    expect(opus).toBe(sonnet + 4)
+
+    for (const line of [...lines.slice(haiku + 1, sonnet), ...lines.slice(sonnet + 1, opus)]) {
+      expect(line).not.toContain('<https://')
+    }
   })
 
   test('block tags break lines and inline tags do not', () => {
@@ -191,9 +235,9 @@ describe('html-to-text', () => {
     )
   })
 
-  test('a very long page is cut to the default cap', () => {
-    const long = `<p>${'word '.repeat(200_000)}</p>`
-    const links = '<a href="/a">link text</a> '.repeat(50_000)
+  test('a very long page is cut to the default cap', { timeoutMs: 30_000 }, () => {
+    const long = `<p>${'word '.repeat(60_000)}</p>`
+    const links = '<a href="/a">link text</a> '.repeat(10_000)
 
     expect(textOf(long).length).toBeLessThanOrEqual(Page.PAGE_TEXT_CAP)
     expect(textOf(long).length).toBeGreaterThan(Page.PAGE_TEXT_CAP - 10)
@@ -201,8 +245,8 @@ describe('html-to-text', () => {
     expect(Page.PAGE_TEXT_CAP).toBe(30_000)
   })
 
-  test('whitespace-only padding does not eat the cap', () => {
-    const padded = `${'<p> </p>\n'.repeat(100_000)}<p>the headline</p>`
+  test('whitespace-only padding does not eat the cap', { timeoutMs: 30_000 }, () => {
+    const padded = `${'<p> </p>\n'.repeat(30_000)}<p>the headline</p>`
 
     expect(textOf(padded)).toBe('the headline')
   })

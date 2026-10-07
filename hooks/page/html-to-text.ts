@@ -74,19 +74,17 @@ const BLOCK = new Set([
 ])
 
 /**
- * A page's markup as plain text a model can read: tags dropped, script, style, svg, noscript and
- * head content removed, entities decoded, whitespace collapsed to one line per block, and each
- * link followed by its resolved target as `text <https://...>`. Only http(s) links are kept.
+ * A page's markup as plain text a model can read, with each http(s) link's resolved target kept.
  *
  * @param html the page's markup, which may be malformed
  * @param pageUrl the page's address, which relative links resolve against
  * @param cap the most characters to return
- * @returns the text, never longer than `cap`
+ * @returns lines of text, a one-line link as `text <url>` and a link over several lines headed by `<url>` on its own line
  */
 export const htmlToText = (html: string, pageUrl: string, cap = PAGE_TEXT_CAP) => {
   const parts: string[] = []
   let visible = 0
-  let link: { url: string; visibleAtOpen: number } | undefined
+  let link: { url: string; visibleAtOpen: number; partsAtOpen: number } | undefined
 
   const text = (raw: string) => {
     const piece = collapsedTextOf(decodeEntities(raw))
@@ -99,8 +97,31 @@ export const htmlToText = (html: string, pageUrl: string, cap = PAGE_TEXT_CAP) =
     visible += piece.length - (piece.match(/ /g)?.length ?? 0)
   }
 
+  const textLinesFrom = (from: number) => {
+    let lines = 0
+    let inLine = false
+
+    for (let at = from; at < parts.length; at++) {
+      const part = parts[at] ?? ''
+
+      if (part === '\n') {
+        inLine = false
+      } else if (!inLine && part.trim() !== '') {
+        lines++
+        inLine = true
+      }
+    }
+
+    return lines
+  }
+
   const closeLink = () => {
-    if (link !== undefined && visible > link.visibleAtOpen) {
+    if (link !== undefined && visible > link.visibleAtOpen && textLinesFrom(link.partsAtOpen) > 1) {
+      const heading = `<${link.url}>`
+
+      parts.splice(link.partsAtOpen, 0, '\n', heading, '\n')
+      visible += heading.length
+    } else if (link !== undefined && visible > link.visibleAtOpen) {
       const trailing: string[] = []
 
       while (parts.length > 0 && parts[parts.length - 1]?.trim() === '') {
@@ -195,7 +216,8 @@ export const htmlToText = (html: string, pageUrl: string, cap = PAGE_TEXT_CAP) =
 
       const url = resolvePageUrl(tag.attributes.get('href') ?? '', pageUrl)
 
-      link = url === undefined ? undefined : { url, visibleAtOpen: visible }
+      link =
+        url === undefined ? undefined : { url, visibleAtOpen: visible, partsAtOpen: parts.length }
     } else if (BLOCK.has(tag.name)) {
       parts.push('\n')
     } else if (!INLINE.has(tag.name)) {
