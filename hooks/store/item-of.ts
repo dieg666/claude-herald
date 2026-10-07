@@ -3,7 +3,18 @@ import { isRecord } from './is-record.js'
 import { textOf } from './text-of.js'
 
 /**
- * A stored value as an Item, its known fields only, or undefined when a required field is missing.
+ * A string that is not blank, else undefined.
+ *
+ * @param value one stored field
+ */
+function filledOf(value: unknown): string | undefined {
+  const text = textOf(value)
+
+  return text === undefined || text.trim() === '' ? undefined : text
+}
+
+/**
+ * A stored value as an Item, its known fields only, or undefined when a required field is missing or blank.
  *
  * @param value one stored item
  */
@@ -12,10 +23,10 @@ export function itemOf(value: unknown): Item | undefined {
     return undefined
   }
 
-  const id = textOf(value.id)
-  const sourceId = textOf(value.sourceId)
-  const title = textOf(value.title)
-  const url = textOf(value.url)
+  const id = filledOf(value.id)
+  const sourceId = filledOf(value.sourceId)
+  const title = filledOf(value.title)
+  const url = filledOf(value.url)
 
   if (id === undefined || sourceId === undefined || title === undefined || url === undefined) {
     return undefined

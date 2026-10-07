@@ -18,4 +18,10 @@ describe('item-of', () => {
     expect(Store.itemOf(noUrl)).toBeUndefined()
     expect(Store.itemOf(null)).toBeUndefined()
   })
+
+  test('undefined when the id, source, title or url is blank', () => {
+    for (const field of ['id', 'sourceId', 'title', 'url'] as const) {
+      expect(Store.itemOf({ ...Fixtures.itemAt('a'), [field]: '  ' }), field).toBeUndefined()
+    }
+  })
 })

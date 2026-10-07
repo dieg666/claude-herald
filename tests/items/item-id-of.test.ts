@@ -42,4 +42,11 @@ describe('item-id-of', () => {
   test('the same entry from two sources gets two ids', () => {
     expect(Items.itemIdOf('a', FULL)).not.toBe(Items.itemIdOf('b', FULL))
   })
+
+  test('an entry with nothing to identify it has no id', () => {
+    expect(
+      Items.itemIdOf('hn', { guid: ' ', id: '', link: undefined, url: '  ', title: '  ' }),
+    ).toBeUndefined()
+    expect(Items.itemIdOf('hn', {})).toBeUndefined()
+  })
 })
