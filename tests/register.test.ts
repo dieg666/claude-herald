@@ -96,6 +96,7 @@ describe('register', () => {
     async ($, on) => {
       const logs: string[] = []
 
+      Fixtures.registerOn(on)
       on('store.get', () => ({ deny: 'store unavailable' }))
       on('ui.log', ($, e) => {
         logs.push(`${e.to ?? 'transcript'}: ${e.text}`)
@@ -591,4 +592,18 @@ describe('register', () => {
 
     expect(fetched.length).toBe(2)
   })
+
+  for (const source of ['clear', 'resume', 'fork'] as const) {
+    test(`classic.SessionStart ${source} registers /news again`, async ($, on) => {
+      Fixtures.storeOn(on, { sources: [] })
+
+      const registered = Fixtures.registerOn(on)
+
+      on('classic.SessionStart', () => ({}))
+
+      await $.classic.SessionStart({ source })
+
+      expect(registered).toEqual([expect.objectContaining({ name: 'news', immediate: true })])
+    })
+  }
 })

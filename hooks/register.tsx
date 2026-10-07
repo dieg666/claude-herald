@@ -4,6 +4,7 @@ import { atom, read, update } from 'claude-code'
 import Commands from './commands'
 import Detect from './deps/detect'
 import type { Host } from './host'
+import Names from './names'
 import Refresh from './refresh'
 import State from './state'
 import Store from './store'
@@ -109,7 +110,7 @@ async function registerNews($: EngineInterface): Promise<void> {
     })
   } catch (error) {
     $.ui.log(
-      `news: could not register /news: ${error instanceof Error ? error.message : String(error)}`,
+      `news: could not register /${Names.COMMAND_NAME}: ${error instanceof Error ? error.message : String(error)}`,
       { to: 'debug' },
     )
   }
@@ -143,6 +144,7 @@ export const register: Register = on => {
   // /clear, /resume and /branch reset $.state without a session.start.
   on('classic.SessionStart', { source: ['clear', 'resume', 'fork'] }, async ($, e, next) => {
     await State.hydrate(hostOf($)).catch(() => undefined)
+    await registerNews($)
 
     return next(e)
   }).catch(($, e, next) => next(e))
