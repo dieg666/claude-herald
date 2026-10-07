@@ -24,6 +24,17 @@ describe('go-detector', () => {
     })
   })
 
+  test('a +incompatible version is in use without the suffix; the range keeps it', async () => {
+    const { dependencies } = await Fixtures.scanOf({
+      'go.mod': 'module example.com/app\n\nrequire github.com/docker/docker v27.1.1+incompatible\n',
+    })
+
+    expect(Fixtures.depNamed(dependencies, 'github.com/docker/docker')).toMatchObject({
+      versionInUse: 'v27.1.1',
+      range: 'v27.1.1+incompatible',
+    })
+  })
+
   test('indirect requirements and modules replaced by a local directory are left out', async () => {
     const { dependencies } = await Fixtures.scanOf(KUBERNETES)
 

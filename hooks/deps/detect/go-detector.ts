@@ -60,7 +60,7 @@ function goModOf(text: string): GoMod {
 }
 
 /**
- * Go: go.mod direct requirements (the version is the one in use), go.work `use` members; indirect requirements, the project's own modules and modules replaced by a local directory are left out.
+ * Go: go.mod direct requirements (the version is the one in use, without `+incompatible`), go.work `use` members; indirect requirements, the project's own modules and modules replaced by a local directory are left out.
  */
 export const GO_DETECTOR: Detector = {
   isManifest: name => name === 'go.mod',
@@ -100,7 +100,7 @@ export const GO_DETECTOR: Detector = {
             name: require.path,
             manifestPath: manifest,
             isDev: false,
-            versionInUse: require.version,
+            versionInUse: require.version.replace(/\+incompatible$/, ''),
             range: require.version,
           }),
         ),
