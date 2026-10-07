@@ -1,4 +1,5 @@
 export * from './collapsed-text-of.js'
+export * from './content-hash-of.js'
 export * from './control-characters.js'
 export * from './cut-to.js'
 export * from './decode-entities.js'
