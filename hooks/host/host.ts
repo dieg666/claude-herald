@@ -1,5 +1,6 @@
 import type {
   FsEntry,
+  HttpInit,
   HttpResponse,
   ModelCompleteRequest,
   ModelCompleteResult,
@@ -42,9 +43,12 @@ export type Host = {
   debug: (text: string) => void
 
   /**
-   * `$.http.fetch(url)`: the status and the body once read; rejects when the request fails.
+   * `$.http.fetch(url, init)`: the status and the body once read; rejects when the request fails. `init` carries request headers only.
    */
-  httpFetch: (url: string) => Promise<Pick<HttpResponse, 'status' | 'ok' | 'text'>>
+  httpFetch: (
+    url: string,
+    init?: Pick<HttpInit, 'headers'>,
+  ) => Promise<Pick<HttpResponse, 'status' | 'ok' | 'text'>>
 
   /**
    * `$.model.complete(request, { signal })`.

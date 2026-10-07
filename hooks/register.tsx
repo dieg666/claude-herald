@@ -54,7 +54,7 @@ function hostOf($: EngineInterface): Host {
     },
     userLanguage: async () => Store.userLanguageOf(await $.settings.read()),
     debug: text => $.ui.log(text, { to: 'debug' }),
-    httpFetch: url => $.http.fetch(url),
+    httpFetch: (url, init) => $.http.fetch(url, init),
     modelComplete: (request, signal) => $.model.complete(request, { signal }),
     toast: text => $.ui.toast(text),
     clockNow: () => $.clock.now(),

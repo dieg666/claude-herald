@@ -21,6 +21,7 @@ export function fakeHostOf(entries: Readonly<Record<string, unknown>> = {}, user
   const state: Record<string, unknown> = JSON.parse(JSON.stringify(State.INITIAL_STATE))
   const web = new Map<string, { status: number; text: string } | Error>()
   const fetched: string[] = []
+  const headers: (Record<string, string> | undefined)[] = []
   const replies: ModelCompleteResult[] = []
   const asked: { request: ModelCompleteRequest; signal?: AbortSignal }[] = []
   const toasts: string[] = []
@@ -64,8 +65,9 @@ export function fakeHostOf(entries: Readonly<Record<string, unknown>> = {}, user
     debug: text => {
       logs.push(text)
     },
-    httpFetch: async url => {
+    httpFetch: async (url, init) => {
       fetched.push(url)
+      headers.push(init?.headers)
 
       const page = web.get(url) ?? new Error(`no page at ${url}`)
 
@@ -141,6 +143,7 @@ export function fakeHostOf(entries: Readonly<Record<string, unknown>> = {}, user
     state,
     web,
     fetched,
+    headers,
     replies,
     asked,
     toasts,
