@@ -24,7 +24,7 @@ types/index.d.ts             the $.state contract and the shared domain types (S
 tests/<concern>/*.test.ts    mirrors hooks/; shared fixtures in tests/fixtures/, one export per file
 ```
 
-Concern folders: `names` (plugin, command, pane ids, store keys, hotkeys), `defaults` (factory sources and settings), `host` (the Host type), `feed` (RSS/Atom parser, pure), `page` (HTML to text, content hash, extraction prompt and validation), `items` (ids, dedupe, merge, caps), `store` (persisted data over the Host), `state` (initial state, hydrate), `refresh` (the fetch loop, new-item toasts), `summaries` (Haiku summaries, cache, language, concurrency), `actions` (open, summarize, save, mark read, copy), `band` (AbovePrompt view, rotation), `pane` (Pane view), `commands` (`/news` parsing and handlers).
+Concern folders: `names` (plugin, command, pane ids, store keys, hotkeys), `defaults` (factory sources and settings), `host` (the Host type), `feed` (RSS/Atom parser, pure), `page` (HTML to text, content hash, extraction prompt and validation), `items` (ids, dedupe, merge, caps), `store` (persisted data over the Host), `state` (initial state, hydrate), `refresh` (the fetch loop, new-item toasts), `summaries` (Haiku summaries, cache, language, concurrency), `actions` (open, summarize, save, mark read, copy), `band` (AbovePrompt view, rotation), `pane` (Pane view), `commands` (`/news` parsing and handlers), `deps/detect` (the project's stack from its manifests and lockfiles: the walk, workspace members, one detector per ecosystem, pure parsers).
 
 ## Rules the engine's static analysis enforces
 
@@ -48,7 +48,7 @@ Concern folders: `names` (plugin, command, pane ids, store keys, hotkeys), `defa
 
 ## Persisted and session state
 
-- `$.store` keys (all owned by `hooks/store/`): `sources`, `settings`, `saved`, `seen` (ids per source), `items` (last items per source), `pageHashes`, `summaries` (cache keyed `<itemId>|<lang>|<kind>`, capped).
+- `$.store` keys (all owned by `hooks/store/`): `sources`, `settings`, `saved`, `seen` (ids per source), `items` (last items per source), `pageHashes`, `summaries` (cache keyed `<itemId>|<lang>|<kind>`, capped), `deps` (per project root: stack settings, followed dependencies, manifest hashes).
 - `$.state` mirrors what the drawings read. `hydrate` copies store into state at `session.start` and again on `classic.SessionStart` with `source` `clear`, `resume` or `fork`, because those reset `$.state` and do not fire `session.start`.
 - `$.store` is shared by every session on the machine: read right before writing a value several sessions change.
 

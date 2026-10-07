@@ -1,3 +1,4 @@
+export * from './default-deps-settings.js'
 export * from './default-settings.js'
 export * from './factory-sources.js'
 

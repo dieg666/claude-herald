@@ -9,4 +9,5 @@ export const STORE_KEYS = {
   items: 'items',
   pageHashes: 'pageHashes',
   summaries: 'summaries',
+  deps: 'deps',
 } as const

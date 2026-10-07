@@ -119,6 +119,58 @@ export type RefreshStatus = {
   errors: Record<string, string>
 }
 
+/**
+ * The package registry a dependency comes from; Gradle and Maven share `maven`.
+ */
+export type Ecosystem =
+  'npm' | 'pypi' | 'go' | 'cargo' | 'rubygems' | 'packagist' | 'nuget' | 'maven' | 'swift' | 'pub'
+
+/**
+ * One dependency a project's manifests declare.
+ */
+export type Dependency = {
+  ecosystem: Ecosystem
+  /** The registry name: `group:artifact` for Maven, the module path for Go, the URL's last part for Swift. */
+  name: string
+  /** The version the lockfile pins, or the manifest's when it names one exact version. */
+  versionInUse?: string
+  /** The version requirement as the manifest writes it (Swift `from:` as `^x`, `upToNextMinor` as `~x`). */
+  range?: string
+  /** Not installed by default: dev, test, docs or build-only groups and optional extras. */
+  isDev: boolean
+  /** Declared by a manifest at the project root. */
+  isRoot: boolean
+  /** The declaring manifest, relative to the project root, `/`-separated. */
+  manifestPath: string
+  /** The repository URL when the manifest names one instead of a registry (Swift, git dependencies). */
+  source?: string
+}
+
+/**
+ * The stack-detection settings of one project.
+ */
+export type DepsSettings = {
+  /** Whether the project's dependencies are followed at all. */
+  isEnabled: boolean
+  /** Whether dev dependencies are followed too. */
+  includeDev: boolean
+  /** How many dependencies are followed at most. */
+  cap: number
+}
+
+/**
+ * What the store keeps for one project, keyed by its root path.
+ */
+export type DepsProject = {
+  settings: DepsSettings
+  /** The followed dependencies, runtime and root-declared first, at most `settings.cap`. */
+  dependencies: Dependency[]
+  /** How many distinct dependencies the last detection found, before the dev filter and the cap. */
+  detectedCount: number
+  /** The content hash of each manifest and lockfile the last detection read, by path relative to the root. */
+  manifestHashes: Record<string, string>
+}
+
 declare module 'claude-code' {
   /**
    * Every value the mod keeps in `$.state`, by key: what the band and pane draw.

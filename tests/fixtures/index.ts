@@ -1,4 +1,5 @@
 export * from './answer-of.js'
+export * from './dep-at.js'
 export * from './fake-host-of.js'
 export * from './held-model-of.js'
 export * from './item-at.js'
