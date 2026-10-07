@@ -48,7 +48,7 @@ Concern folders: `names` (plugin, command, pane ids, store keys, hotkeys), `defa
 
 ## Persisted and session state
 
-- `$.store` keys (all owned by `hooks/store/`): `sources`, `settings`, `saved`, `seen` (ids per source), `items` (last items per source), `pageHashes`, `summaries` (cache keyed `<itemId>|<lang>|<kind>`, capped), `deps` (per project root: stack settings, followed dependencies, manifest hashes).
+- `$.store` keys (all owned by `hooks/store/`): `sources`, `settings`, `saved`, `seen` (ids per source), `items` (last items per source), `pageHashes`, `summaries` (cache keyed `<itemId>|<lang>|<kind>`, capped), `deps` (per project root: stack settings, followed dependencies, manifest hashes, detection time; at most 20 projects, the least recently detected dropped).
 - `$.state` mirrors what the drawings read. `hydrate` copies store into state at `session.start` and again on `classic.SessionStart` with `source` `clear`, `resume` or `fork`, because those reset `$.state` and do not fire `session.start`.
 - `$.store` is shared by every session on the machine: read right before writing a value several sessions change.
 

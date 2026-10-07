@@ -167,8 +167,10 @@ export type DepsProject = {
   dependencies: Dependency[]
   /** How many distinct dependencies the last detection found, before the dev filter and the cap. */
   detectedCount: number
-  /** The content hash of each manifest and lockfile the last detection read, by path relative to the root. */
+  /** The content hash of each manifest and lockfile the last detection read (`size:<bytes>` for one too large to read), by path relative to the root. */
   manifestHashes: Record<string, string>
+  /** When the last detection ran, in milliseconds since the epoch; 0 for a project never detected. */
+  detectedAt: number
 }
 
 declare module 'claude-code' {

@@ -11,7 +11,7 @@ import { pageHashesOf } from './page-hashes-of.js'
  */
 export function depsProjectOf(value: unknown): DepsProject {
   const stored = isRecord(value) ? value : {}
-  const { detectedCount } = stored
+  const { detectedCount, detectedAt } = stored
 
   return {
     settings: depsSettingsOf(stored.settings),
@@ -27,5 +27,9 @@ export function depsProjectOf(value: unknown): DepsProject {
         ? detectedCount
         : 0,
     manifestHashes: pageHashesOf(stored.manifestHashes),
+    detectedAt:
+      typeof detectedAt === 'number' && Number.isFinite(detectedAt) && detectedAt >= 0
+        ? detectedAt
+        : 0,
   }
 }

@@ -10,6 +10,7 @@ describe('load-deps-project', () => {
     dependencies: [],
     detectedCount: 0,
     manifestHashes: {},
+    detectedAt: 0,
   }
 
   test('a project never detected reads as an empty record with default settings', async () => {
@@ -26,7 +27,9 @@ describe('load-deps-project', () => {
           dependencies: [Fixtures.depAt('react'), { name: 'broken' }],
           detectedCount: 2,
           manifestHashes: { 'package.json': 'h', 'yarn.lock': 7 },
+          detectedAt: -5,
         },
+        '/stamped': { detectedAt: 1234 },
       },
     })
 
@@ -35,7 +38,9 @@ describe('load-deps-project', () => {
       dependencies: [Fixtures.depAt('react')],
       detectedCount: 2,
       manifestHashes: { 'package.json': 'h' },
+      detectedAt: 0,
     })
+    expect((await Store.loadDepsProject(host, '/stamped')).detectedAt).toBe(1234)
   })
 
   test('a store value that is not an object, or a root named like a built-in key, reads as empty', async () => {
