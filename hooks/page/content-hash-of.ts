@@ -3,11 +3,9 @@ const OFFSET_BASIS = 0xcbf29ce484222325n
 const PRIME = 0x100000001b3n
 
 /**
- * A fixed-width fingerprint of a text, to tell whether a page changed since it was last read:
- * 64-bit FNV-1a over the UTF-8 bytes, so equal text always gives the same value and any one-byte
- * change gives another.
+ * A fingerprint of a text, to tell whether a page changed since it was last read.
  *
- * @param text the text to fingerprint
+ * @param text the text to fingerprint, hashed as 64-bit FNV-1a over its UTF-8 bytes
  * @returns 16 lower-case hexadecimal digits
  */
 export const contentHashOf = (text: string) => {

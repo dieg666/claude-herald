@@ -4,8 +4,7 @@ import { tagAt } from './tag-at.js'
 const RAW_TEXT = new Set(['script', 'style', 'textarea', 'title'])
 
 /**
- * Where an element whose content is dropped ends, counting nested elements of the same name. A
- * head also ends where the body starts, and an element that never closes runs to the end.
+ * Where an element whose content is dropped ends, counting nested ones; a head also ends at the body.
  *
  * @param html the markup
  * @param from the index just past the element's start tag

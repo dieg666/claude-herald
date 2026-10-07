@@ -90,8 +90,7 @@ const isoOf = ({ year, month, day, hour, minute, second, fraction, zone }: Parts
 }
 
 /**
- * A date as an ISO 8601 timestamp. Reads `2026-09-22`, full ISO timestamps, `Sep 22, 2026`,
- * `22 September 2026` and RFC 2822 dates; a date without a time or zone is taken as UTC.
+ * A date as an ISO 8601 timestamp, reading ISO, `Sep 22, 2026`, `22 September 2026` and RFC 2822 forms.
  *
  * @param value the date as the model or the page wrote it
  * @returns the timestamp, or undefined when it is not a string, not a date, or implausible

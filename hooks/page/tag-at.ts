@@ -12,8 +12,7 @@ const isLetter = (character: string | undefined) =>
   character !== undefined && /[A-Za-z]/.test(character)
 
 /**
- * The tag that starts at a `<`, with quoted attribute values read whole so a `>` inside one does
- * not end the tag.
+ * The tag that starts at a `<`, with quoted attribute values read whole.
  *
  * @param html the markup
  * @param start the index of the `<`

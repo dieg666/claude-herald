@@ -1,6 +1,5 @@
 /**
- * Where the content of a raw-text element (script, style, textarea, title) ends: the index after
- * its end tag, or the end of the markup when it never closes.
+ * Where a raw-text element (script, style, textarea, title) ends, or the end of the markup if it never closes.
  *
  * @param html the markup
  * @param from the index just past the start tag

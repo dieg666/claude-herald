@@ -38,8 +38,7 @@ const characterOf = (code: number) => {
 }
 
 /**
- * Text with its HTML character references turned into characters, in one pass so a decoded
- * `&amp;lt;` stays `&lt;`. A reference needs its closing semicolon, so `?a=1&copy=2` is untouched.
+ * Text with its HTML character references decoded in one pass, so `&amp;lt;` becomes `&lt;`.
  *
  * @param text the text with references
  * @returns the text with the numeric and known named references decoded

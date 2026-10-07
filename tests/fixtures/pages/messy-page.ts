@@ -1,7 +1,4 @@
-/**
- * Hostile markup: upper-case tags, an unclosed head, comments, a script that mentions a closing
- * tag, every kind of link, and elements left open.
- */
+/** Hostile markup: upper-case tags, an unclosed head, comments, odd scripts, every kind of link, open elements. */
 export const MESSY_PAGE_HTML = `<!DOCTYPE html>
 <HTML><HEAD><TITLE>TITLE_MARKER</TITLE><SCRIPT>var x = "</div> HEAD_SCRIPT_MARKER";</SCRIPT>
 <BODY>

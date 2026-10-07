@@ -1,8 +1,7 @@
 /**
- * Where the JSON array or object that starts at `start` closes, reading strings and escapes so a
- * bracket inside a string does not count.
+ * Where the JSON array or object that starts at `start` closes.
  *
- * @param text the text holding the value
+ * @param text the text holding the value, read with strings and escapes so a bracket in a string does not count
  * @param start the index of its `[` or `{`
  * @returns the index just past the matching closer, or -1 when the brackets never balance
  */

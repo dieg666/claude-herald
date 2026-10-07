@@ -9,8 +9,7 @@ const closesAfter = (json: string, from: number) => {
 }
 
 /**
- * JSON text with each comma that directly precedes a closing bracket or brace removed, outside
- * strings.
+ * JSON text without the commas that directly precede a closing bracket or brace, outside strings.
  *
  * @param json the JSON text
  * @returns the text without trailing commas
