@@ -1,8 +1,10 @@
+import type { ModelCompleteRequest, ModelCompleteResult } from 'claude-code'
+
 import type { Host, StateCell } from '../../hooks/host'
 import State from '../../hooks/state'
 
 /**
- * A Host over an in-memory store and state: what concern code saw and did, no engine involved.
+ * A Host over an in-memory store, state, web and model: what concern code saw and did, no engine involved; the clock reads 1000.
  *
  * @param entries what the store holds at the start
  * @param userLanguage what Claude Code's `language` setting answers
@@ -12,6 +14,12 @@ export function fakeHostOf(entries: Readonly<Record<string, unknown>> = {}, user
   const sets: string[] = []
   const logs: string[] = []
   const state: Record<string, unknown> = JSON.parse(JSON.stringify(State.INITIAL_STATE))
+  const web = new Map<string, { status: number; text: string } | Error>()
+  const fetched: string[] = []
+  const replies: ModelCompleteResult[] = []
+  const asked: { request: ModelCompleteRequest; signal?: AbortSignal }[] = []
+  const toasts: string[] = []
+  const timers: { ms: number; fn: () => void; isCancelled: boolean }[] = []
 
   const cellOf = <T>(key: keyof typeof State.INITIAL_STATE): StateCell<T> => ({
     read: async () => state[key] as T,
@@ -48,7 +56,49 @@ export function fakeHostOf(entries: Readonly<Record<string, unknown>> = {}, user
     debug: text => {
       logs.push(text)
     },
+    httpFetch: async url => {
+      fetched.push(url)
+
+      const page = web.get(url) ?? new Error(`no page at ${url}`)
+
+      if (page instanceof Error) {
+        throw page
+      }
+
+      return { ...page, ok: page.status >= 200 && page.status < 300 }
+    },
+    modelComplete: async (request, signal) => {
+      asked.push(signal === undefined ? { request } : { request, signal })
+
+      return (
+        replies.shift() ?? {
+          isAnswered: false,
+          reason: 'empty-reply',
+          usage: {
+            input_tokens: 0,
+            output_tokens: 0,
+            cache_read_input_tokens: 0,
+            cache_creation_input_tokens: 0,
+          },
+        }
+      )
+    },
+    toast: text => {
+      toasts.push(text)
+    },
+    clockNow: async () => 1000,
+    clockEvery: (ms, fn) => {
+      const timer = { ms, fn, isCancelled: false }
+
+      timers.push(timer)
+
+      return {
+        cancel: () => {
+          timer.isCancelled = true
+        },
+      }
+    },
   }
 
-  return { host, stored, sets, logs, state }
+  return { host, stored, sets, logs, state, web, fetched, replies, asked, toasts, timers }
 }

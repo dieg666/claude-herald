@@ -1,3 +1,5 @@
+import type { HttpResponse, ModelCompleteRequest, ModelCompleteResult, Timer } from 'claude-code'
+
 import type { NewsState } from '../state/news-state.js'
 import type { StateCell } from './state-cell.js'
 
@@ -29,4 +31,32 @@ export type Host = {
    * One line in the debug log only (`$.ui.log(text, { to: 'debug' })`).
    */
   debug: (text: string) => void
+
+  /**
+   * `$.http.fetch(url)`: the status and the body once read; rejects when the request fails.
+   */
+  httpFetch: (url: string) => Promise<Pick<HttpResponse, 'status' | 'ok' | 'text'>>
+
+  /**
+   * `$.model.complete(request, { signal })`.
+   */
+  modelComplete: (
+    request: ModelCompleteRequest,
+    signal?: AbortSignal,
+  ) => Promise<ModelCompleteResult>
+
+  /**
+   * `$.ui.toast(text)`.
+   */
+  toast: (text: string) => void
+
+  /**
+   * `$.clock.now()`: milliseconds since the epoch.
+   */
+  clockNow: () => Promise<number>
+
+  /**
+   * `$.clock.every(ms, fn)`: calls `fn` every `ms` milliseconds until the timer is cancelled.
+   */
+  clockEvery: (ms: number, fn: () => void) => Timer
 }
