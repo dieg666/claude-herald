@@ -2,6 +2,7 @@ import { describe, expect, mock, test } from 'claude-code/testing'
 
 import Defaults from '../../hooks/defaults'
 import Fixtures from '../fixtures'
+import Feeds from '../fixtures/feeds'
 
 describe('remove-source', () => {
   const ONE = Fixtures.sourceAt('one', { name: 'First Feed' })
@@ -93,5 +94,55 @@ describe('remove-source', () => {
     await $.command.run(Fixtures.newsOf('reset'))
 
     expect(stored.get('sources')).toEqual([...Defaults.FACTORY_SOURCES])
+  })
+
+  test('a name with an apostrophe is found unquoted', async ($, on) => {
+    const blog = Fixtures.sourceAt('simons-blog', { name: "Simon's Blog" })
+    const stored = Fixtures.storeOn(on, { sources: [ONE, blog] })
+
+    expect((await $.command.run(Fixtures.newsOf("remove Simon's Blog"))).text).toBe(
+      `Removed "Simon's Blog".`,
+    )
+    expect(stored.get('sources')).toEqual([ONE])
+  })
+
+  test('a source removed while its refresh is in flight gets nothing written back', async ($, on) => {
+    const clock = mock.clock(on)
+    const stored = Fixtures.storeOn(on, { sources: [TWO], settings: { refreshMinutes: 1 } })
+    let calls = 0
+    let release: () => void = () => undefined
+    const held = new Promise<void>(resolve => {
+      release = resolve
+    })
+
+    // The first refresh fails and writes nothing; the timer's next one waits for the release.
+    on('http.fetch', async () => {
+      calls += 1
+
+      if (calls === 1) {
+        return { value: { status: 503, ok: false, headers: {}, text: '' } }
+      }
+
+      await held
+
+      return { value: { status: 200, ok: true, headers: {}, text: Feeds.rssWithItems(2) } }
+    })
+    Fixtures.registerOn(on)
+    Fixtures.logsOn(on)
+    on('session.start', () => ({ cwd: '/work' }))
+
+    await $.session.start(Fixtures.SESSION)
+    await clock.settle()
+    await clock.advance(60_000)
+
+    expect(calls).toBe(2)
+    expect((await $.command.run(Fixtures.newsOf('remove two'))).text).toBe('Removed "two".')
+
+    release()
+    await clock.settle()
+
+    expect(stored.get('sources')).toEqual([])
+    expect(stored.get('items') ?? {}).toEqual({})
+    expect(stored.get('seen') ?? {}).toEqual({})
   })
 })

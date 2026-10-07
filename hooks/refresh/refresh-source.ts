@@ -1,11 +1,13 @@
 import type { Item, Source } from '../../types/index.js'
 import type { Host } from '../host/host.js'
 import { mergeItems } from '../items/merge-items.js'
+import { STORE_KEYS } from '../names/store-keys.js'
 import { loadItems } from '../store/load-items.js'
 import { loadSeen } from '../store/load-seen.js'
 import { markSeen } from '../store/mark-seen.js'
 import { saveItems } from '../store/save-items.js'
 import { savePageHash } from '../store/save-page-hash.js'
+import { sourcesOf } from '../store/sources-of.js'
 import { fetchFeed } from './fetch-feed.js'
 import { fetchPage } from './fetch-page.js'
 import { messageOf } from './message-of.js'
@@ -49,7 +51,7 @@ async function newItemsOf(host: Host, sourceId: string, items: readonly Item[]):
 }
 
 /**
- * Refreshes one source: reads it, merges into its kept items, marks the new ones seen, saves the items and mirrors them to state; on failure keeps the last items and logs one debug line; never throws.
+ * Refreshes one source: reads it, merges into its kept items, marks the new ones seen, saves the items and mirrors them to state, unless the source was removed or turned off meanwhile; on failure keeps the last items and logs one debug line; never throws.
  *
  * @param host the engine
  * @param source the source
@@ -73,6 +75,16 @@ export async function refreshSource(
     }
 
     return await serially(async () => {
+      const sources = sourcesOf(await host.storeGet(STORE_KEYS.sources))
+
+      // A source removed or turned off while it was fetched keeps nothing from this fetch.
+      if (
+        sources !== undefined &&
+        !sources.some(other => other.id === source.id && other.isEnabled)
+      ) {
+        return { newItems: [] }
+      }
+
       const kept = (await loadItems(host))[source.id] ?? []
       const items = fetched.kind === 'unchanged' ? kept : mergeItems(kept, fetched.items)
 

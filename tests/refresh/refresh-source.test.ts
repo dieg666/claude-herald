@@ -248,4 +248,30 @@ describe('refresh-source', () => {
       error: 'model blocked',
     })
   })
+
+  test('a source removed or turned off while it is fetched gets nothing saved or mirrored', async () => {
+    for (const after of [[], [{ ...FEED, isEnabled: false }]]) {
+      const { host, stored, state } = Fixtures.fakeHostOf({ sources: [FEED] })
+      let release: () => void = () => undefined
+
+      host.httpFetch = () =>
+        new Promise(resolve => {
+          release = () => resolve({ status: 200, ok: true, text: Feeds.rssWithItems(2) })
+        })
+
+      const outcome = Refresh.refreshSource(host, FEED)
+
+      for (let tick = 0; tick < 20; tick += 1) {
+        await Promise.resolve()
+      }
+
+      stored.set('sources', after)
+      release()
+
+      expect(await outcome).toEqual({ newItems: [] })
+      expect(stored.has('items')).toBe(false)
+      expect(stored.has('seen')).toBe(false)
+      expect(state.items).toEqual({})
+    }
+  })
 })
