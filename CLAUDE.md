@@ -10,7 +10,7 @@ A Claude Code mod (a plugin with a hooks module) that shows news from RSS/Atom f
 
 ## Checks
 
-`scripts/check.sh` runs `claude plugin validate .`, `bunx -p typescript@5 tsc -p .` and `claude plugin test .`. All three must pass before a change is done. `claude plugin validate` must stay clean: no new `calls:` entry without a matching line in the README's permissions table.
+`scripts/check.sh` runs `claude plugin validate .`, `bunx prettier@3 --check` (settings in `.prettierrc.json`), `bunx -p typescript@5 tsc -p .` and `claude plugin test .`. All of them must pass before a change is done. `claude plugin validate` must stay clean: no new `calls:` entry without a matching line in the README's permissions table.
 
 ## Layout
 
@@ -24,14 +24,14 @@ types/index.d.ts             the $.state contract and the shared domain types (S
 tests/<concern>/*.test.ts    mirrors hooks/; shared fixtures in tests/fixtures/, one export per file
 ```
 
-Concern folders: `names` (plugin, command, pane ids, store keys, hotkeys), `defaults` (factory sources and settings), `host` (the Host type), `feed` (RSS/Atom parser, pure), `page` (HTML to text, content hash, extraction prompt and validation), `items` (ids, dedupe, merge, caps), `store` (persisted data over the Host), `state` (atoms, hydrate), `refresh` (the fetch loop, new-item toasts), `summaries` (Haiku summaries, cache, language, concurrency), `actions` (open, summarize, save, mark read, copy), `band` (AbovePrompt view, rotation), `pane` (Pane view), `commands` (`/news` parsing and handlers).
+Concern folders: `names` (plugin, command, pane ids, store keys, hotkeys), `defaults` (factory sources and settings), `host` (the Host type), `feed` (RSS/Atom parser, pure), `page` (HTML to text, content hash, extraction prompt and validation), `items` (ids, dedupe, merge, caps), `store` (persisted data over the Host), `state` (initial state, hydrate), `refresh` (the fetch loop, new-item toasts), `summaries` (Haiku summaries, cache, language, concurrency), `actions` (open, summarize, save, mark read, copy), `band` (AbovePrompt view, rotation), `pane` (Pane view), `commands` (`/news` parsing and handlers).
 
 ## Rules the engine's static analysis enforces
 
 - Write every mods API call in full in `hooks/register.tsx`: `$.noun.method(...)`. Never assign `$` or a namespace to a variable, never destructure or index it.
 - `$` may be passed only to functions declared at the top level of `register.tsx`, and to `read`/`update` from `claude-code`. Code in `hooks/<concern>/` never receives `$`: it receives a `Host` (see `hooks/host/`), an object of plain functions that `register.tsx` builds from `$` with each call spelled literally, as the built-in `diff` mod does.
 - Event names in `on(...)` are string literals. Register each event once per matcher. No dynamic `import()`, no `require`, no Node APIs, no `setTimeout`/`setInterval` (use `$.clock`).
-- `$.state` refs have literal `plugin: 'news'` and `key`; every key is declared in `types/index.d.ts`. A `ui.render` hook reads state and never writes it; writes happen in handlers and other events.
+- `$.state` atoms (`atom({ plugin: 'news', key: '...' } as const, initial)`) are consts at the top level of `register.tsx`: the scan does not follow atoms imported from another module, nor `read`/`update` called with an atom passed as a parameter. Concern code reaches state through the Host's per-key cells. Every key is spelled inline under `PluginState['news']` in `types/index.d.ts`. A `ui.render` hook reads state and never writes it; writes happen in handlers and other events.
 - `types/index.d.ts` exports types only and imports nothing.
 
 ## Design rules
@@ -61,5 +61,6 @@ Concern folders: `names` (plugin, command, pane ids, store keys, hotkeys), `defa
 ## Writing
 
 - Code, comments, docs and commit messages in English. Comments are one line.
-- Commits follow Conventional Commits (`feat:`, `fix:`, `test:`, `docs:`, `chore:`), subject only or subject plus one or two short body lines, no attribution trailers.
+- Commits follow Conventional Commits (`feat`, `fix`, `test`, `refactor`, `docs`, `chore`), subject only or subject plus one or two short body lines, with no ticket or bead ids and no attribution trailers. One commit per logical step, tests in the same commit as the code they cover, every commit passing `scripts/check.sh`, reviewer fixes in commits of their own.
+- Never commit secrets, real tokens, local absolute paths or generated files.
 - Markdown prose is never hard-wrapped: one paragraph per line.

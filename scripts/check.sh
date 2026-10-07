@@ -9,5 +9,8 @@ if [ ! -f .claude-plugin/types/claude-code/index.d.ts ]; then
 fi
 
 claude plugin validate .
+bunx prettier@3 --check --no-error-on-unmatched-pattern hooks tests types
 bunx -p typescript@5 tsc -p .
-claude plugin test .
+if [ -n "$(find . -path ./node_modules -prune -o -name '*.test.ts*' -print -quit)" ]; then
+  claude plugin test .
+fi
