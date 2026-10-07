@@ -11,6 +11,7 @@ export type RefreshLoop = {
   timer: Timer | undefined
   /** Aborts the model calls of the run in flight; undefined between runs. */
   run: AbortController | undefined
-  /** Called after each run that was not skipped, with the items new to it. */
-  readonly onRun: ((host: Host, run: RefreshRun) => Promise<void> | void) | undefined
+  /** Called after each run that was not skipped, with the items new to it and the run's abort signal. */
+  readonly onRun:
+    ((host: Host, run: RefreshRun, signal: AbortSignal) => Promise<void> | void) | undefined
 }

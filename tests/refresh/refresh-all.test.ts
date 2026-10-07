@@ -196,6 +196,23 @@ describe('refresh-all', () => {
     ])
   })
 
+  test("hands onRun the run's abort signal", async () => {
+    const { host } = hostWith([ONE])
+    const signals: AbortSignal[] = []
+    let running: AbortController | undefined
+
+    const loop = Refresh.refreshLoopOf((_, run, signal) => {
+      running = loop.run
+      signals.push(signal)
+    })
+
+    await Refresh.refreshAll(host, loop)
+
+    expect(signals.length).toBe(1)
+    expect(running).toBeDefined()
+    expect(signals[0]).toBe(running?.signal)
+  })
+
   test("passes the run's abort signal to page extractions", async () => {
     const page = Fixtures.sourceAt('page', { kind: 'page', url: 'https://example.com/news' })
     const { host, web, asked } = Fixtures.fakeHostOf({ sources: [page] })

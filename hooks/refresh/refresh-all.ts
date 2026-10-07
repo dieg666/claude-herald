@@ -25,7 +25,7 @@ function isOtherRunning(loop: RefreshLoop, controller: AbortController): boolean
 }
 
 /**
- * One run's work: every enabled source a few at a time, each within its deadline, then status, the toast and `onRun`; never rejects.
+ * One run's work: every enabled source a few at a time, each within its deadline, then status, the toast and `onRun` with the run's signal; never rejects.
  *
  * @param host the engine
  * @param loop the loop the run belongs to
@@ -81,7 +81,7 @@ async function runOf(
     const run: RefreshRun = { isSkipped: false, newItems, errors }
 
     try {
-      await loop.onRun?.(host, run)
+      await loop.onRun?.(host, run, controller.signal)
     } catch (error) {
       host.debug(`news: after the refresh: ${messageOf(error)}`)
     }
