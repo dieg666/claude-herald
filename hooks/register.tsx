@@ -62,6 +62,8 @@ function hostOf($: EngineInterface): Host {
     homeDir: async () => (await $.env.get('HOME')) ?? $.env.get('USERPROFILE'),
     listDir: path => $.fs.list(path),
     readText: path => $.fs.read(path),
+    surfaces: () => $.session.surfaces(),
+    openPane: pane => $.ui.open(pane),
   }
 }
 

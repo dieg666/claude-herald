@@ -3,7 +3,10 @@ import type {
   HttpResponse,
   ModelCompleteRequest,
   ModelCompleteResult,
+  PaneOpenArgs,
+  RenderSurface,
   Timer,
+  UiOpenResult,
 } from 'claude-code'
 
 import type { NewsState } from '../state/news-state.js'
@@ -90,4 +93,14 @@ export type Host = {
    * `$.fs.read`: a file's text; rejects when missing or over 4 MiB.
    */
   readText: (path: string) => Promise<string>
+
+  /**
+   * `$.session.surfaces()`: the surfaces attached to the session now.
+   */
+  surfaces: () => Promise<readonly RenderSurface[]>
+
+  /**
+   * `$.ui.open(pane)`: opens or retitles a pane; says whether it is drawn.
+   */
+  openPane: (pane: PaneOpenArgs) => Promise<UiOpenResult>
 }

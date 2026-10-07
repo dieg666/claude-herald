@@ -1,10 +1,15 @@
-import type { ModelCompleteRequest, ModelCompleteResult } from 'claude-code'
+import type {
+  ModelCompleteRequest,
+  ModelCompleteResult,
+  PaneOpenArgs,
+  RenderSurface,
+} from 'claude-code'
 
 import type { Host, StateCell } from '../../hooks/host'
 import State from '../../hooks/state'
 
 /**
- * A Host over an in-memory store, state, web and model: what concern code saw and did, no engine involved; the clock reads 1000.
+ * A Host over an in-memory store, state, web, model and surfaces (none attached until a test adds one): what concern code saw and did, no engine involved; the clock reads 1000.
  *
  * @param entries what the store holds at the start
  * @param userLanguage what Claude Code's `language` setting answers
@@ -21,6 +26,8 @@ export function fakeHostOf(entries: Readonly<Record<string, unknown>> = {}, user
   const toasts: string[] = []
   const timers: { ms: number; fn: () => void; isCancelled: boolean }[] = []
   const afters: { ms: number; fn: () => void; isCancelled: boolean }[] = []
+  const surfaces: RenderSurface[] = []
+  const opened: PaneOpenArgs[] = []
 
   const cellOf = <T>(key: keyof typeof State.INITIAL_STATE): StateCell<T> => ({
     read: async () => state[key] as T,
@@ -118,7 +125,28 @@ export function fakeHostOf(entries: Readonly<Record<string, unknown>> = {}, user
     readText: async path => {
       throw new Error(`ENOENT: ${path}`)
     },
+    surfaces: async () => [...surfaces],
+    openPane: async pane => {
+      opened.push(pane)
+
+      return { isPlaced: true }
+    },
   }
 
-  return { host, stored, sets, logs, state, web, fetched, replies, asked, toasts, timers, afters }
+  return {
+    host,
+    stored,
+    sets,
+    logs,
+    state,
+    web,
+    fetched,
+    replies,
+    asked,
+    toasts,
+    timers,
+    afters,
+    surfaces,
+    opened,
+  }
 }
