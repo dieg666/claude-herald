@@ -48,4 +48,28 @@ describe('manifests-changed', () => {
     expect(await Detect.manifestsChanged(host, '/elsewhere')).toBe(false)
     expect(fs.reads.length).toBe(reads)
   })
+
+  test('a file too large to read counts as changed when its size changes', async () => {
+    const big = 5 * 1024 * 1024
+    const fake = Fixtures.fakeHostOf()
+    const fs = Fixtures.fakeFsOf('/repo', {
+      '.git': { isDir: true },
+      'package.json': Npm.REACT_PACKAGE_JSON,
+      'yarn.lock': { text: Npm.REACT_YARN_LOCK, size: big },
+    })
+
+    Object.assign(fake.host, fs)
+    await Detect.detectDeps(fake.host)
+
+    expect(await Detect.manifestsChanged(fake.host, '/repo')).toBe(false)
+    expect(fs.reads.filter(path => path.endsWith('yarn.lock'))).toEqual([])
+
+    fs.write('yarn.lock', Npm.REACT_YARN_LOCK, big + 1)
+
+    expect(await Detect.manifestsChanged(fake.host, '/repo')).toBe(true)
+
+    fs.remove('yarn.lock')
+
+    expect(await Detect.manifestsChanged(fake.host, '/repo')).toBe(true)
+  })
 })

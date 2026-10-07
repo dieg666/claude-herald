@@ -219,6 +219,7 @@ function manifestDepsOf(
 export const NPM_DETECTOR: Detector = {
   isManifest: name => name === 'package.json',
   isCompanion: name => LOCKFILES.includes(name) || name === PNPM_WORKSPACE,
+  isOwnLockfile: name => LOCKFILES.includes(name),
   workspacesOf: files =>
     [...files.texts.keys()].flatMap(path => {
       if (baseNameOf(path) === PNPM_WORKSPACE) {

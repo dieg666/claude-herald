@@ -59,6 +59,7 @@ function hostOf($: EngineInterface): Host {
     clockEvery: (ms, fn) => $.clock.every(ms, fn),
     clockAfter: (ms, fn) => $.clock.after(ms, fn),
     sessionRoot: () => $.session.root(),
+    homeDir: async () => (await $.env.get('HOME')) ?? $.env.get('USERPROFILE'),
     listDir: path => $.fs.list(path),
     readText: path => $.fs.read(path),
   }

@@ -60,6 +60,28 @@ describe('npm-detector', () => {
     ])
   })
 
+  test('a manifest below a workspace that does not list it counts when it has its own lockfile', async () => {
+    const website = { ...NPM_CLI, 'website/package.json': Npm.JEST_CLI_PACKAGE_JSON }
+    const npmLock = JSON.stringify({
+      lockfileVersion: 3,
+      packages: { '': { name: 'jest-cli' }, 'node_modules/yargs': { version: '17.7.2' } },
+    })
+
+    const withYarn = await Fixtures.scanOf({ ...website, 'website/yarn.lock': Npm.JEST_YARN_LOCK })
+    const withNpm = await Fixtures.scanOf({ ...website, 'website/package-lock.json': npmLock })
+    const without = await Fixtures.scanOf(website)
+
+    expect(Fixtures.depNamed(withYarn.dependencies, 'yargs', 'website/package.json')).toMatchObject(
+      { versionInUse: '17.7.3', range: '^17.7.2' },
+    )
+    expect(Fixtures.depNamed(withNpm.dependencies, 'yargs', 'website/package.json')).toMatchObject({
+      versionInUse: '17.7.2',
+    })
+    expect(
+      without.dependencies.some(dependency => dependency.manifestPath.startsWith('website/')),
+    ).toBe(false)
+  })
+
   test('npm workspaces: a member reads its nested lock entry first, then the hoisted one', async () => {
     const { dependencies } = await Fixtures.scanOf(NPM_CLI)
 

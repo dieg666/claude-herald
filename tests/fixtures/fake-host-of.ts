@@ -111,6 +111,7 @@ export function fakeHostOf(entries: Readonly<Record<string, unknown>> = {}, user
       }
     },
     sessionRoot: async () => '/work',
+    homeDir: async () => undefined,
     listDir: async path => {
       throw new Error(`ENOENT: ${path}`)
     },

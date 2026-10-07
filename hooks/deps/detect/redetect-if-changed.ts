@@ -6,7 +6,7 @@ import { manifestsChanged } from './manifests-changed.js'
 import { projectRootOf } from './project-root-of.js'
 
 /**
- * Detects the stack again when a manifest or lockfile changed since the last detection and the stack is on; what the refresh timer calls. Never throws.
+ * Detects the stack again when a manifest or lockfile changed since the last detection and the stack is on; what the refresh timer calls. Never throws; does nothing at a filesystem root.
  *
  * @param host the engine
  * @returns the project's record when it detected again, undefined when nothing changed or it failed
@@ -14,9 +14,14 @@ import { projectRootOf } from './project-root-of.js'
 export async function redetectIfChanged(host: Host): Promise<DepsProject | undefined> {
   try {
     const root = await projectRootOf(host)
-    const { settings } = await loadDepsProject(host, root)
 
-    return settings.isEnabled && (await manifestsChanged(host, root))
+    if (root === undefined) {
+      return undefined
+    }
+
+    const { settings } = await loadDepsProject(host, root.path)
+
+    return settings.isEnabled && (await manifestsChanged(host, root.path))
       ? await detectDeps(host, root)
       : undefined
   } catch (error) {

@@ -10,6 +10,8 @@ export type Detector = {
   isManifest: (name: string) => boolean
   /** Whether a file by this name is read alongside the manifests: a lockfile or a workspace file. */
   isCompanion: (name: string) => boolean
+  /** Whether a file by this name is a lockfile that makes the manifest beside it a project of its own, kept even below a workspace that does not list it; absent when none does. */
+  isOwnLockfile?: (name: string) => boolean
   /** The workspaces the files declare. */
   workspacesOf: (files: ProjectFiles) => Workspace[]
   /** Every dependency the given manifests declare, each version from the nearest lockfile when there is one. */

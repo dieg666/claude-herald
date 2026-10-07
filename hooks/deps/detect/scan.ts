@@ -1,10 +1,12 @@
 import type { Dependency } from '../../../types/index.js'
 
 /**
- * What one scan of a project found: every declared dependency (duplicates included) and the text of every file read.
+ * What one scan of a project found: every declared dependency (duplicates included), the text of every file read and the size of every file too large to read.
  */
 export type Scan = {
   dependencies: Dependency[]
   /** Each manifest, lockfile and workspace file read, by path relative to the root. */
   texts: ReadonlyMap<string, string>
+  /** Each manifest, lockfile and workspace file over 4 MiB, left unread, by path relative to the root. */
+  oversized: ReadonlyMap<string, number>
 }

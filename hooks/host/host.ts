@@ -77,6 +77,11 @@ export type Host = {
   sessionRoot: () => Promise<string>
 
   /**
+   * `$.env.get`: the user's home directory from `HOME`, else `USERPROFILE`; undefined when neither is set.
+   */
+  homeDir: () => Promise<string | undefined>
+
+  /**
    * `$.fs.list`: a directory's entries, links not followed; rejects when it cannot be read.
    */
   listDir: (path: string) => Promise<readonly FsEntry[]>

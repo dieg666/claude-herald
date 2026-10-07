@@ -66,13 +66,22 @@ export function fakeFsOf(
   return {
     lists,
     reads,
-    /** Replaces a file's text, as an edit on disk would. */
-    write: (path: string, text: string) => {
-      files.set(path, { text, size: text.length })
+    /** Replaces a file's text and its listed size, as an edit on disk would. */
+    write: (path: string, text: string, size = text.length) => {
+      const cut = path.lastIndexOf('/')
+      const name = path.slice(cut + 1)
+
+      files.set(path, { text, size })
+      dirs
+        .get(cut < 0 ? '' : path.slice(0, cut))
+        ?.set(name, { name, kind: 'file', size, mtimeMs: 2, isLink: false })
     },
-    /** Removes a file, as a delete on disk would. */
+    /** Removes a file and its listing, as a delete on disk would. */
     remove: (path: string) => {
+      const cut = path.lastIndexOf('/')
+
       files.delete(path)
+      dirs.get(cut < 0 ? '' : path.slice(0, cut))?.delete(path.slice(cut + 1))
     },
     sessionRoot: async () => sessionRoot,
     listDir: async (path: string): Promise<readonly FsEntry[]> => {
