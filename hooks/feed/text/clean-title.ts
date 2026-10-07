@@ -5,12 +5,15 @@ import { cleanText } from './clean-text.js'
 import { htmlToText } from './html-to-text.js'
 import { INLINE_TAG } from './inline-tag.js'
 
+const LINE_BREAK = /^<\/?br\b/i
+
 const HAS_REFERENCE = /&(?:#\d+|#[xX][0-9A-Fa-f]+|[A-Za-z][A-Za-z0-9]*);/
 
 /** A title as clean text: double-encoded entities decoded, stray inline tags removed, capped. */
 export function cleanTitle(value: string, isHtml: boolean): string {
   let text = isHtml ? htmlToText(value) : value
 
+  // Extra passes unwrap double encoding; the cost is that a literal `&amp;lt;` in a title reads as `<`.
   for (let pass = 0; pass < FEED_LIMITS.entityPasses && HAS_REFERENCE.test(text); pass++) {
     const decoded = decodeEntities(text)
 
@@ -21,5 +24,7 @@ export function cleanTitle(value: string, isHtml: boolean): string {
     text = decoded
   }
 
-  return clipText(cleanText(text.replace(INLINE_TAG, '')), FEED_LIMITS.titleChars)
+  const untagged = text.replace(INLINE_TAG, tag => (LINE_BREAK.test(tag) ? ' ' : ''))
+
+  return clipText(cleanText(untagged), FEED_LIMITS.titleChars)
 }

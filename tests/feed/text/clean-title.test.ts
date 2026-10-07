@@ -20,6 +20,11 @@ describe('clean-title', () => {
     )
   })
 
+  test('a line break between words leaves a space, not a fused word', () => {
+    expect(Text.cleanTitle('one<br>two<br/>three<BR />four', false)).toBe('one two three four')
+    expect(Text.cleanTitle('a&lt;br&gt;b', false)).toBe('a b')
+  })
+
   test('whitespace, including no-break spaces and newlines, collapses', () => {
     expect(Text.cleanTitle('\n  one&nbsp;\u00A0two\t\nthree  ', false)).toBe('one two three')
   })
