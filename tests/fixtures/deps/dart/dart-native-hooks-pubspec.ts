@@ -1,0 +1,46 @@
+/**
+ * dart-lang/native pkgs/hooks/pubspec.yaml, whole.
+ */
+export const DART_NATIVE_HOOKS_PUBSPEC = `name: hooks
+description: >-
+  A library that contains a Dart API for the JSON-based protocol for
+  \`hook/build.dart\` and \`hook/link.dart\`.
+
+version: 2.2.1-wip
+
+repository: https://github.com/dart-lang/native/tree/main/pkgs/hooks
+
+topics:
+  - assets
+  - ffi
+  - hooks
+  - interop
+  - native-assets
+
+resolution: workspace
+
+environment:
+  sdk: '>=3.10.0 <4.0.0'
+
+dependencies:
+  collection: ^1.19.1
+  crypto: ^3.0.6
+  logging: ^1.3.0
+  record_use: ^1.0.0
+  yaml: ^3.1.3 # Used for reading pubspec.yaml to obtain the package name.
+
+dev_dependencies:
+  args: ^2.6.0
+  code_assets: ^2.0.0 # Used for running tests with real asset types.
+  dart_flutter_team_lints: ^3.5.2
+  data_assets: any # Used for running tests with real asset types.
+  file_testing: ^3.0.2
+  json_schema: ^5.2.0 # May only be used in tool/ and test/json_schema/.
+  json_syntax_generator:
+    path: ../json_syntax_generator/
+  native_test_helpers:
+    path: ../native_test_helpers/
+  native_toolchain_c: any # Used in example/api/ snippets.
+  path: ^1.9.1
+  test: ^1.25.15
+`

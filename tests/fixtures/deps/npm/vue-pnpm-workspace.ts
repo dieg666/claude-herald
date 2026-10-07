@@ -1,0 +1,42 @@
+/**
+ * vuejs/core pnpm-workspace.yaml, whole.
+ */
+export const VUE_PNPM_WORKSPACE = `packages:
+  - 'packages/*'
+  - 'packages-private/*'
+
+catalog:
+  '@babel/parser': ^7.29.8
+  '@babel/types': ^7.29.8
+  'entities': '^7.0.1'
+  'estree-walker': ^2.0.2
+  'magic-string': ^0.30.21
+  'source-map-js': ^1.2.1
+  'vite': ^8.3.0
+  '@vitejs/plugin-vue': ^6.0.9
+
+allowBuilds:
+  '@parcel/watcher': true
+  '@swc/core': true
+  'esbuild': true
+  'puppeteer': true
+  'simple-git-hooks': true
+  'unrs-resolver': true
+
+dedupePeers: true
+
+peerDependencyRules:
+  allowedVersions:
+    'typescript-eslint>eslint': '^9.0.0'
+    '@typescript-eslint/eslint-plugin>eslint': '^9.0.0'
+    '@typescript-eslint/parser>eslint': '^9.0.0'
+    '@typescript-eslint/type-utils>eslint': '^9.0.0'
+    '@typescript-eslint/utils>eslint': '^9.0.0'
+
+minimumReleaseAge: 1440
+
+trustPolicy: no-downgrade
+minimumReleaseAgeExclude:
+  # Renovate security update: vitest@4.1.11
+  - vitest@4.1.11
+`

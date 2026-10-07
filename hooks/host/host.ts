@@ -1,4 +1,10 @@
-import type { HttpResponse, ModelCompleteRequest, ModelCompleteResult, Timer } from 'claude-code'
+import type {
+  FsEntry,
+  HttpResponse,
+  ModelCompleteRequest,
+  ModelCompleteResult,
+  Timer,
+} from 'claude-code'
 
 import type { NewsState } from '../state/news-state.js'
 import type { StateCell } from './state-cell.js'
@@ -64,4 +70,19 @@ export type Host = {
    * `$.clock.after(ms, fn)`: calls `fn` once after `ms` milliseconds unless the timer is cancelled first.
    */
   clockAfter: (ms: number, fn: () => void) => Timer
+
+  /**
+   * `$.session.root()`: the session's project root, absolute.
+   */
+  sessionRoot: () => Promise<string>
+
+  /**
+   * `$.fs.list`: a directory's entries, links not followed; rejects when it cannot be read.
+   */
+  listDir: (path: string) => Promise<readonly FsEntry[]>
+
+  /**
+   * `$.fs.read`: a file's text; rejects when missing or over 4 MiB.
+   */
+  readText: (path: string) => Promise<string>
 }

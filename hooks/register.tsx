@@ -57,6 +57,9 @@ function hostOf($: EngineInterface): Host {
     clockNow: () => $.clock.now(),
     clockEvery: (ms, fn) => $.clock.every(ms, fn),
     clockAfter: (ms, fn) => $.clock.after(ms, fn),
+    sessionRoot: () => $.session.root(),
+    listDir: path => $.fs.list(path),
+    readText: path => $.fs.read(path),
   }
 }
 

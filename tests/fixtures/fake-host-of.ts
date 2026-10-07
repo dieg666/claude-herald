@@ -110,6 +110,13 @@ export function fakeHostOf(entries: Readonly<Record<string, unknown>> = {}, user
         },
       }
     },
+    sessionRoot: async () => '/work',
+    listDir: async path => {
+      throw new Error(`ENOENT: ${path}`)
+    },
+    readText: async path => {
+      throw new Error(`ENOENT: ${path}`)
+    },
   }
 
   return { host, stored, sets, logs, state, web, fetched, replies, asked, toasts, timers, afters }

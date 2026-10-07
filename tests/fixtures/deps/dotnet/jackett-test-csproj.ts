@@ -1,0 +1,64 @@
+/**
+ * Jackett/Jackett src/Jackett.Test/Jackett.Test.csproj, whole: a test project.
+ */
+export const JACKETT_TEST_CSPROJ = `<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net9.0;net471</TargetFrameworks>
+    <NoWarn />
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <WarningsAsErrors />
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Indexers\\**" />
+    <EmbeddedResource Remove="Indexers\\**" />
+    <EmbeddedResource Include="Common\\Utils\\Invalid-RSS.xml" />
+    <None Remove="Indexers\\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="Common\\Utils\\Invalid-RSS.xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Autofac" Version="8.0.0" />
+    <PackageReference Include="coverlet.msbuild" Version="6.0.4">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="FluentAssertions" Version="7.2.2" />
+    <PackageReference Include="Microsoft.AspNetCore.DataProtection" Version="9.0.20" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="MSTest.TestAdapter" Version="3.10.4" />
+    <PackageReference Include="MSTest.TestFramework" Version="3.10.4" />
+    <PackageReference Include="NUnit" Version="3.14.0" />
+    <PackageReference Include="NUnit.ConsoleRunner" Version="3.17.0" />
+    <PackageReference Include="NUnit3TestAdapter" Version="4.5.0" />
+    <PackageReference Include="System.Text.Encoding.CodePages" Version="9.0.20" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Properties\\" />
+    <Folder Include="Server" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\\Jackett.Common\\Jackett.Common.csproj" />
+    <ProjectReference Include="..\\Jackett.Server\\Jackett.Server.csproj" />
+  </ItemGroup>
+
+  <!-- Conditionally obtain references for the .NET471 target -->
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net471' ">
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" />
+    <Reference Include="System.Web" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Resources\\**">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+</Project>
+`
