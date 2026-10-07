@@ -19,6 +19,18 @@ describe('toast-text-of', () => {
     expect(Refresh.toastTextOf(items(...'abcdefghijkl'.split('')))).toBe('12 new: a …')
   })
 
+  test('a long toast is cut at a word to the cap, with an ellipsis', () => {
+    const title = `${'word '.repeat(60)}end`
+    const text = Refresh.toastTextOf(items(title))
+
+    expect(text.length).toBeLessThanOrEqual(Refresh.REFRESH_LIMITS.toastChars)
+    expect(text).toMatch(/^1 new: word( word)* ?…$/)
+    expect(text.endsWith('word…')).toBe(true)
+    expect(Refresh.toastTextOf(items('x'.repeat(400), 'y')).length).toBe(
+      Refresh.REFRESH_LIMITS.toastChars,
+    )
+  })
+
   test('is empty for none', () => {
     expect(Refresh.toastTextOf([])).toBe('')
   })
