@@ -8,6 +8,7 @@ import { addRefusalOf } from './add-refusal-of.js'
 import type { CommandReply } from './command-reply.js'
 import { feedFailureTextOf } from './feed-failure-text-of.js'
 import { httpUrlOf } from './http-url-of.js'
+import { quotedNameOf } from './quoted-name-of.js'
 import { saveNewSource } from './save-new-source.js'
 import { sourceNameOf } from './source-name-of.js'
 import { wordsOf } from './words-of.js'
@@ -71,6 +72,6 @@ export async function addFeed(host: Host, rest: string): Promise<CommandReply> {
   }
 
   return {
-    text: `Added "${saved.source.name}" with ${count} ${count === 1 ? 'entry' : 'entries'}. /${COMMAND_NAME} remove ${saved.source.name} stops following it.`,
+    text: `Added "${saved.source.name}" with ${count} ${count === 1 ? 'entry' : 'entries'}. /${COMMAND_NAME} remove ${quotedNameOf(saved.source.name)} stops following it.`,
   }
 }

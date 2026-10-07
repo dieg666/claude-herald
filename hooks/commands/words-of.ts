@@ -1,24 +1,27 @@
 const QUOTES = new Set(['"', "'"])
 
 /**
- * The words of a command line: split on whitespace, text inside double or single quotes kept together without the quotes; an unclosed quote runs to the end.
+ * The words of a command line, split on whitespace: a quote that starts a word opens a span kept whole without its quotes, closed by the same quote before whitespace or the end (an unclosed span runs to the end); any other quote is literal.
  *
  * @param text what follows the command
  */
 export function wordsOf(text: string): string[] {
+  const chars = [...text]
   const words: string[] = []
   let word = ''
   let isWord = false
   let quote: string | undefined
 
-  for (const char of text) {
+  chars.forEach((char, index) => {
+    const next = chars[index + 1]
+
     if (quote !== undefined) {
-      if (char === quote) {
+      if (char === quote && (next === undefined || /\s/.test(next))) {
         quote = undefined
       } else {
         word += char
       }
-    } else if (QUOTES.has(char)) {
+    } else if (!isWord && QUOTES.has(char)) {
       quote = char
       isWord = true
     } else if (/\s/.test(char)) {
@@ -32,7 +35,7 @@ export function wordsOf(text: string): string[] {
       word += char
       isWord = true
     }
-  }
+  })
 
   if (isWord) {
     words.push(word)

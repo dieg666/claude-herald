@@ -34,7 +34,7 @@ describe('add-feed', () => {
       }
 
       expect(text).toBe(
-        `Added "Simon Willison's Weblog" with 4 entries. /news remove Simon Willison's Weblog stops following it.`,
+        `Added "Simon Willison's Weblog" with 4 entries. /news remove "Simon Willison's Weblog" stops following it.`,
       )
       expect(stored.get('sources')).toEqual([OWN, added])
       expect(peeked((await $.command.run(Fixtures.PEEK)).text).sources).toEqual([OWN, added])
@@ -217,6 +217,37 @@ describe('add-feed', () => {
       'own',
       'other',
       'hacker-news',
+    ])
+  })
+
+  test('the remove hint in the answer removes the source it names', async ($, on) => {
+    mock.clock(on)
+
+    const stored = Fixtures.storeOn(on, { sources: [OWN] })
+
+    Fixtures.webOn(on, new Map([[URL, Feeds.SIMON_WILLISON]]))
+
+    const { text } = await $.command.run(Fixtures.newsOf(`add ${URL}`))
+    const hint = /\/news (remove .*) stops following it\.$/.exec(text ?? '')?.[1] ?? ''
+
+    expect(hint).toBe(`remove "Simon Willison's Weblog"`)
+    expect((await $.command.run(Fixtures.newsOf(hint))).text).toBe(
+      `Removed "Simon Willison's Weblog".`,
+    )
+    expect(stored.get('sources')).toEqual([OWN])
+  })
+
+  test('quotes inside an address survive to the fetch', async ($, on) => {
+    mock.clock(on)
+
+    const stored = Fixtures.storeOn(on, { sources: [] })
+    const fetched = Fixtures.webOn(on, new Map([['https://example.org/f?b=%22x%22', Feeds.HN_RSS]]))
+
+    await $.command.run(Fixtures.newsOf('add https://example.org/f?b="x" Quoted'))
+
+    expect(fetched[0]).toBe('https://example.org/f?b=%22x%22')
+    expect(stored.get('sources')).toEqual([
+      expect.objectContaining({ name: 'Quoted', url: 'https://example.org/f?b=%22x%22' }),
     ])
   })
 })

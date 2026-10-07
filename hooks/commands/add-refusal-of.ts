@@ -1,6 +1,7 @@
 import type { Source } from '../../types/index.js'
 import { COMMAND_NAME } from '../names/command-name.js'
 import { nameKeyOf } from './name-key-of.js'
+import { quotedNameOf } from './quoted-name-of.js'
 import { sameUrlOf } from './same-url-of.js'
 
 /**
@@ -22,7 +23,7 @@ export function addRefusalOf(
   }
 
   if (name !== undefined && sources.some(source => nameKeyOf(source.name) === nameKeyOf(name))) {
-    return `A source is already named "${name}"; pick another name, or /${COMMAND_NAME} remove ${name} first.`
+    return `A source is already named "${name}"; pick another name, or /${COMMAND_NAME} remove ${quotedNameOf(name)} first.`
   }
 
   return undefined
