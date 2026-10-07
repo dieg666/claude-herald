@@ -265,6 +265,7 @@ describe('register', () => {
       items: kept,
     })
     Fixtures.fsOn(on, {})
+    Fixtures.registerOn(on)
     const fetched = webOn(on, new Map([[page.url, '<a href="/news/a">A</a>']]))
 
     on('model.complete', () => ({ deny: 'model unavailable' }))
@@ -296,6 +297,7 @@ describe('register', () => {
 
     const stored = Fixtures.storeOn(on, { sources: [FEED], settings: { refreshMinutes: 1 } })
     Fixtures.fsOn(on, {})
+    Fixtures.registerOn(on)
 
     on('http.fetch', async ($, e) => {
       fetched.push(e.url)
@@ -484,6 +486,7 @@ describe('register', () => {
 
     Fixtures.storeOn(on, { sources: [] })
     on('session.root', () => ({ value: '/repo' }))
+    Fixtures.registerOn(on)
     on('fs.list', () => ({ deny: 'not allowed' }))
     on('ui.log', ($, e) => {
       logs.push(`${e.to ?? 'transcript'}: ${e.text}`)
@@ -497,5 +500,95 @@ describe('register', () => {
 
     expect(logs.length > 0).toBe(true)
     expect(logs.every(line => line.startsWith('debug: news: deps:'))).toBe(true)
+  })
+
+  test('session.start registers /news to run at once, with a description and a hint', async ($, on) => {
+    mock.clock(on)
+    Fixtures.storeOn(on, { sources: [] })
+
+    const registered = Fixtures.registerOn(on)
+
+    on('session.start', () => ({ cwd: '/work' }))
+
+    await $.session.start(Fixtures.SESSION)
+
+    expect(registered).toEqual([
+      {
+        name: 'news',
+        description: expect.any(String),
+        argumentHint: expect.any(String),
+        immediate: true,
+      },
+    ])
+    expect(registered[0]?.description).not.toBe('')
+  })
+
+  test('a refused registration is logged and the session still starts', async ($, on) => {
+    mock.clock(on)
+    Fixtures.storeOn(on, { sources: [] })
+
+    const logs = Fixtures.logsOn(on)
+
+    on('command.register', () => ({ deny: 'name taken' }))
+    on('session.start', () => ({ cwd: '/work' }))
+
+    expect(await $.session.start(Fixtures.SESSION)).toEqual({ cwd: '/work' })
+    expect(logs).toEqual([expect.stringMatching(/^debug: news: could not register \/news: /)])
+  })
+
+  test('/news interval restarts the refresh timer once, at the new interval', async ($, on) => {
+    const clock = mock.clock(on)
+    const stored = Fixtures.storeOn(on, { sources: [FEED], settings: { refreshMinutes: 5 } })
+    const fetched = webOn(on, new Map([[FEED.url, Feeds.rssWithItems(2)]]))
+
+    Fixtures.registerOn(on)
+    on('session.start', () => ({ cwd: '/work' }))
+
+    await $.session.start(Fixtures.SESSION)
+    await clock.settle()
+
+    expect(fetched.length).toBe(1)
+
+    const { text } = await $.command.run(Fixtures.newsOf('interval 2'))
+
+    await clock.settle()
+
+    expect(text).toMatch(/2 minutes/)
+    expect(stored.get('settings')).toMatchObject({ refreshMinutes: 2 })
+    expect(fetched.length).toBe(2)
+
+    await clock.advance(2 * 60_000)
+
+    expect(fetched.length).toBe(3)
+
+    await clock.advance(2 * 60_000)
+
+    expect(fetched.length).toBe(4)
+
+    // The old 5-minute timer would fire here.
+    await clock.advance(60_000)
+
+    expect(fetched.length).toBe(4)
+  })
+
+  test('a refused /news interval leaves the timer alone', async ($, on) => {
+    const clock = mock.clock(on)
+    const stored = Fixtures.storeOn(on, { sources: [FEED], settings: { refreshMinutes: 5 } })
+    const fetched = webOn(on, new Map([[FEED.url, Feeds.rssWithItems(2)]]))
+
+    Fixtures.registerOn(on)
+    on('session.start', () => ({ cwd: '/work' }))
+
+    await $.session.start(Fixtures.SESSION)
+    await clock.settle()
+    await $.command.run(Fixtures.newsOf('interval 0'))
+    await clock.settle()
+
+    expect(fetched.length).toBe(1)
+    expect(stored.get('settings')).toEqual({ refreshMinutes: 5 })
+
+    await clock.advance(5 * 60_000)
+
+    expect(fetched.length).toBe(2)
   })
 })

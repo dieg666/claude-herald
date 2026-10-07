@@ -1,6 +1,7 @@
 import type { EngineInterface, Register } from 'claude-code'
 import { atom, read, update } from 'claude-code'
 
+import Commands from './commands'
 import Detect from './deps/detect'
 import type { Host } from './host'
 import Refresh from './refresh'
@@ -93,6 +94,28 @@ function detectSoon($: EngineInterface): void {
 }
 
 /**
+ * Declares `/news` for the session; a refused registration is logged to debug, never thrown.
+ *
+ * @param $ the hook's engine
+ */
+async function registerNews($: EngineInterface): Promise<void> {
+  try {
+    // The name stays literal: the static scan pairs it with the command.run hook.
+    await $.command.register({
+      name: 'news',
+      description: Commands.NEWS_COMMAND.description,
+      argumentHint: Commands.NEWS_COMMAND.argumentHint,
+      immediate: true,
+    })
+  } catch (error) {
+    $.ui.log(
+      `news: could not register /news: ${error instanceof Error ? error.message : String(error)}`,
+      { to: 'debug' },
+    )
+  }
+}
+
+/**
  * Registers the news mod's hooks.
  *
  * @param on the engine's registrar
@@ -102,8 +125,19 @@ export const register: Register = on => {
     await State.hydrate(hostOf($)).catch(() => undefined)
     restartRefresh($)
     detectSoon($)
+    await registerNews($)
 
     return next(e)
+  })
+
+  on('command.run', { command: 'news' }, async ($, e) => {
+    const reply = await Commands.runNews(hostOf($), e.args)
+
+    if (reply.restartRefresh === true) {
+      restartRefresh($)
+    }
+
+    return { text: reply.text }
   })
 
   // /clear, /resume and /branch reset $.state without a session.start.
