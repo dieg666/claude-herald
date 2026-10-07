@@ -1,0 +1,31 @@
+/**
+ * First path segments of github.com that are site pages, not accounts (sponsor, topic, marketplace links and the like).
+ */
+export const GITHUB_RESERVED_OWNERS: ReadonlySet<string> = new Set([
+  'about',
+  'apps',
+  'collections',
+  'customer-stories',
+  'enterprise',
+  'events',
+  'explore',
+  'features',
+  'issues',
+  'join',
+  'login',
+  'marketplace',
+  'new',
+  'notifications',
+  'orgs',
+  'organizations',
+  'pricing',
+  'pulls',
+  'search',
+  'security',
+  'settings',
+  'site',
+  'sponsors',
+  'topics',
+  'trending',
+  'users',
+])

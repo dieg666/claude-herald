@@ -1,0 +1,12 @@
+/** https://go.uber.org/zap?go-get=1, fetched 2026-10-08. */
+export const GO_ZAP_META = `<!DOCTYPE html>
+<html>
+    <head>
+        <meta name="go-import" content="go.uber.org/zap git https://github.com/uber-go/zap">
+        <meta name="go-source" content="go.uber.org/zap https://github.com/uber-go/zap https://github.com/uber-go/zap/tree/master{/dir} https://github.com/uber-go/zap/tree/master{/dir}/{file}#L{line}">
+        <meta http-equiv="refresh" content="0; url=https://pkg.go.dev/go.uber.org/zap">
+    </head>
+    <body>
+        Nothing to see here. Please <a href="https://pkg.go.dev/go.uber.org/zap">move along</a>.
+    </body>
+</html>`

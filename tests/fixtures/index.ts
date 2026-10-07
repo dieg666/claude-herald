@@ -1,4 +1,5 @@
 export * from './answer-of.js'
+export * from './clocked-host-of.js'
 export * from './dep-at.js'
 export * from './dep-named.js'
 export * from './deps-at.js'
