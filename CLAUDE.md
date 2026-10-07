@@ -56,6 +56,7 @@ Concern folders: `names` (plugin, command, pane ids, store keys, hotkeys), `defa
 
 - `claude plugin test` with `claude-code/testing`: stub every `$` call the code under test makes (`mock.clock`, `mock.store`, `on('http.fetch', ...)`, `on('model.complete', ...)`, `on('process.run', ...)`, `on('ui.copy', ...)`).
 - A test file is named for what it covers under `hooks/`, holds one `describe` titled with that name, and keeps shared data in `tests/fixtures/` (one export a file). Tests cannot read files: feed samples are `.ts` fixtures exporting the XML as a string.
+- Each test has a 5 s budget by default and the suite runs on busy machines: keep inputs as small as the behaviour allows, give heavy tests an explicit generous `timeoutMs`, and prove linearity by scaling (time at 16N against time at N), never by an absolute bound at normal sizes.
 - UI tests mount the band and the pane on `['terminal', 'desktop'] as const` and act by element `key`.
 
 ## Writing
