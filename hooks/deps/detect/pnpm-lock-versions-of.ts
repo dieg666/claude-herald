@@ -3,7 +3,7 @@ import { parseYaml } from './parse-yaml.js'
 import { recordAt } from './record-at.js'
 
 /**
- * A resolved pnpm version without its peer suffix, unless it is a link or a local path.
+ * A resolved pnpm version without its peer suffix or the aliased package's name; undefined for a link, a local path or anything else that is not a version.
  *
  * @param value the importer entry: a version string, or `{ specifier, version }`
  */
@@ -14,7 +14,14 @@ function versionOf(value: unknown): string | undefined {
     return undefined
   }
 
-  return raw.replace(/\(.*$/, '').replace(/_.*$/, '').trim() || undefined
+  const version = raw.replace(/\(.*$/, '').trim()
+  // An alias resolves to `name@1.0.0` (v9), `/name@1.0.0` (v6) or `/name/1.0.0` (v5).
+  const unaliased = /^\d/.test(version)
+    ? version
+    : version.replace(/^\/?(?:@[^/@]+\/)?[^/@]+[@/]/, '')
+  const bare = unaliased.replace(/_.*$/, '')
+
+  return /^\d/.test(bare) ? bare : undefined
 }
 
 /**
