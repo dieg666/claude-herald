@@ -1,6 +1,10 @@
 export type * from './limiter.js'
 export * from './limiter-of.js'
+export * from './long-summary-of.js'
 export * from './run-limited.js'
+export * from './short-summary-of.js'
 export * from './summary-limits.js'
+export type * from './summary-request.js'
+export * from './summary-request-of.js'
 
 export * as default from '.'
