@@ -3,6 +3,7 @@ import { describe, expect, mock, test } from 'claude-code/testing'
 
 import Defaults from '../hooks/defaults'
 import Fixtures from './fixtures'
+import Go from './fixtures/deps/go'
 import Feeds from './fixtures/feeds'
 
 describe('register', () => {
@@ -263,6 +264,7 @@ describe('register', () => {
       settings: { refreshMinutes: 2 },
       items: kept,
     })
+    Fixtures.fsOn(on, {})
     const fetched = webOn(on, new Map([[page.url, '<a href="/news/a">A</a>']]))
 
     on('model.complete', () => ({ deny: 'model unavailable' }))
@@ -293,6 +295,7 @@ describe('register', () => {
     let isHung = true
 
     const stored = Fixtures.storeOn(on, { sources: [FEED], settings: { refreshMinutes: 1 } })
+    Fixtures.fsOn(on, {})
 
     on('http.fetch', async ($, e) => {
       fetched.push(e.url)
@@ -415,4 +418,84 @@ describe('register', () => {
       expect((stored.get('summaries') as unknown[]).length).toBe(5)
     },
   )
+
+  const PROJECT = { '.git': { isDir: true as const }, 'go.mod': Go.K8S_GO_MOD }
+
+  test('session.start detects the stack off its dispatch, once the clock ticks', async ($, on) => {
+    const clock = mock.clock(on)
+    const stored = Fixtures.storeOn(on, { sources: [] })
+    const fs = Fixtures.fsOn(on, PROJECT)
+
+    on('session.start', () => ({ cwd: '/repo' }))
+
+    await $.session.start(Fixtures.SESSION)
+
+    expect(stored.get('deps')).toBeUndefined()
+    expect(fs.lists).toEqual([])
+
+    await clock.settle()
+
+    expect(
+      Fixtures.depNamed(Fixtures.depsAt(stored, '/repo'), 'github.com/spf13/cobra'),
+    ).toMatchObject({
+      versionInUse: 'v1.10.2',
+    })
+  })
+
+  test('without a session.start, time passing never detects', async ($, on) => {
+    const clock = mock.clock(on)
+    const stored = Fixtures.storeOn(on, { sources: [] })
+    const fs = Fixtures.fsOn(on, PROJECT)
+
+    on('classic.SessionStart', () => ({}))
+
+    await $.classic.SessionStart({ source: 'clear' })
+    await clock.advance(60 * 60 * 1000)
+
+    expect(fs.lists).toEqual([])
+    expect(stored.get('deps')).toBeUndefined()
+  })
+
+  test('after the start detection, time passing alone never detects again', async ($, on) => {
+    const clock = mock.clock(on)
+
+    Fixtures.storeOn(on, { sources: [] })
+
+    const fs = Fixtures.fsOn(on, PROJECT)
+
+    on('session.start', () => ({ cwd: '/repo' }))
+
+    await $.session.start(Fixtures.SESSION)
+    await clock.settle()
+
+    const lists = fs.lists.length
+    const reads = fs.reads.length
+
+    await clock.advance(60 * 60 * 1000)
+
+    expect(lists > 0).toBe(true)
+    expect(fs.lists.length).toBe(lists)
+    expect(fs.reads.length).toBe(reads)
+  })
+
+  test('a project the engine cannot list still starts the session, with debug lines only', async ($, on) => {
+    const clock = mock.clock(on)
+    const logs: string[] = []
+
+    Fixtures.storeOn(on, { sources: [] })
+    on('session.root', () => ({ value: '/repo' }))
+    on('fs.list', () => ({ deny: 'not allowed' }))
+    on('ui.log', ($, e) => {
+      logs.push(`${e.to ?? 'transcript'}: ${e.text}`)
+
+      return { value: undefined }
+    })
+    on('session.start', () => ({ cwd: '/repo' }))
+
+    expect(await $.session.start(Fixtures.SESSION)).toEqual({ cwd: '/repo' })
+    await clock.settle()
+
+    expect(logs.length > 0).toBe(true)
+    expect(logs.every(line => line.startsWith('debug: news: deps:'))).toBe(true)
+  })
 })

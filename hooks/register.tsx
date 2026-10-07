@@ -1,6 +1,7 @@
 import type { EngineInterface, Register } from 'claude-code'
 import { atom, read, update } from 'claude-code'
 
+import Detect from './deps/detect'
 import type { Host } from './host'
 import Refresh from './refresh'
 import State from './state'
@@ -73,6 +74,22 @@ function restartRefresh($: EngineInterface): void {
 }
 
 /**
+ * Detects the project's stack on the next clock tick, so the session start never waits for the walk.
+ *
+ * @param $ the hook's engine
+ */
+function detectSoon($: EngineInterface): void {
+  try {
+    $.clock.after(0, () => Detect.detectDeps(hostOf($)))
+  } catch (error) {
+    $.ui.log(
+      `news: deps: could not schedule detection: ${error instanceof Error ? error.message : String(error)}`,
+      { to: 'debug' },
+    )
+  }
+}
+
+/**
  * Registers the news mod's hooks.
  *
  * @param on the engine's registrar
@@ -81,6 +98,7 @@ export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     await State.hydrate(hostOf($)).catch(() => undefined)
     restartRefresh($)
+    detectSoon($)
 
     return next(e)
   })
