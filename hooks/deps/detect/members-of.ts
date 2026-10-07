@@ -7,7 +7,7 @@ import { segmentMatches } from './segment-matches.js'
 import type { Workspace } from './workspace.js'
 
 /**
- * The directories one pattern reaches below a directory, through real directories only: no links, no skipped names.
+ * The directories one pattern reaches below a directory, through real directories only: no links, and no skipped names unless a literal segment spells them.
  *
  * @param list the detection's Lister
  * @param dir where the pattern starts, relative to the root
@@ -26,9 +26,8 @@ async function expand(
     return [dir]
   }
 
-  const children = ((await list(dir)) ?? []).filter(
-    entry => entry.kind === 'dir' && !entry.isLink && !isSkippedDir(entry.name),
-  )
+  const dirs = ((await list(dir)) ?? []).filter(entry => entry.kind === 'dir' && !entry.isLink)
+  const children = dirs.filter(entry => !isSkippedDir(entry.name))
 
   if (segment === '**') {
     const here = await expand(list, dir, rest, depth)
@@ -44,7 +43,10 @@ async function expand(
     return [...here, ...below.flat()]
   }
 
-  const matched = children.filter(child => segmentMatches(child.name, segment))
+  // A member listed by name is meant even where a glob would skip it (`tools/build`).
+  const matched = /[*?]/.test(segment)
+    ? children.filter(child => segmentMatches(child.name, segment))
+    : dirs.filter(child => child.name === segment)
   const reached = await Promise.all(
     matched.map(child => expand(list, childPathOf(dir, child.name), rest, depth)),
   )

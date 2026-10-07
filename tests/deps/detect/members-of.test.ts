@@ -85,6 +85,29 @@ describe('members-of', () => {
     expect(lists).not.toContain('/repo/packages/node_modules')
   })
 
+  test('a member listed by name is found even under a skipped name; globs still skip', async () => {
+    const { list } = Fixtures.listerOn({
+      'tools/build/package.json': '{}',
+      'packages/deps/package.json': '{}',
+      'packages/node_modules/package.json': '{}',
+      'packages/ok/package.json': '{}',
+      'packages/linked': { isLink: true },
+    })
+
+    const members = await Detect.membersOf(
+      workspaceOf(['tools/build', 'packages/deps', 'packages/*', 'packages/linked']),
+      list,
+      4,
+      () => {},
+    )
+
+    expect([...members.keys()]).toEqual([
+      'tools/build/package.json',
+      'packages/deps/package.json',
+      'packages/ok/package.json',
+    ])
+  })
+
   test('** descends at most the depth bound; exclusions drop matches', async () => {
     const { list } = Fixtures.listerOn({
       'apps/web/package.json': '{}',
