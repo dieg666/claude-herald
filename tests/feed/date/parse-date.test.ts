@@ -16,6 +16,13 @@ describe('parse-date', () => {
     )
   })
 
+  test('a two-digit RFC 822 year below 50 is 20xx, from 50 on it is 19xx', () => {
+    expect(Date_.parseDate('Sat, 02 Oct 99 10:00:00 GMT')).toBe('1999-10-02T10:00:00.000Z')
+    expect(Date_.parseDate('02 Oct 50 10:00:00 GMT')).toBe('1950-10-02T10:00:00.000Z')
+    expect(Date_.parseDate('02 Oct 49 10:00:00 GMT')).toBe('2049-10-02T10:00:00.000Z')
+    expect(Date_.parseDate('02 Oct 00 10:00:00 GMT')).toBe('2000-10-02T10:00:00.000Z')
+  })
+
   test('an RFC 822 date with an unknown zone name, or none, reads as UTC', () => {
     expect(Date_.parseDate('Wed, 07 Oct 2026 21:23:29 XYZ')).toBe('2026-10-07T21:23:29.000Z')
     expect(Date_.parseDate('07 Oct 2026 21:23:29')).toBe('2026-10-07T21:23:29.000Z')
