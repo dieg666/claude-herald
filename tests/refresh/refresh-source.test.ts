@@ -144,17 +144,96 @@ describe('refresh-source', () => {
       })
 
       web.set(PAGE.url, { status: 200, text: Pages.ANTHROPIC_NEWS_HTML })
-      replies.push(Fixtures.answerOf('not json at all'))
+      replies.push({
+        isAnswered: false,
+        reason: 'api-error',
+        status: 529,
+        error: 'overloaded',
+        usage: {
+          input_tokens: 0,
+          output_tokens: 0,
+          cache_read_input_tokens: 0,
+          cache_creation_input_tokens: 0,
+        },
+      })
 
       expect(await Refresh.refreshSource(host, PAGE)).toEqual({
         newItems: [],
-        error: 'no items extracted',
+        error: 'model: api-error',
       })
       expect(stored.get('items')).toEqual({ anthropic: kept })
       expect(stored.get('pageHashes')).toEqual({ anthropic: 'old' })
-      expect(logs).toEqual(['news: anthropic: no items extracted'])
+      expect(logs).toEqual(['news: anthropic: model: api-error'])
     },
   )
+
+  test(
+    'a page answered with no items keeps its items, stores the hash and is not asked again',
+    { timeoutMs: 20_000 },
+    async () => {
+      const kept = [Fixtures.itemAt('a')]
+      const { host, web, replies, asked, stored, state, logs } = Fixtures.fakeHostOf({
+        items: { anthropic: kept },
+        pageHashes: { anthropic: 'old' },
+        seen: { anthropic: ['src:a'] },
+      })
+
+      web.set(PAGE.url, { status: 200, text: Pages.ANTHROPIC_NEWS_HTML })
+      replies.push(Fixtures.answerOf('[]'))
+
+      expect(await Refresh.refreshSource(host, PAGE)).toEqual({ newItems: [] })
+      expect(stored.get('items')).toEqual({ anthropic: kept })
+      expect(stored.get('pageHashes')).toEqual({ anthropic: HASH })
+      expect(state.items).toEqual({ anthropic: kept })
+      expect(logs).toEqual([])
+
+      expect(await Refresh.refreshSource(host, PAGE)).toEqual({ newItems: [] })
+      expect(asked.length).toBe(1)
+    },
+  )
+
+  test(
+    'a page with nothing on its first load stays a first load',
+    { timeoutMs: 20_000 },
+    async () => {
+      const { host, web, replies, stored } = Fixtures.fakeHostOf()
+
+      web.set(PAGE.url, { status: 200, text: Pages.ANTHROPIC_NEWS_HTML })
+      replies.push(Fixtures.answerOf('[]'))
+
+      await Refresh.refreshSource(host, PAGE)
+
+      expect(stored.get('seen')).toBeUndefined()
+
+      web.set(PAGE.url, { status: 200, text: '<a href="/news/a">A</a>' })
+      replies.push(Fixtures.answerOf('[{"title": "A", "url": "/news/a"}]'))
+
+      expect(await Refresh.refreshSource(host, PAGE)).toEqual({ newItems: [] })
+      expect(stored.get('seen')).toEqual({
+        anthropic: ['anthropic:https://www.anthropic.com/news/a'],
+      })
+    },
+  )
+
+  test('items whose save fails are already seen, so the next run does not report them again', async () => {
+    const { host, web } = feedHost(2, { seen: { big: ids(0, 1) } })
+    const storeSet = host.storeSet
+
+    web.set(FEED.url, { status: 200, text: Feeds.rssWithItems(4) })
+    host.storeSet = async (key, value) => {
+      if (key === 'items') {
+        throw new Error('disk full')
+      }
+
+      return storeSet(key, value)
+    }
+
+    expect(await Refresh.refreshSource(host, FEED)).toEqual({ newItems: [], error: 'disk full' })
+
+    host.storeSet = storeSet
+
+    expect(await Refresh.refreshSource(host, FEED)).toEqual({ newItems: [] })
+  })
 
   test('a model call that rejects is reported, not thrown', { timeoutMs: 20_000 }, async () => {
     const { host, web } = Fixtures.fakeHostOf()

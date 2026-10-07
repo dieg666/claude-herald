@@ -117,14 +117,41 @@ describe('fetch-page', () => {
     })
   })
 
-  test('a reply with no usable item fails', { timeoutMs: 20_000 }, async () => {
-    const { host, replies } = pageHost()
+  test(
+    'an answered reply with no usable item yields none, with its hash',
+    { timeoutMs: 20_000 },
+    async () => {
+      const { host, replies } = pageHost()
 
-    replies.push(Fixtures.answerOf('Sorry, I cannot help with that. {"items": ['))
+      replies.push(Fixtures.answerOf('Sorry, I cannot help with that. {"items": ['))
+
+      expect(await Refresh.fetchPage(host, SOURCE)).toEqual({
+        kind: 'items',
+        items: [],
+        pageHash: HASH,
+      })
+    },
+  )
+
+  test('aborted and empty replies fail with no hash', { timeoutMs: 20_000 }, async () => {
+    const { host, replies } = pageHost()
+    const usage = {
+      input_tokens: 0,
+      output_tokens: 0,
+      cache_read_input_tokens: 0,
+      cache_creation_input_tokens: 0,
+    }
+
+    replies.push({ isAnswered: false, reason: 'aborted', usage })
+    replies.push({ isAnswered: false, reason: 'empty-reply', usage })
 
     expect(await Refresh.fetchPage(host, SOURCE)).toEqual({
       kind: 'failed',
-      reason: 'no items extracted',
+      reason: 'model: aborted',
+    })
+    expect(await Refresh.fetchPage(host, SOURCE)).toEqual({
+      kind: 'failed',
+      reason: 'model: empty-reply',
     })
   })
 

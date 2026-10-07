@@ -11,7 +11,7 @@ import { messageOf } from './message-of.js'
 import { REFRESH_LIMITS } from './refresh-limits.js'
 
 /**
- * A page source's items, extracted by the model only when the page text's hash differs from the stored one; fails when the model gives no usable item.
+ * A page source's items, extracted by the model only when the page text's hash differs from the stored one; an answered reply with no usable item yields none, with its hash, so the same page is not asked about again.
  *
  * @param host the engine
  * @param source the page source
@@ -65,7 +65,5 @@ export async function fetchPage(
 
   const items = itemsOfExtracted(source.id, parseExtracted(reply.text, source.url))
 
-  return items.length === 0
-    ? { kind: 'failed', reason: 'no items extracted' }
-    : { kind: 'items', items, pageHash }
+  return { kind: 'items', items, pageHash }
 }

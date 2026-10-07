@@ -22,11 +22,14 @@ async function newItemsOf(host: Host, sourceId: string, items: readonly Item[]):
   const seen = (await loadSeen(host))[sourceId]
 
   if (seen === undefined) {
-    await markSeen(
-      host,
-      sourceId,
-      items.map(item => item.id),
-    )
+    // A first load with nothing in it stays a first load, so a later backlog stays silent.
+    if (items.length > 0) {
+      await markSeen(
+        host,
+        sourceId,
+        items.map(item => item.id),
+      )
+    }
 
     return []
   }
@@ -46,7 +49,7 @@ async function newItemsOf(host: Host, sourceId: string, items: readonly Item[]):
 }
 
 /**
- * Refreshes one source: reads it, merges into its kept items, saves them and mirrors them to state; on failure keeps the last items and logs one debug line; never throws.
+ * Refreshes one source: reads it, merges into its kept items, marks the new ones seen, saves the items and mirrors them to state; on failure keeps the last items and logs one debug line; never throws.
  *
  * @param host the engine
  * @param source the source
@@ -73,6 +76,9 @@ export async function refreshSource(
       const kept = (await loadItems(host))[source.id] ?? []
       const items = fetched.kind === 'unchanged' ? kept : mergeItems(kept, fetched.items)
 
+      // Seen first: a write that fails after it cannot make the same items new again.
+      const newItems = await newItemsOf(host, source.id, items)
+
       if (fetched.kind === 'items') {
         await saveItems(host, source.id, items)
 
@@ -83,7 +89,7 @@ export async function refreshSource(
 
       await host.state.items.update(current => ({ ...current, [source.id]: items }))
 
-      return { newItems: await newItemsOf(host, source.id, items) }
+      return { newItems }
     })
   } catch (error) {
     const reason = messageOf(error)
