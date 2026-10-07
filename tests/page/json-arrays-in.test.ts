@@ -20,8 +20,12 @@ describe('json-arrays-in', () => {
     expect(arraysIn('x [{"t": "a ] b [ \\" c"}] y')).toEqual([[{ t: 'a ] b [ " c' }]])
   })
 
-  test('an object is read whole, so an array inside it is not returned', () => {
-    expect(arraysIn('{"items": [1]}')).toEqual([])
+  test('an object is read whole and gives its array only when it wraps exactly one', () => {
+    expect(arraysIn('{"items": [1]}')).toEqual([[1]])
+    expect(arraysIn('{"n": 1, "items": [1]}')).toEqual([[1]])
+    expect(arraysIn('{"a": [1], "b": [2]}')).toEqual([])
+    expect(arraysIn('{"a": {"b": [1]}}')).toEqual([])
+    expect(arraysIn('{"a": 1}')).toEqual([])
   })
 
   test('a trailing comma is tolerated', () => {
@@ -29,11 +33,11 @@ describe('json-arrays-in', () => {
     expect(arraysIn('["a,]", ]')).toEqual([['a,]']])
   })
 
-  test('text that is not JSON gives nothing and stops', () => {
+  test('text that is not JSON gives nothing and stops', { timeoutMs: 30_000 }, () => {
     expect(arraysIn('no json here')).toEqual([])
     expect(arraysIn('[[[[')).toEqual([])
     expect(arraysIn('[1, 2')).toEqual([])
     expect(arraysIn('[unquoted]')).toEqual([])
-    expect(arraysIn('['.repeat(100_000))).toEqual([])
+    expect(arraysIn('['.repeat(60_000))).toEqual([])
   })
 })

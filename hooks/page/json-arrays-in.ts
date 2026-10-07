@@ -18,12 +18,10 @@ const parsed = (json: string): { value: unknown } | undefined => {
 }
 
 /**
- * The JSON arrays in a reply, in order, wherever they sit: bare, in a code fence or between
- * sentences. A JSON object is read whole and skipped, so an array inside one is not returned; a
- * trailing comma is tolerated.
+ * The JSON arrays in a reply, in order, wherever they sit: bare, fenced or between sentences.
  *
  * @param reply the model's reply
- * @returns the arrays, found lazily
+ * @returns the arrays found lazily, including the one array an object wraps; trailing commas are tolerated
  */
 export function* jsonArraysIn(reply: string): Generator<unknown[]> {
   const text = reply.slice(0, MAX_TEXT)
@@ -54,6 +52,12 @@ export function* jsonArraysIn(reply: string): Generator<unknown[]> {
 
     if (Array.isArray(value.value)) {
       yield value.value as unknown[]
+    } else if (typeof value.value === 'object' && value.value !== null) {
+      const wrapped = Object.values(value.value).filter(Array.isArray)
+
+      if (wrapped.length === 1) {
+        yield wrapped[0] as unknown[]
+      }
     }
   }
 }
