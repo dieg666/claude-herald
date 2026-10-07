@@ -71,4 +71,23 @@ describe('hydrate', () => {
     expect(state.sources).toEqual([])
     expect(logs).toEqual(['news: could not load the store: store unavailable: sources'])
   })
+
+  test('a store that reads but refuses writes still fills state on a first run', async () => {
+    const { sources, ...rest } = STORE
+    const { host, state, logs } = Fixtures.fakeHostOf(rest)
+
+    expect(sources).toBeDefined()
+
+    host.storeSet = async () => {
+      throw new Error('read-only store')
+    }
+
+    expect(await State.hydrate(host)).toBeDefined()
+    expect(state.sources).toEqual([...Defaults.FACTORY_SOURCES])
+    expect(state.settings).toEqual({ ...Defaults.DEFAULT_SETTINGS, lang: 'es' })
+    expect(state.items).toEqual({ own: [Fixtures.itemAt('a')] })
+    expect(state.saved).toEqual([{ ...Fixtures.itemAt('s'), savedAt: 9 }])
+    expect(state.summaries).toEqual({ 'src:a': 'corto' })
+    expect(logs).toEqual(['news: could not save the factory sources: read-only store'])
+  })
 })

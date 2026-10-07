@@ -5,20 +5,40 @@ import { STORE_KEYS } from '../names/store-keys.js'
 import { sourcesOf } from './sources-of.js'
 
 /**
- * The stored sources; on a first run (nothing stored) the factory sources, saved so later runs read the user's own list, even an empty one.
+ * A message for a debug line.
+ *
+ * @param error what was thrown
+ */
+function messageOf(error: unknown): string {
+  return error instanceof Error ? error.message : String(error)
+}
+
+/**
+ * The stored sources; the factory sources when nothing is stored (seeded into the store, a failed write only logged) or when the stored value is not a list (logged, the store left as it is).
  *
  * @param host the engine
  */
 export async function loadSources(host: Host): Promise<Source[]> {
-  const stored = sourcesOf(await host.storeGet(STORE_KEYS.sources))
+  const value = await host.storeGet(STORE_KEYS.sources)
+  const stored = sourcesOf(value)
 
   if (stored !== undefined) {
     return stored
   }
 
-  const seeded = FACTORY_SOURCES.map(source => ({ ...source }))
+  const factory = FACTORY_SOURCES.map(source => ({ ...source }))
 
-  await host.storeSet(STORE_KEYS.sources, seeded)
+  if (value !== undefined && value !== null) {
+    host.debug('news: the stored sources are not a list; showing the factory sources')
 
-  return seeded
+    return factory
+  }
+
+  try {
+    await host.storeSet(STORE_KEYS.sources, factory)
+  } catch (error) {
+    host.debug(`news: could not save the factory sources: ${messageOf(error)}`)
+  }
+
+  return factory
 }

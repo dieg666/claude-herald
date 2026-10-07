@@ -2,7 +2,7 @@ import type { Source } from '../../types/index.js'
 import { sourceOf } from './source-of.js'
 
 /**
- * The stored sources, dropping entries that are not one; undefined when nothing usable was ever stored (not a list).
+ * The stored sources, dropping entries that are not one; undefined when the value is not a list.
  *
  * @param value what the store holds under `sources`
  */

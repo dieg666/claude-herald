@@ -40,4 +40,32 @@ describe('load-sources', () => {
 
     expect(Defaults.FACTORY_SOURCES[0]?.isEnabled).toBe(true)
   })
+
+  test('a stored null counts as never stored and is seeded', async () => {
+    const { host, stored } = Fixtures.fakeHostOf({ sources: null })
+
+    expect(await Store.loadSources(host)).toEqual([...Defaults.FACTORY_SOURCES])
+    expect(stored.get('sources')).toEqual([...Defaults.FACTORY_SOURCES])
+  })
+
+  test('a stored value that is not a list reads as the factory sources, logged, the store untouched', async () => {
+    const corrupt = { hn: 'https://hnrss.org/frontpage' }
+    const { host, stored, sets, logs } = Fixtures.fakeHostOf({ sources: corrupt })
+
+    expect(await Store.loadSources(host)).toEqual([...Defaults.FACTORY_SOURCES])
+    expect(sets).toEqual([])
+    expect(stored.get('sources')).toEqual(corrupt)
+    expect(logs).toEqual(['news: the stored sources are not a list; showing the factory sources'])
+  })
+
+  test('a failed seed write is logged and the factory sources still come back', async () => {
+    const { host, logs } = Fixtures.fakeHostOf()
+
+    host.storeSet = async () => {
+      throw new Error('disk full')
+    }
+
+    expect(await Store.loadSources(host)).toEqual([...Defaults.FACTORY_SOURCES])
+    expect(logs).toEqual(['news: could not save the factory sources: disk full'])
+  })
 })

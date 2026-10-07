@@ -130,4 +130,27 @@ describe('register', () => {
       })
     },
   )
+
+  test(
+    'a store that refuses writes still hydrates settings, items and saved on a first run',
+    { plugins: [Fixtures.STATE_PEEK] },
+    async ($, on) => {
+      const { sources, ...rest } = STORE
+      const stored = new Map<string, unknown>(Object.entries(rest))
+
+      expect(sources).toBeDefined()
+
+      on('store.get', ($, e) => ({ value: stored.get(e.key) }))
+      on('store.set', () => ({ deny: 'read-only store' }))
+      on('ui.log', () => ({ value: undefined }))
+      on('classic.SessionStart', () => ({}))
+
+      await $.classic.SessionStart({ source: 'clear' })
+
+      expect(peeked((await $.command.run(Fixtures.PEEK)).text)).toEqual({
+        ...EXPECTED,
+        sources: [...Defaults.FACTORY_SOURCES],
+      })
+    },
+  )
 })
