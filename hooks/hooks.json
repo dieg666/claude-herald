@@ -1,0 +1,4 @@
+{
+  "description": "The news mod: refreshes feeds and pages on a timer, draws the rotating band above the prompt and the /news pane, and serves the /news command",
+  "modules": ["./register.tsx"]
+}
