@@ -173,6 +173,38 @@ export type DepsProject = {
   detectedAt: number
 }
 
+/**
+ * Where a package's releases are read, as cached under `<ecosystem>:<name>`: a feed, or why there is none; an override with only `repo` is not checked yet.
+ */
+export type DepFeed = {
+  /** The GitHub repository, `owner/repo`. */
+  repo?: string
+  /** The release feed URL. */
+  feed?: string
+  /** Why the package has no feed, for a negative result. */
+  reason?: string
+  /** When it was resolved or set, in milliseconds since the epoch. */
+  resolvedAt: number
+  /** Set by the user: wins over lookups and is never dropped by the cache's age or size limits. */
+  isOverride?: boolean
+}
+
+/**
+ * One dependency's release feed, or why it has none.
+ */
+export type DepResolution = {
+  dependency: Dependency
+  status: 'resolved' | 'unresolved'
+  /** The GitHub repository, `owner/repo`, when one was found. */
+  repo?: string
+  /** The release feed URL, set exactly when resolved. */
+  feed?: string
+  /** Why it is unresolved. */
+  reason?: string
+  /** Whether a user override decided it. */
+  isOverride: boolean
+}
+
 declare module 'claude-code' {
   /**
    * Every value the mod keeps in `$.state`, by key: what the band and pane draw.
