@@ -285,4 +285,45 @@ describe('register', () => {
     expect(fetched.length).toBe(4)
     expect(stored.get('items')).toEqual(kept)
   })
+
+  test('a fetch that never answers times out, skipping ticks meanwhile, then refreshes again', async ($, on) => {
+    const clock = mock.clock(on)
+    const logs: string[] = []
+    const fetched: string[] = []
+    let isHung = true
+
+    const stored = Fixtures.storeOn(on, { sources: [FEED], settings: { refreshMinutes: 1 } })
+
+    on('http.fetch', async ($, e) => {
+      fetched.push(e.url)
+
+      if (isHung) {
+        await clock.sleep(24 * 60 * 60_000)
+      }
+
+      return { value: { status: 200, ok: true, headers: {}, text: Feeds.rssWithItems(2) } }
+    })
+    on('ui.log', ($, e) => {
+      logs.push(e.text)
+
+      return { value: undefined }
+    })
+    on('session.start', () => ({ cwd: '/work' }))
+
+    await $.session.start(Fixtures.SESSION)
+    await clock.settle()
+    await clock.advance(60_000)
+
+    expect(fetched.length).toBe(1)
+
+    isHung = false
+    await clock.advance(30_000)
+
+    expect(logs).toEqual(['news: feed: timed out'])
+
+    await clock.advance(30_000)
+
+    expect(fetched.length).toBe(2)
+    expect(Object.keys(stored.get('items') as object)).toEqual(['feed'])
+  })
 })

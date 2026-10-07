@@ -47,6 +47,7 @@ function hostOf($: EngineInterface): Host {
     toast: text => $.ui.toast(text),
     clockNow: () => $.clock.now(),
     clockEvery: (ms, fn) => $.clock.every(ms, fn),
+    clockAfter: (ms, fn) => $.clock.after(ms, fn),
   }
 }
 

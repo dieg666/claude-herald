@@ -20,6 +20,7 @@ export function fakeHostOf(entries: Readonly<Record<string, unknown>> = {}, user
   const asked: { request: ModelCompleteRequest; signal?: AbortSignal }[] = []
   const toasts: string[] = []
   const timers: { ms: number; fn: () => void; isCancelled: boolean }[] = []
+  const afters: { ms: number; fn: () => void; isCancelled: boolean }[] = []
 
   const cellOf = <T>(key: keyof typeof State.INITIAL_STATE): StateCell<T> => ({
     read: async () => state[key] as T,
@@ -98,7 +99,18 @@ export function fakeHostOf(entries: Readonly<Record<string, unknown>> = {}, user
         },
       }
     },
+    clockAfter: (ms, fn) => {
+      const timer = { ms, fn, isCancelled: false }
+
+      afters.push(timer)
+
+      return {
+        cancel: () => {
+          timer.isCancelled = true
+        },
+      }
+    },
   }
 
-  return { host, stored, sets, logs, state, web, fetched, replies, asked, toasts, timers }
+  return { host, stored, sets, logs, state, web, fetched, replies, asked, toasts, timers, afters }
 }

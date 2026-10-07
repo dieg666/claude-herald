@@ -59,4 +59,9 @@ export type Host = {
    * `$.clock.every(ms, fn)`: calls `fn` every `ms` milliseconds until the timer is cancelled.
    */
   clockEvery: (ms: number, fn: () => void) => Timer
+
+  /**
+   * `$.clock.after(ms, fn)`: calls `fn` once after `ms` milliseconds unless the timer is cancelled first.
+   */
+  clockAfter: (ms: number, fn: () => void) => Timer
 }

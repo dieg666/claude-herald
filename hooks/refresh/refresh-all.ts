@@ -7,26 +7,35 @@ import { REFRESH_LIMITS } from './refresh-limits.js'
 import type { RefreshLoop } from './refresh-loop.js'
 import type { RefreshRun } from './refresh-run.js'
 import { refreshSource } from './refresh-source.js'
+import type { SourceOutcome } from './source-outcome.js'
 import { serialOf } from './serial-of.js'
 import { toastTextOf } from './toast-text-of.js'
+import { withinDeadline } from './within-deadline.js'
 
 const SKIPPED: RefreshRun = { isSkipped: true, newItems: [], errors: {} }
 
 /**
- * Refreshes every enabled source, a few at a time, then records the run in status, shows one toast for the new items and hands them to the loop's `onRun`; skipped while another run is in flight; never throws.
+ * Whether another run than this one is in flight, what status shows once this one ends.
+ *
+ * @param loop the loop
+ * @param controller this run's
+ */
+function isOtherRunning(loop: RefreshLoop, controller: AbortController): boolean {
+  return loop.run !== undefined && loop.run !== controller
+}
+
+/**
+ * One run's work: every enabled source a few at a time, each within its deadline, then status, the toast and `onRun`; never rejects.
  *
  * @param host the engine
  * @param loop the loop the run belongs to
+ * @param controller the run's, its signal passed to model calls
  */
-export async function refreshAll(host: Host, loop: RefreshLoop): Promise<RefreshRun> {
-  if (loop.run !== undefined) {
-    return SKIPPED
-  }
-
-  const controller = new AbortController()
-
-  loop.run = controller
-
+async function runOf(
+  host: Host,
+  loop: RefreshLoop,
+  controller: AbortController,
+): Promise<RefreshRun> {
   try {
     await host.state.status.update(status => ({ ...status, isRefreshing: true }))
 
@@ -34,7 +43,16 @@ export async function refreshAll(host: Host, loop: RefreshLoop): Promise<Refresh
     const serially = serialOf()
 
     const outcomes = await mapLimited(sources, REFRESH_LIMITS.concurrentSources, source =>
-      refreshSource(host, source, controller.signal, serially),
+      withinDeadline(
+        host,
+        REFRESH_LIMITS.sourceTimeoutMs,
+        refreshSource(host, source, controller.signal, serially),
+        (): SourceOutcome => {
+          host.debug(`news: ${source.name}: timed out`)
+
+          return { newItems: [], error: 'timed out' }
+        },
+      ),
     )
 
     const fresh = outcomes.flatMap(outcome => outcome.newItems)
@@ -50,7 +68,11 @@ export async function refreshAll(host: Host, loop: RefreshLoop): Promise<Refresh
 
     const lastRefreshAt = await host.clockNow()
 
-    await host.state.status.update(() => ({ lastRefreshAt, isRefreshing: false, errors }))
+    await host.state.status.update(() => ({
+      lastRefreshAt,
+      isRefreshing: isOtherRunning(loop, controller),
+      errors,
+    }))
 
     if (newItems.length > 0) {
       host.toast(toastTextOf(newItems))
@@ -69,13 +91,52 @@ export async function refreshAll(host: Host, loop: RefreshLoop): Promise<Refresh
     host.debug(`news: the refresh failed: ${messageOf(error)}`)
 
     await host.state.status
-      .update(status => ({ ...status, isRefreshing: false }))
+      .update(status => ({ ...status, isRefreshing: isOtherRunning(loop, controller) }))
       .catch(() => undefined)
 
     return { isSkipped: false, newItems: [], errors: {} }
-  } finally {
-    if (loop.run === controller) {
-      loop.run = undefined
-    }
   }
+}
+
+/**
+ * Refreshes every enabled source, a few at a time, then records the run in status, shows one toast for the new items and hands them to the loop's `onRun`; skipped while another run is in flight; a run past its deadline is aborted and lets the next one start; never throws.
+ *
+ * @param host the engine
+ * @param loop the loop the run belongs to
+ */
+export async function refreshAll(host: Host, loop: RefreshLoop): Promise<RefreshRun> {
+  if (loop.run !== undefined) {
+    return SKIPPED
+  }
+
+  const controller = new AbortController()
+  let isLate = false
+
+  loop.run = controller
+
+  const run = await withinDeadline(
+    host,
+    REFRESH_LIMITS.runTimeoutMs,
+    runOf(host, loop, controller),
+    (): RefreshRun => {
+      isLate = true
+      controller.abort()
+      host.debug('news: the refresh timed out')
+
+      return { isSkipped: false, newItems: [], errors: {} }
+    },
+  )
+
+  if (loop.run === controller) {
+    loop.run = undefined
+  }
+
+  if (isLate) {
+    // Not awaited: the state write may be what hangs.
+    void host.state.status
+      .update(status => ({ ...status, isRefreshing: loop.run !== undefined }))
+      .catch(() => undefined)
+  }
+
+  return run
 }

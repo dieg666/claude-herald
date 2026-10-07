@@ -81,4 +81,44 @@ describe('restart-refresh', () => {
     expect(fetched).toEqual([ONE.url])
     expect(logs).toEqual(['news: could not start the refresh timer: refused'])
   })
+
+  test('a restart aborts the model call of the run in flight', async () => {
+    const page = Fixtures.sourceAt('page', { kind: 'page', url: 'https://example.com/news' })
+    const { host, web, asked } = Fixtures.fakeHostOf({ sources: [page] })
+    const loop = Refresh.refreshLoopOf()
+
+    web.set(page.url, { status: 200, text: '<a href="/news/a">A</a>' })
+    host.modelComplete = async (request, signal) => {
+      asked.push({ request, ...(signal === undefined ? {} : { signal }) })
+
+      return new Promise(resolve => {
+        signal?.addEventListener('abort', () =>
+          resolve({
+            isAnswered: false,
+            reason: 'aborted',
+            usage: {
+              input_tokens: 0,
+              output_tokens: 0,
+              cache_read_input_tokens: 0,
+              cache_creation_input_tokens: 0,
+            },
+          }),
+        )
+      })
+    }
+
+    const first = Refresh.restartRefresh(host, loop)
+
+    for (let tick = 0; tick < 100 && asked.length === 0; tick += 1) {
+      await Promise.resolve()
+    }
+
+    expect(asked[0]?.signal?.aborted).toBe(false)
+
+    await Refresh.restartRefresh(host, loop)
+
+    expect(asked[0]?.signal?.aborted).toBe(true)
+    expect((await first).errors).toEqual({ page: 'model: aborted' })
+    expect(loop.run).toBeUndefined()
+  })
 })

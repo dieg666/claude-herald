@@ -233,4 +233,80 @@ describe('refresh-all', () => {
     expect((state.status as { isRefreshing: boolean }).isRefreshing).toBe(false)
     expect(loop.run).toBeUndefined()
   })
+
+  const deadlineOf = async (afters: { ms: number; fn: () => void }[], ms: number) => {
+    for (let tick = 0; tick < 100; tick += 1) {
+      const found = afters.find(after => after.ms === ms)
+
+      if (found !== undefined) {
+        return found
+      }
+
+      await Promise.resolve()
+    }
+
+    throw new Error(`no ${ms} ms deadline`)
+  }
+
+  test('a source whose fetch never answers times out alone; the run ends and the next one starts', async () => {
+    const { host, afters, logs, state, fetched } = hostWith([ONE, TWO])
+    const loop = Refresh.refreshLoopOf()
+    const fetch = host.httpFetch
+
+    host.httpFetch = async url => (url === ONE.url ? new Promise(() => {}) : fetch(url))
+
+    const run = Refresh.refreshAll(host, loop)
+
+    ;(await deadlineOf(afters, Refresh.REFRESH_LIMITS.sourceTimeoutMs)).fn()
+
+    expect((await run).errors).toEqual({ one: 'timed out' })
+    expect(logs).toEqual(['news: one: timed out'])
+    expect((state.status as { isRefreshing: boolean }).isRefreshing).toBe(false)
+    expect(loop.run).toBeUndefined()
+    expect(Object.keys(state.items as object)).toEqual(['two'])
+
+    host.httpFetch = fetch
+
+    expect((await Refresh.refreshAll(host, loop)).isSkipped).toBe(false)
+    expect(fetched.filter(url => url === ONE.url).length).toBe(1)
+  })
+
+  test('a run that hangs past its deadline is aborted, clears refreshing and lets the next one start', async () => {
+    const { host, afters, logs, state } = hostWith([ONE])
+    const loop = Refresh.refreshLoopOf()
+    const storeGet = host.storeGet
+
+    host.storeGet = async key => (key === 'sources' ? new Promise(() => {}) : storeGet(key))
+
+    const run = Refresh.refreshAll(host, loop)
+    const controller = loop.run
+
+    ;(await deadlineOf(afters, Refresh.REFRESH_LIMITS.runTimeoutMs)).fn()
+
+    expect(await run).toEqual({ isSkipped: false, newItems: [], errors: {} })
+    expect(controller?.signal.aborted).toBe(true)
+    expect(loop.run).toBeUndefined()
+    expect(logs).toEqual(['news: the refresh timed out'])
+
+    await Promise.resolve()
+
+    expect((state.status as { isRefreshing: boolean }).isRefreshing).toBe(false)
+
+    host.storeGet = storeGet
+
+    expect((await Refresh.refreshAll(host, loop)).isSkipped).toBe(false)
+  })
+
+  test('deadlines are cancelled once the work is done', async () => {
+    const { host, afters } = hostWith([ONE, TWO])
+
+    await Refresh.refreshAll(host, Refresh.refreshLoopOf())
+
+    expect(afters.map(after => after.ms).sort((a, b) => a - b)).toEqual([
+      Refresh.REFRESH_LIMITS.sourceTimeoutMs,
+      Refresh.REFRESH_LIMITS.sourceTimeoutMs,
+      Refresh.REFRESH_LIMITS.runTimeoutMs,
+    ])
+    expect(afters.every(after => after.isCancelled)).toBe(true)
+  })
 })

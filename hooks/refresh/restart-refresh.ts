@@ -7,7 +7,7 @@ import type { RefreshLoop } from './refresh-loop.js'
 import type { RefreshRun } from './refresh-run.js'
 
 /**
- * Replaces the loop's timer with one every `refreshMinutes` of the stored settings, then starts one refresh; never throws.
+ * Aborts the model calls of the run in flight, replaces the loop's timer with one every `refreshMinutes` of the stored settings, then starts one refresh; never throws.
  *
  * @param host the engine
  * @param loop the loop whose timer it replaces
@@ -20,6 +20,7 @@ export async function restartRefresh(host: Host, loop: RefreshLoop): Promise<Ref
   )
 
   // No await between cancelling and replacing, so restarts that overlap leave one timer.
+  loop.run?.abort()
   loop.timer?.cancel()
   loop.timer = undefined
 
