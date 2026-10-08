@@ -158,6 +158,8 @@ The mod starts with these ten sources. Disable one with `/herald disable <name>`
 | AINews (smol.ai) | feed | `https://news.smol.ai/rss.xml` | on |
 | GitHub changelog | feed | `https://github.blog/changelog/feed/` | on |
 
+GitHub release feeds title an entry with the bare tag. Where the source is not implied (the band, the Saved tab and the new-item toast), a title that is only a version (`v0.3.293`, `1.12.0-rc.1`, `2026-07-28`, `Release 7.3.1`) is drawn with the source's name before it, for example `Claude Code v2.1.293`. A source's own tab keeps the bare tag, and the stored title does not change. A title that names a package (`@scope/pkg@1.2.3`) or says more than a version is left as it is.
+
 To follow a GitHub repository's releases as a news source, add its feed: `/herald add https://github.com/OWNER/REPO/releases.atom`. To follow it as part of [your stack](#your-stack), with a version comparison and flags, run `/herald deps add OWNER/REPO`.
 
 Each source keeps its 30 newest items. An item is identified by its source and its guid, id or link, so a repeated item appears once. A source whose fetch fails keeps its last items and retries at the next refresh; the reason shows in `/herald list`. A page source has no feed to parse: the mod turns the page into text and asks Haiku for a JSON list of `title`, `url`, `date` and `teaser`, only when the page text or the extraction prompt has changed, and drops malformed entries. The teaser is the one-line description the page shows under a headline, copied as written, at most 200 characters; it is the item's text, and an item from a page that shows none has no text.
