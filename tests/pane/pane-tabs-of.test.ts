@@ -104,7 +104,7 @@ describe('pane-tabs-of', () => {
     ).toEqual([false, false, false, false])
   })
 
-  test('a source tab counts its new items and All adds them up; none for zero or for a source not given', () => {
+  test('a source tab counts its new items and All shows the count given under its own id; none for zero or for a source not given', () => {
     const sources = [
       Fixtures.sourceAt('a', { name: 'Alpha' }),
       Fixtures.sourceAt('b', { name: 'Beta' }),
@@ -112,7 +112,7 @@ describe('pane-tabs-of', () => {
     ]
 
     expect(
-      Pane.paneTabsOf(sources, undefined, [], { a: 2, b: 0, saved: 5 }).map(tab => [
+      Pane.paneTabsOf(sources, undefined, [], { '@all': 2, a: 2, b: 0, saved: 5 }).map(tab => [
         tab.id,
         tab.count,
       ]),
@@ -124,16 +124,21 @@ describe('pane-tabs-of', () => {
       ['saved', undefined],
     ])
     expect(
-      Pane.paneTabsOf(sources, undefined, [], { a: 2, c: 3, off: 4 }).map(tab => tab.count),
-    ).toEqual([5, 2, undefined, 3, undefined])
+      Pane.paneTabsOf(sources, undefined, [], { '@all': 1, a: 2, c: 3, off: 4 }).map(
+        tab => tab.count,
+      ),
+    ).toEqual([1, 2, undefined, 3, undefined])
+    expect(Pane.paneTabsOf(sources, undefined, [], { a: 2, c: 3 }).map(tab => tab.count)).toEqual([
+      undefined,
+      2,
+      undefined,
+      3,
+      undefined,
+    ])
     expect(
-      Pane.paneTabsOf([...sources, Fixtures.sourceAt('off', { isEnabled: false })], undefined, [], {
-        a: 1,
-        off: 4,
-      })[0]?.count,
-    ).toBe(1)
-    expect(
-      Pane.paneTabsOf(sources, undefined, [], { a: 14 }).map(tab => Pane.paneTabCountTextOf(tab)),
+      Pane.paneTabsOf(sources, undefined, [], { '@all': 14, a: 14 }).map(tab =>
+        Pane.paneTabCountTextOf(tab),
+      ),
     ).toEqual(['•14', '•14', '', '', ''])
   })
 

@@ -1,5 +1,6 @@
 export * from './ago-of.js'
 export * from './all-tab-items-of.js'
+export * from './all-tab-new-count-of.js'
 export * from './filter-pane.js'
 export * from './fit-start-columns.js'
 export * from './hand-pane-items.js'

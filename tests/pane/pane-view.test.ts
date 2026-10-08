@@ -1377,6 +1377,44 @@ describe('pane-view', () => {
     )
 
     test(
+      `on ${surface}: a release feed with two new releases counts 2 on its tab and 1 on All, and showing All clears All while the tab keeps 1`,
+      { timeoutMs: 20_000 },
+      async ($, on) => {
+        mock.clock(on)
+
+        const CODE = Fixtures.sourceAt('code', {
+          name: 'Code',
+          url: 'https://github.com/anthropics/claude-code/releases.atom',
+        })
+        const { stored } = Fixtures.bandOn(on, {
+          sources: [CODE, BETA],
+          items: { code: Fixtures.datedItemsOf('code', 3), b: Fixtures.datedItemsOf('b', 2) },
+          viewed: { code: ['code:3'], b: ['b:1', 'b:2'] },
+        })
+
+        await $.classic.SessionStart({ source: 'clear' })
+
+        const ui = await $.ui.mount({ ...PANE, surface })
+        const countsOf = async () =>
+          Object.fromEntries(
+            (await tabsOf(ui))
+              .filter(([key]) => key !== 'tab-saved')
+              .map(([key, text]) => [key, /•(\d+)/.exec(String(text))?.[1] ?? '0']),
+          )
+
+        expect(await countsOf()).toEqual({ 'tab-@all': '1', 'tab-code': '2', 'tab-b': '0' })
+
+        await ui.press({ key: 'tab-saved' })
+        await ui.press({ key: 'tab-@all' })
+
+        expect(new Set((stored.get('viewed') as Record<string, string[]>).code)).toEqual(
+          new Set(['code:3', 'code:1']),
+        )
+        expect(await countsOf()).toEqual({ 'tab-@all': '0', 'tab-code': '1', 'tab-b': '0' })
+      },
+    )
+
+    test(
       `on ${surface}: a count is a token of its own after the tab's name: new items a bullet in the accent color, a total in parentheses, dim`,
       { timeoutMs: 20_000 },
       async ($, on) => {

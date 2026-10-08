@@ -21,12 +21,12 @@ function countOf(count: number): { readonly count?: number } {
 }
 
 /**
- * The pane's tabs, each with its full name, its label (a factory source's short label while it keeps its factory name, else the source's own) and the label cut to `PANE_TAB_COLUMNS` cells: first the All tab on l with every source tab's new items added up, then one per enabled source in order (the first nine with the digits 1 to 9) with its new items, then the stack tab on y with its packages behind when there is a stack, then the saved tab on 0 with its items; a source whose id is the saved tab's never gets a tab.
+ * The pane's tabs, each with its full name, its label (a factory source's short label while it keeps its factory name, else the source's own) and the label cut to `PANE_TAB_COLUMNS` cells: first the All tab on l with the new items it lists, then one per enabled source in order (the first nine with the digits 1 to 9) with its new items, then the stack tab on y with its packages behind when there is a stack, then the saved tab on 0 with its items; a source whose id is the saved tab's never gets a tab.
  *
  * @param sources every source, in order
  * @param stack the stack tab's items; no stack tab when absent
  * @param saved the saved items
- * @param newCounts how many new items each source has, by source id
+ * @param newCounts how many new items each source has, by source id, and under the All tab's id how many the All tab lists
  */
 export function paneTabsOf(
   sources: readonly Source[],
@@ -70,7 +70,7 @@ export function paneTabsOf(
     label: 'All',
     short: 'All',
     hotkey: PANE_HOTKEYS.all,
-    ...countOf(tabs.reduce((sum, tab) => sum + (tab.count ?? 0), 0)),
+    ...countOf(Object.hasOwn(newCounts, ALL_TAB) ? (newCounts[ALL_TAB] ?? 0) : 0),
   }
 
   return [

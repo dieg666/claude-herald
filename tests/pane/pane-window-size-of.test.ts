@@ -47,11 +47,11 @@ describe('pane-window-size-of', () => {
   })
 
   test("the source tabs' new counts are spelled as drawn too, so a count that wraps the tab row takes a line", () => {
-    // `l: All  1: Alpha  0: Saved` is twenty-six cells; `l: All •14  1: Alpha •14  0: Saved` is thirty-four, All counting the sum.
-    expect(Pane.paneWindowSizeOf(ONE, 34, 40, undefined, [], { a: 14 })).toBe(
+    // `l: All  1: Alpha  0: Saved` is twenty-six cells; `l: All •14  1: Alpha •14  0: Saved` is thirty-four, All counting the 14 it lists.
+    expect(Pane.paneWindowSizeOf(ONE, 34, 40, undefined, [], { '@all': 14, a: 14 })).toBe(
       Pane.paneWindowSizeOf(ONE, 34, 40),
     )
-    expect(Pane.paneWindowSizeOf(ONE, 33, 40, undefined, [], { a: 14 })).toBe(
+    expect(Pane.paneWindowSizeOf(ONE, 33, 40, undefined, [], { '@all': 14, a: 14 })).toBe(
       Pane.paneWindowSizeOf(ONE, 33, 40) - 1,
     )
   })

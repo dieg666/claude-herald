@@ -138,6 +138,7 @@ describe('pane-model-of', () => {
 
   test('the tabs carry the new counts the page was built with', () => {
     const page = Pane.panePageOf({ tab: 'a', selected: 0 }, SOURCES, ITEMS, [], 10, undefined, {
+      '@all': 3,
       a: 3,
     })
 

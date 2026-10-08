@@ -63,9 +63,10 @@ describe('pane-fitted-tabs-of', () => {
     expect(linesAt(enabled, 100)).toBe(2)
   })
 
-  test('with typical counts (five sources with new items, All their sum, Your stack and Saved with totals) the default set needs 182 cells for one line', () => {
+  test('with typical counts (five sources with new items, All with the new items it lists, Your stack and Saved with totals) the default set needs 182 cells for one line', () => {
     // Each new count adds a cell, `•` and its digits: 20 for `•31`, `•2`, `•5`, `•12`, `•3`, `•9`; each total adds its digits in parentheses and a cell: 8 for `(7)` and `(4)`.
     const counts = {
+      '@all': 31,
       'anthropic-news': 2,
       'claude-code-releases': 5,
       'hacker-news': 12,

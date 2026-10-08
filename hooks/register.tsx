@@ -433,7 +433,11 @@ export const register: Register = on => {
     const items = await read($, ITEMS)
     const saved = await read($, SAVED)
     const stack = Pane.paneStackOf(await read($, STACK_STATE))
-    const newCounts = Pane.paneNewCountsOf(items, await read($, VIEWED))
+    const viewed = await read($, VIEWED)
+    const newCounts = {
+      ...Pane.paneNewCountsOf(items, viewed),
+      [Names.ALL_TAB]: Pane.allTabNewCountOf(sources, items, viewed),
+    }
     const settings = await read($, SETTINGS)
     const health = {
       ...(await read($, STATUS)),
