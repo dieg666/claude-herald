@@ -484,11 +484,11 @@ describe('pane-view', () => {
         props: { ...Fixtures.PANE_PROPS, bodyColumns: 20 },
       })
 
-      // Twenty cells less the mark, the glyph, two spaces and ` Jan 1` leave ten for a headline.
+      // Twenty cells less the mark, the two-cell glyph column, two spaces and ` Jan 1` leave nine for a headline.
       expect(
         (await ui.findAll({ type: 'Link' })).map(link => [link.props.href, link.children.join('')]),
       ).toEqual([
-        ['https://example.com/a/2', `${'b'.repeat(9)}…`],
+        ['https://example.com/a/2', `${'b'.repeat(8)}…`],
         ['https://example.com/a/3', `${'漢'.repeat(4)}…`],
       ])
       expect(await selectedOf(ui)).toBe('a 1')
@@ -682,4 +682,43 @@ describe('pane-view', () => {
     expect(await mobile.find({ type: 'Text', text: 'Filter: vite' })).toBeDefined()
     expect(await packagesOf(mobile)).toEqual(['vite'])
   })
+
+  for (const surface of SURFACES) {
+    test(
+      `on ${surface}: a release saved from the stack tab shows "pkg current → new" in Saved and copies with the deps template`,
+      { timeoutMs: 30_000 },
+      async ($, on) => {
+        const clock = mock.clock(on)
+        const copies: string[] = []
+
+        stackPaneOn(on, {})
+        on('ui.copy', ($, e) => {
+          copies.push(e.text)
+
+          return { value: { isCopied: true } }
+        })
+
+        await $.session.start(Fixtures.SESSION)
+        await clock.settle()
+
+        const ui = await $.ui.mount({ ...PANE, surface })
+
+        await ui.press({ key: 'tab-@stack' })
+        await ui.press({ key: 'save' })
+        await ui.press({ key: 'tab-saved' })
+
+        expect(
+          await ui.find({ type: 'Link', text: 'react 18.2.0 → 19.0.0 · React 19' }),
+        ).toBeDefined()
+        expect(await ui.find({ type: 'Text', text: '⚠' })).toBeDefined()
+        expect(await ui.find({ type: 'Text', text: 'npm · major · breaking' })).toBeDefined()
+
+        await ui.press({ key: 'copy' })
+
+        expect(copies).toEqual([
+          "We use react 18.2.0. react 19.0.0 is out: https://github.com/owner/react/releases/tag/v19.0.0\nCheck whether it affects this project and what we'd need to change.",
+        ])
+      },
+    )
+  }
 })

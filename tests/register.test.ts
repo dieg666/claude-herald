@@ -1053,4 +1053,39 @@ describe('register', () => {
 
     expect(await links()).toEqual(['react 18.2.0 → 19.0.0 · React 19'])
   })
+
+  test('while the model is down, turning back to a page of stack releases asks about them once', async ($, on) => {
+    const clock = mock.clock(on)
+    const asked: string[] = []
+
+    Fixtures.storeOn(on, {
+      sources: [],
+      ...Fixtures.stackStoreOf(Fixtures.STACK_SAMPLE, { showLevel: 'minor+' }),
+    })
+    Fixtures.fsOn(on, Fixtures.stackTreeOf(Fixtures.STACK_SAMPLE))
+    Fixtures.registerOn(on)
+    webOn(on, new Map())
+    on('ui.log', () => ({ value: undefined }))
+    on('ui.render', () => Fixtures.BELOW_BAND)
+    on('model.complete', ($, e) => {
+      asked.push(/^Package: (.*)$/m.exec(e.prompt)?.[1] ?? '')
+
+      return { deny: 'model unavailable' }
+    })
+    on('session.start', () => ({ cwd: '/repo' }))
+
+    await $.session.start(Fixtures.SESSION)
+    await clock.settle()
+
+    const ui = await $.ui.mount(STACK_BAND)
+
+    // The second page holds zod alone; the first page is turned through in between.
+    await ui.press({ key: 'next' })
+    await ui.press({ key: 'next' })
+    await ui.press({ key: 'next' })
+    await clock.settle()
+
+    expect(asked.filter(name => name === 'npm zod')).toEqual(['npm zod'])
+    expect(asked.length).toBe(4)
+  })
 })

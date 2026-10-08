@@ -1,7 +1,7 @@
 import type { DepsProject, StackProject, StackState } from '../../../types/index.js'
+import { timeOf } from '../../items/time-of.js'
 import { depFeedKeyOf } from '../resolve/dep-feed-key-of.js'
 import { STACK_LIMITS } from './stack-limits.js'
-import { timeOf } from './time-of.js'
 
 /**
  * The stack state of a project: its settings, the kept releases of the dependencies it follows now (newest first, at most `STACK_LIMITS.itemsPerProject`), and the filter kept while the project stays the same.

@@ -1,6 +1,7 @@
 import type { Item, SavedItem, Source } from '../../types/index.js'
 import { displayWidthOf } from '../band/display-width-of.js'
 import { fitColumns } from '../band/fit-columns.js'
+import { ICON_COLUMNS } from '../band/icon-columns.js'
 import { rangeLabelOf } from '../band/range-label-of.js'
 import { SUMMARY_INDENT } from '../band/summary-indent.js'
 import { httpUrlOf } from '../commands/http-url-of.js'
@@ -44,7 +45,7 @@ function rowOf(
   columns: number,
 ): PaneRow {
   const stack = isStackItem(item) ? item : undefined
-  const glyph = stack === undefined ? icon : fitColumns(stackIconOf(stack.release), 2)
+  const glyph = stack === undefined ? icon : fitColumns(stackIconOf(stack.release), ICON_COLUMNS)
   const note = stack === undefined ? summary : stackNoteOf(stack.release)
   const href = httpUrlOf(item.url)?.href
   const date = shortDateOf(item.publishedAt)
@@ -54,7 +55,7 @@ function rowOf(
   return {
     id: item.id,
     icon: glyph,
-    title: fitColumns(title, columns - displayWidthOf(glyph) - 3 - dated),
+    title: fitColumns(title, columns - ICON_COLUMNS - 3 - dated),
     ...(href === undefined ? {} : { href }),
     ...(note === undefined ? {} : { summary: fitColumns(lineOf(note), columns - SUMMARY_INDENT) }),
     ...(date === undefined ? {} : { date }),
@@ -135,7 +136,7 @@ export function paneModelOf(
   const drawn = page.shown.map((item, index) =>
     rowOf(
       item,
-      fitColumns(icons.get(item.sourceId) || '*', 2),
+      fitColumns(icons.get(item.sourceId) || '*', ICON_COLUMNS),
       Object.hasOwn(summaries, item.id) ? summaries[item.id] : undefined,
       index === page.span.selected,
       columns,

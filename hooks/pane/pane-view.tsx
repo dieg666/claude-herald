@@ -5,6 +5,7 @@ import type { RenderElement } from 'claude-code'
 
 import { actionRowView } from '../band/action-row-view.js'
 import type { BandUi } from '../band/band-ui.js'
+import { iconGapOf } from '../band/icon-gap-of.js'
 import { SUMMARY_INDENT } from '../band/summary-indent.js'
 import { SUMMARY_PLACEHOLDER } from '../band/summary-placeholder.js'
 import { PANE_HOTKEYS } from '../names/pane-hotkeys.js'
@@ -26,7 +27,8 @@ function rowView(ui: BandUi, row: PaneRow): RenderElement {
     <Box flexDirection="column">
       <Text wrap="truncate-end">
         <Text color={row.isSelected ? 'suggestion' : 'inactive'}>{row.isSelected ? '›' : ' '}</Text>{' '}
-        <Text color="claude">{row.icon}</Text>{' '}
+        <Text color="claude">{row.icon}</Text>
+        {iconGapOf(row.icon)}
         <Text bold={row.isSelected}>
           {row.href === undefined ? row.title : <Link href={row.href}>{row.title}</Link>}
         </Text>

@@ -7,8 +7,8 @@ import { stackNoteOf } from '../deps/stack/stack-note-of.js'
 import { collapsedTextOf } from '../page/collapsed-text-of.js'
 import type { BandModel } from './band-model.js'
 import type { BandPage } from './band-page.js'
-import { displayWidthOf } from './display-width-of.js'
 import { fitColumns } from './fit-columns.js'
+import { ICON_COLUMNS } from './icon-columns.js'
 import { rangeLabelOf } from './range-label-of.js'
 import { SUMMARY_INDENT } from './summary-indent.js'
 
@@ -44,7 +44,7 @@ export function bandModelOf(
     const stack = isStackItem(item) ? item : undefined
     const icon = fitColumns(
       stack === undefined ? icons.get(item.sourceId) || '*' : stackIconOf(stack.release),
-      2,
+      ICON_COLUMNS,
     )
     const href = httpUrlOf(item.url)?.href
     const summary =
@@ -58,7 +58,7 @@ export function bandModelOf(
     return {
       id: item.id,
       icon,
-      title: fitColumns(title, columns - displayWidthOf(icon) - 3),
+      title: fitColumns(title, columns - ICON_COLUMNS - 3),
       ...(href === undefined ? {} : { href }),
       ...(summary === undefined
         ? {}

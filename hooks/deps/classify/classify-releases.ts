@@ -1,6 +1,5 @@
 import type { Dependency } from '../../../types/index.js'
 import type { ParsedEntry } from '../../feed/parsed-entry.js'
-import { depFeedKeyOf } from '../resolve/dep-feed-key-of.js'
 import type { ClassifiedRelease } from './classified-release.js'
 import { compareVersions } from './compare-versions.js'
 import { currentVersionOf } from './current-version-of.js'
@@ -8,6 +7,7 @@ import { keywordFlagsOf } from './keyword-flags-of.js'
 import { levelOf } from './level-of.js'
 import { namesDependency } from './names-dependency.js'
 import { parseVersion } from './parse-version.js'
+import { releaseIdOf } from './release-id-of.js'
 import { tagOfEntry } from './tag-of-entry.js'
 import { taggedVersionOf } from './tagged-version-of.js'
 import type { Version } from './version.js'
@@ -55,7 +55,7 @@ export function classifyReleases(
 
     const notes = entry.summary ?? ''
     const release: ClassifiedRelease = {
-      id: `${depFeedKeyOf(dependency)}|${entry.guid ?? entry.link ?? entry.title}`,
+      id: releaseIdOf(dependency, entry),
       dependency,
       ...(tagged === undefined ? {} : { version: tagged.version }),
       ...(current === undefined ? {} : { current }),

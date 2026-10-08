@@ -39,4 +39,12 @@ describe('add-saved', () => {
 
     expect((await Store.loadSaved(host)).map(item => item.title)).toEqual(['b', 'elsewhere', 'a'])
   })
+
+  test('a stack item is saved with its release', async () => {
+    const [react] = Fixtures.STACK_SAMPLE
+    const { host } = Fixtures.fakeHostOf()
+
+    expect(await Store.addSaved(host, react!, 4)).toEqual([{ ...react!, savedAt: 4 }])
+    expect(await Store.loadSaved(host)).toEqual([{ ...react!, savedAt: 4 }])
+  })
 })

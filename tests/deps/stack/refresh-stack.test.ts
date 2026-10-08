@@ -79,7 +79,11 @@ describe('refresh-stack', () => {
     expect(run).toEqual({ isSkipped: false, checked: ['npm:react'], newReleases: [] })
     expect(keptOf(stored)).toMatchObject({ checkedAt: NOW, current: '18.2.0' })
     expect(keptOf(stored)?.items.map(item => item.release.version)).toEqual(['18.3.0'])
-    expect(keptOf(stored)?.seen).toEqual(['npm:react|tag:github.com,2008:Repository/1/v18.3.0'])
+    expect(keptOf(stored)?.seen).toEqual(
+      ['v18.3.0', 'v18.2.0', 'v18.1.0'].map(
+        tag => `npm:react|tag:github.com,2008:Repository/1/${tag}`,
+      ),
+    )
     expect(state.stack).toMatchObject({ root: '/repo', filter: '' })
     expect((state.stack as { items: unknown[] }).items).toEqual(keptOf(stored)?.items)
     expect(toasts).toEqual([])
@@ -155,8 +159,8 @@ describe('refresh-stack', () => {
     const vite = Fixtures.depAt('vite', { versionInUse: '5.0.0' })
     const { web, toasts, clock, refresh } = stackAt([REACT, vite], { toastLevel: 'all' })
 
-    web.set(feedOf('react'), { status: 200, text: Feeds.releasesAtomOf('react', []) })
-    web.set(feedOf('vite'), { status: 200, text: Feeds.releasesAtomOf('vite', []) })
+    web.set(feedOf('react'), { status: 200, text: Feeds.releasesAtomOf('react', [['v18.2.0']]) })
+    web.set(feedOf('vite'), { status: 200, text: Feeds.releasesAtomOf('vite', [['v5.0.0']]) })
     await refresh()
 
     web.set(feedOf('react'), {
@@ -354,5 +358,46 @@ describe('refresh-stack', () => {
     expect(fetched.length).toBe(1)
     // Each run looks the project up once: the first, then the one asked meanwhile.
     expect(fs.lists.filter(path => path === '/repo').length).toBe(2)
+  })
+
+  test('a feed missing at first (404) stays silent once it appears; only later releases toast', async () => {
+    const { web, toasts, clock, refresh } = stackAt([REACT], { toastLevel: 'all' })
+
+    web.set(feedOf('react'), { status: 404, text: '' })
+    await refresh()
+
+    web.set(feedOf('react'), {
+      status: 200,
+      text: Feeds.releasesAtomOf('react', [['v18.3.0'], ['v18.2.0']]),
+    })
+    await clock.advance(HOUR)
+    await refresh()
+
+    expect(toasts).toEqual([])
+
+    web.set(feedOf('react'), {
+      status: 200,
+      text: Feeds.releasesAtomOf('react', [['v18.4.0'], ['v18.3.0'], ['v18.2.0']]),
+    })
+    await clock.advance(HOUR)
+    await refresh()
+
+    expect(toasts).toEqual(['1 release: react 18.2.0 → 18.4.0'])
+  })
+
+  test('a feed whose entries are all at or below the version in use still counts as read, so a later release toasts', async () => {
+    const { web, toasts, clock, refresh } = stackAt([REACT], { toastLevel: 'all' })
+
+    web.set(feedOf('react'), { status: 200, text: Feeds.releasesAtomOf('react', [['v18.2.0']]) })
+    await refresh()
+
+    web.set(feedOf('react'), {
+      status: 200,
+      text: Feeds.releasesAtomOf('react', [['v18.2.1'], ['v18.2.0']]),
+    })
+    await clock.advance(HOUR)
+    await refresh()
+
+    expect(toasts).toEqual(['1 release: react 18.2.0 → 18.2.1'])
   })
 })

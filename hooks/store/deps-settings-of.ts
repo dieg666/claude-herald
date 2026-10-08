@@ -1,6 +1,7 @@
 import type { DepsSettings } from '../../types/index.js'
 import { DEFAULT_DEPS_SETTINGS } from '../defaults/default-deps-settings.js'
-import { DEPS_LEVELS, DEPS_TOAST_LEVELS } from '../defaults/deps-levels.js'
+import { DEPS_LEVELS } from '../defaults/deps-levels.js'
+import { DEPS_TOAST_LEVELS } from '../defaults/deps-toast-levels.js'
 import { DEPS_CAP_BOUNDS } from './deps-cap-bounds.js'
 import { isRecord } from './is-record.js'
 

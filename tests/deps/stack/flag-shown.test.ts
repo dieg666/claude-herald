@@ -60,4 +60,20 @@ describe('flag-shown', () => {
     expect(asked).toEqual([])
     expect(sets).toEqual([])
   })
+
+  test('a release the model gave no verdict for is not asked again within the hour, then is', async () => {
+    const clocked = Fixtures.clockedHostOf(Fixtures.stackStoreOf(Fixtures.STACK_SAMPLE))
+    const loop = Stack.stackLoopOf()
+    const flag = () => Stack.flagShown(clocked.host, loop, Summaries.summaryJobsOf(), [vite!])
+
+    await flag()
+    await flag()
+
+    expect(clocked.asked.length).toBe(1)
+
+    await clocked.clock.advance(Stack.STACK_LIMITS.failureWindowMs)
+    await flag()
+
+    expect(clocked.asked.length).toBe(2)
+  })
 })

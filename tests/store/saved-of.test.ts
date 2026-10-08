@@ -19,4 +19,21 @@ describe('saved-of', () => {
     expect(Store.savedOf(undefined)).toEqual([])
     expect(Store.savedOf({})).toEqual([])
   })
+
+  test('a saved stack item keeps its release; a news item never gets one, nor one whose release is broken', () => {
+    const [react] = Fixtures.STACK_SAMPLE
+    const saved = { ...react!, savedAt: 3 }
+
+    expect(Store.savedOf([saved])).toEqual([saved])
+    expect(
+      Store.savedOf([{ ...Fixtures.itemAt('a'), release: react?.release, savedAt: 1 }]),
+    ).toEqual([{ ...Fixtures.itemAt('a'), savedAt: 1 }])
+
+    const { release, ...fields } = react!
+
+    expect(release).toBeDefined()
+    expect(Store.savedOf([{ ...react!, release: { name: 'x' }, savedAt: 3 }])).toEqual([
+      { ...fields, savedAt: 3 },
+    ])
+  })
 })

@@ -77,7 +77,7 @@ describe('band-model-of', () => {
     const [react, vite] = Fixtures.STACK_SAMPLE
     const page = Band.bandPageOf({ offset: 0, selected: 0, isPaused: false }, [react!, vite!])
     const wide = Band.bandModelOf(page, SOURCES, { [react?.id ?? '']: 'Ignored.' }, [], 80)
-    const narrow = Band.bandModelOf(page, SOURCES, {}, [], 30)
+    const narrow = Band.bandModelOf(page, SOURCES, {}, [], 31)
 
     expect(wide.rows.map(row => [row.icon, row.title, row.summary, row.href])).toEqual([
       [

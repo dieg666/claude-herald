@@ -1,6 +1,7 @@
 import type { ElementQuery, FoundElement } from 'claude-code/testing'
 import { describe, expect, mock, test } from 'claude-code/testing'
 
+import Band from '../../hooks/band'
 import Fixtures from '../fixtures'
 
 describe('band-view', () => {
@@ -325,9 +326,9 @@ describe('band-view', () => {
         props: { ...Fixtures.BAND_PROPS, bodyColumns: 20 },
       })
 
-      // Twenty cells less the mark, the glyph and two spaces leave sixteen for a headline.
+      // Twenty cells less the mark, the two-cell glyph column and two spaces leave fifteen for a headline.
       expect((await linksOf(ui)).map(([, text]) => text)).toEqual([
-        `${'a'.repeat(15)}…`,
+        `${'a'.repeat(14)}…`,
         `${'漢'.repeat(7)}…`,
       ])
       expect(await ui.find({ type: 'Text', text: `${'b'.repeat(15)}…` })).toBeDefined()
@@ -522,5 +523,34 @@ describe('band-view', () => {
         expect(await rangeOf(ui)).toBe('1-3 of 8')
       },
     )
+  }
+
+  for (const surface of SURFACES) {
+    test(`on ${surface}: ⚠ and 📦 rows start their headlines in the same column`, async ($, on) => {
+      const clock = mock.clock(on)
+
+      stackBandOn(on, { showLevel: 'all' })
+
+      await $.session.start(Fixtures.SESSION)
+      await clock.settle()
+
+      const ui = await $.ui.mount({ ...BAND, surface })
+      // The cells before each headline: the mark, a space, the glyph and its gap.
+      const leads = (await ui.findAll({ type: 'Text' }))
+        .filter(text => text.props.wrap === 'truncate-end' && text.children.length > 3)
+        .map(text =>
+          text.children
+            .slice(0, 4)
+            .map(child =>
+              typeof child === 'string'
+                ? child
+                : (child as { children: string[] }).children.join(''),
+            )
+            .join(''),
+        )
+
+      expect(leads.length).toBe(3)
+      expect(leads.map(lead => Band.displayWidthOf(lead))).toEqual([5, 5, 5])
+    })
   }
 })

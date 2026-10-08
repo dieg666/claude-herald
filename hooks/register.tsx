@@ -365,7 +365,7 @@ export const register: Register = on => {
     )
     const table = $.ui.resolve(e)
     const { Box, Text, Button, Link } = table
-    // A surface without Input (mobile) gets one that draws nothing, so the surface decides.
+    // Mobile and surfaces without Input get no filter field.
     const Input = e.surface === 'mobile' || !('Input' in table) ? undefined : table.Input
 
     PANE_WINDOW.size = page.size

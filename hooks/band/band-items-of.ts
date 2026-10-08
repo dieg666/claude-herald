@@ -1,15 +1,5 @@
 import type { Item, ItemsBySource, Source } from '../../types/index.js'
-
-/**
- * The time an item sorts by, undated (or unparsable) items last.
- *
- * @param item the item
- */
-function timeOf(item: Item): number {
-  const time = item.publishedAt === undefined ? Number.NaN : Date.parse(item.publishedAt)
-
-  return Number.isNaN(time) ? Number.NEGATIVE_INFINITY : time
-}
+import { timeOf } from '../items/time-of.js'
 
 /**
  * What the band pages through: every enabled source's items and the stack items shown in one list, newest first, undated items after the dated ones in source order, stack items last.
@@ -31,7 +21,7 @@ export function bandItemsOf(
   ]
 
   return all
-    .map((item, index) => ({ item, index, time: timeOf(item) }))
+    .map((item, index) => ({ item, index, time: timeOf(item.publishedAt) }))
     .sort((a, b) => (a.time === b.time ? a.index - b.index : b.time - a.time))
     .map(({ item }) => item)
 }

@@ -42,10 +42,11 @@ export type Item = {
 }
 
 /**
- * An item the user saved for later, with when (ms since the epoch).
+ * An item the user saved for later, with when (ms since the epoch), and its release when it is a stack item.
  */
 export type SavedItem = Item & {
   savedAt: number
+  release?: StackRelease
 }
 
 /**

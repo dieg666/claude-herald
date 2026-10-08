@@ -7,6 +7,7 @@ import type {
 } from '../../../types/index.js'
 import { parseFeed } from '../../feed/parse-feed.js'
 import type { Host } from '../../host/host.js'
+import { timeOf } from '../../items/time-of.js'
 import { mapLimited } from '../../refresh/map-limited.js'
 import { messageOf } from '../../refresh/message-of.js'
 import { loadDepFeeds } from '../../store/load-dep-feeds.js'
@@ -19,6 +20,7 @@ import type { ClassifiedRelease } from '../classify/classified-release.js'
 import { classifyReleases } from '../classify/classify-releases.js'
 import { currentVersionOf } from '../classify/current-version-of.js'
 import { flagReleases } from '../classify/flag-releases.js'
+import { releaseIdOf } from '../classify/release-id-of.js'
 import { RELEASE_LIMITS } from '../classify/release-limits.js'
 import { projectRootOf } from '../detect/project-root-of.js'
 import { redetectIfChanged } from '../detect/redetect-if-changed.js'
@@ -27,6 +29,7 @@ import type { FetchOutcome } from '../resolve/fetch-outcome.js'
 import { fetchGently } from '../resolve/fetch-gently.js'
 import { resolveDeps } from '../resolve/resolve-deps.js'
 import { isAtLevel } from './is-at-level.js'
+import { isSuppressed } from './is-suppressed.js'
 import { needsLookup } from './needs-lookup.js'
 import { STACK_LIMITS } from './stack-limits.js'
 import type { StackLoop } from './stack-loop.js'
@@ -34,7 +37,6 @@ import type { StackRun } from './stack-run.js'
 import { stackItemOfRelease } from './stack-item-of-release.js'
 import { stackStateOf } from './stack-state-of.js'
 import { stackToastTextOf } from './stack-toast-text-of.js'
-import { timeOf } from './time-of.js'
 import { withCachedFlags } from './with-cached-flags.js'
 
 const SKIPPED: StackRun = { isSkipped: true, checked: [], newReleases: [] }
@@ -42,26 +44,14 @@ const SKIPPED: StackRun = { isSkipped: true, checked: [], newReleases: [] }
 const NOTHING: StackRun = { isSkipped: false, checked: [], newReleases: [] }
 
 /**
- * One package's release feed as read this run, with its key and address: every release above the version in use, newest first.
+ * One package's release feed as read this run, with its key and address: the id of every entry in feed order, and every release above the version in use, newest first.
  */
 type Read = {
   readonly key: string
   readonly dependency: Dependency
   readonly feed: string
+  readonly entryIds: readonly string[]
   readonly releases: ClassifiedRelease[]
-}
-
-/**
- * Whether something failed inside the failure window, so it is left alone for now.
- *
- * @param loop the loop
- * @param id `lookup:<key>` or `feed:<url>`
- * @param now the clock
- */
-function isSuppressed(loop: StackLoop, id: string, now: number): boolean {
-  const at = loop.failedAt.get(id)
-
-  return at !== undefined && now - at >= 0 && now - at < STACK_LIMITS.failureWindowMs
 }
 
 /**
@@ -220,7 +210,7 @@ async function readOf(
   if (fetched.kind === 'missing') {
     loop.failedAt.delete(`feed:${feed}`)
 
-    return { key, dependency, feed, releases: [] }
+    return { key, dependency, feed, entryIds: [], releases: [] }
   }
 
   const parsed = parseFeed(fetched.text, feed, { summaryChars: RELEASE_LIMITS.notesChars })
@@ -235,6 +225,7 @@ async function readOf(
     key,
     dependency,
     feed,
+    entryIds: parsed.feed.entries.map(entry => releaseIdOf(dependency, entry)),
     releases: newestFirst(classifyReleases(dependency, parsed.feed.entries)),
   }
 }
@@ -249,7 +240,7 @@ function pageOf(feed: string): string {
 }
 
 /**
- * One package's stored entry after a read: its newest kept releases, every release id it lists remembered first, the read stamped.
+ * One package's stored entry after a read: its newest kept releases, the id of every entry the feed lists remembered first, the read stamped.
  *
  * @param read the read
  * @param flagged the releases with their flags, by id
@@ -267,9 +258,10 @@ function entryOf(
   return {
     checkedAt: now,
     ...(current === undefined ? {} : { current }),
-    seen: [
-      ...new Set([...read.releases.map(release => release.id), ...(before?.seen ?? [])]),
-    ].slice(0, STACK_LIMITS.seenPerDep),
+    seen: [...new Set([...read.entryIds, ...(before?.seen ?? [])])].slice(
+      0,
+      STACK_LIMITS.seenPerDep,
+    ),
     items: read.releases
       .slice(0, STACK_LIMITS.itemsPerDep)
       .map(release => stackItemOfRelease(flagged.get(release.id) ?? release, pageOf(read.feed))),
@@ -379,12 +371,12 @@ async function runOf(
       releases: withCachedFlags(read.releases, cache),
     }))
 
-    // A package's first read marks its releases seen and is silent, as a source's first load is.
+    // Until a package's feed has listed an entry, a read marks its releases seen and is silent, as a source's first load is.
     const fresh = cachedReads.flatMap(read => {
       const before = Object.hasOwn(stored.deps, read.key) ? stored.deps[read.key] : undefined
       const seen = new Set(before?.seen)
 
-      return before === undefined
+      return seen.size === 0
         ? []
         : read.releases
             .slice(0, STACK_LIMITS.itemsPerDep)

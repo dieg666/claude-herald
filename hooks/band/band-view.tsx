@@ -4,6 +4,7 @@
 import type { RenderElement, RenderNode } from 'claude-code'
 
 import { BAND_HOTKEYS } from '../names/band-hotkeys.js'
+import { iconGapOf } from './icon-gap-of.js'
 import { actionRowView } from './action-row-view.js'
 import type { BandHandlers } from './band-handlers.js'
 import type { BandModel } from './band-model.js'
@@ -25,7 +26,8 @@ function rowView(ui: BandUi, row: BandRow): RenderElement {
     <Box flexDirection="column">
       <Text wrap="truncate-end">
         <Text color={row.isSelected ? 'suggestion' : 'inactive'}>{row.isSelected ? '›' : ' '}</Text>{' '}
-        <Text color="claude">{row.icon}</Text>{' '}
+        <Text color="claude">{row.icon}</Text>
+        {iconGapOf(row.icon)}
         <Text bold={row.isSelected}>
           {row.href === undefined ? row.title : <Link href={row.href}>{row.title}</Link>}
         </Text>
