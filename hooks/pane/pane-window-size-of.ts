@@ -35,7 +35,7 @@ const KEY_SPELLINGS: Readonly<Record<PaneKey, string>> = {
  * @param bodyRows the rows the body has
  * @param stack the stack tab's items, for its tab and count; no stack tab when absent
  * @param saved the saved items, for the saved tab's count
- * @param newCounts how many new items each source has, by source id, for the source tabs' counts
+ * @param newCounts how many new items each source has, by source id, and under the All tab's id how many it lists, for the tabs' counts
  */
 export function paneWindowSizeOf(
   sources: readonly Source[],

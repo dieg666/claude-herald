@@ -44,7 +44,7 @@ function releasesShownOf(stack: Omit<PaneStackPage, 'summary'>): Item[] {
  * @param saved the saved items
  * @param size how many one-line items the window may show
  * @param stack the stack tab's items, filter and expanded packages; no stack tab when absent
- * @param newCounts how many new items each source has, by source id, for the tabs' counts
+ * @param newCounts how many new items each source has, by source id, and under the All tab's id how many it lists, for the tabs' counts
  * @param health what the refresh recorded, for the state line
  */
 export function panePageOf(
