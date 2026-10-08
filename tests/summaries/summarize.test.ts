@@ -233,18 +233,15 @@ describe('summarize', () => {
     const jobs = Summaries.summaryJobsOf()
 
     replies.push(
-      Fixtures.answerOf('Anthropic announces a model, according to the title alone.'),
-      Fixtures.answerOf('Anthropic expands a vetting program. Wait, the item giv'),
-      Fixtures.answerOf('One.\nThe text gives no details.\nThree.'),
+      Fixtures.answerOf('Anthropic expands a vetting program … Wait, the item giv'),
+      Fixtures.answerOf('One.\nAnthropic ships a model, according to the title alone.\nThree.'),
     )
 
-    expect(await Summaries.summarize(host, jobs, ITEM, 'feed', 'short')).toBeUndefined()
     expect(await Summaries.summarize(host, jobs, ITEM, 'feed', 'short')).toBeUndefined()
     expect(await Summaries.summarize(host, jobs, ITEM, 'feed', 'long')).toBeUndefined()
     expect(stored.get('summaries')).toBeUndefined()
     expect(state.summaries).toEqual({})
     expect(logs).toEqual([
-      `herald: no short summary of ${ITEM.id}: the reply describes the item`,
       `herald: no short summary of ${ITEM.id}: the reply describes the item`,
       `herald: no long summary of ${ITEM.id}: the reply describes the item`,
     ])
@@ -254,7 +251,47 @@ describe('summarize', () => {
     expect(await Summaries.summarize(host, jobs, ITEM, 'feed', 'short')).toBe(
       'Security researchers get wider access to models.',
     )
+    expect(asked.length).toBe(3)
+    expect(jobs.rejected.size).toBe(1)
+  })
+
+  test('after two rejected replies an item is not asked about for an hour and shows no summary meanwhile', async () => {
+    const { host, asked, replies, state, logs } = Fixtures.fakeHostOf()
+    const jobs = Summaries.summaryJobsOf()
+    const clock = { now: 5_000 }
+    const meta = () => Fixtures.answerOf('A model ships, according to the title alone.')
+
+    host.clockNow = async () => clock.now
+    replies.push(meta(), meta())
+
+    expect(await Summaries.summarize(host, jobs, ITEM, 'feed', 'short')).toBeUndefined()
+    expect(state.summaries).toEqual({})
+    expect(await Summaries.summarize(host, jobs, ITEM, 'feed', 'short')).toBeUndefined()
+    expect(state.summaries).toEqual({ [ITEM.id]: '' })
+    expect(logs.at(-1)).toBe(
+      `herald: no short summary of ${ITEM.id}: the reply describes the item; not asked again for an hour`,
+    )
+
+    clock.now += Summaries.SUMMARY_LIMITS.rejectedWindowMs - 1
+
+    expect(await Summaries.summarize(host, jobs, ITEM, 'feed', 'short')).toBeUndefined()
+    expect(asked.length).toBe(2)
+
+    // Another kind or language of the same item is asked about as usual.
+    replies.push(Fixtures.answerOf('Uno.'))
+
+    expect(await Summaries.summarize(host, jobs, ITEM, 'es', 'short')).toBe('Uno.')
+    expect(asked.length).toBe(3)
+
+    clock.now += 1
+    replies.push(Fixtures.answerOf('A model ships with longer context.'))
+
+    expect(await Summaries.summarize(host, jobs, ITEM, 'feed', 'short')).toBe(
+      'A model ships with longer context.',
+    )
     expect(asked.length).toBe(4)
+    expect(state.summaries).toEqual({ [ITEM.id]: 'A model ships with longer context.' })
+    expect(jobs.rejected.size).toBe(0)
   })
 
   test('a summary an older prompt version wrote is not reused, and the new one replaces it', async () => {

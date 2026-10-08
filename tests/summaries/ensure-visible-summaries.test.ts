@@ -192,4 +192,26 @@ describe('ensure-visible-summaries', () => {
     ).toEqual({ [B.id]: 'B.' })
     expect(asked.length).toBe(1)
   })
+
+  test('an item whose replies were rejected twice gets an empty text in state and no call for the hour', async () => {
+    const { host, asked, replies, state } = Fixtures.fakeHostOf()
+    const jobs = Summaries.summaryJobsOf()
+
+    replies.push(
+      Fixtures.answerOf('A model ships, according to the title alone.'),
+      Fixtures.answerOf('Hmm, the title says little.'),
+    )
+
+    expect(await Summaries.ensureVisibleSummaries(host, jobs, [A])).toEqual({})
+    expect(await Summaries.ensureVisibleSummaries(host, jobs, [A])).toEqual({})
+    expect(state.summaries).toEqual({ [A.id]: '' })
+
+    // State replaced by another view keeps the empty text on the next one.
+    state.summaries = {}
+    replies.push(Fixtures.answerOf('B.'))
+
+    expect(await Summaries.ensureVisibleSummaries(host, jobs, [A, B])).toEqual({ [B.id]: 'B.' })
+    expect(state.summaries).toEqual({ [A.id]: '', [B.id]: 'B.' })
+    expect(asked.length).toBe(3)
+  })
 })

@@ -9,5 +9,5 @@ import type { SummaryJobs } from './summary-jobs.js'
  * @param limiter bounds the model calls
  */
 export function summaryJobsOf(limiter: Limiter = limiterOf()): SummaryJobs {
-  return { limiter, serially: serialOf() }
+  return { limiter, serially: serialOf(), rejected: new Map() }
 }

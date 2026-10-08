@@ -1,5 +1,5 @@
 /**
- * One item as the band draws it: its source's glyph, the headline fitted to the width (a link when the address is http(s)), and the one-line summary when there is one; an item without usable text has no summary line.
+ * One item as the band draws it: its source's glyph, the headline fitted to the width (a link when the address is http(s)), and the one-line summary when there is one; an item without usable text, or whose summary replies were rejected for now, has no summary line.
  */
 export type BandRow = {
   readonly id: string
@@ -7,9 +7,9 @@ export type BandRow = {
   readonly title: string
   /** The item's address, only when it is http(s). */
   readonly href?: string
-  /** Undefined while the summary is pending, and for an item without usable text. */
+  /** Undefined while the summary is pending, and when the row has none. */
   readonly summary?: string
-  /** Present, true, when the item has no usable text: it gets no summary and no placeholder. */
-  readonly isTextless?: true
+  /** Present, true, when the item gets no summary line and no placeholder: it has no usable text, or its summary replies were rejected for now. */
+  readonly hasNoSummary?: true
   readonly isSelected: boolean
 }

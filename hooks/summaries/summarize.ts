@@ -7,6 +7,7 @@ import { summaryKeyOf } from '../store/summary-key-of.js'
 import { summaryOf } from '../store/summary-of.js'
 import { currentSummaryLang } from './current-summary-lang.js'
 import { isMetaReply } from './is-meta-reply.js'
+import { isMuted } from './is-muted.js'
 import { longSummaryOf } from './long-summary-of.js'
 import { runLimited } from './run-limited.js'
 import { shortSummaryOf } from './short-summary-of.js'
@@ -72,6 +73,49 @@ async function keep(
 }
 
 /**
+ * Notes a rejected reply and, once the item is muted, marks its one-line summary in state as none (an empty text) while the language is still the current one; a failed write is logged.
+ *
+ * @param host the engine
+ * @param jobs the rejections and write queue
+ * @param item the item
+ * @param lang the resolved language
+ * @param kind short or long
+ */
+async function reject(
+  host: Host,
+  jobs: SummaryJobs,
+  item: Item,
+  lang: string,
+  kind: SummaryKind,
+): Promise<void> {
+  const key = summaryKeyOf(item.id, lang, kind)
+  const count = (jobs.rejected.get(key)?.count ?? 0) + 1
+  const rejection = { itemId: item.id, lang, kind, count, at: await host.clockNow() }
+
+  jobs.rejected.set(key, rejection)
+
+  const muted = isMuted(rejection, rejection.at)
+
+  host.debug(
+    `herald: no ${kind} summary of ${item.id}: the reply describes the item${muted ? '; not asked again for an hour' : ''}`,
+  )
+
+  if (!muted || kind !== 'short') {
+    return
+  }
+
+  try {
+    await jobs.serially(async () => {
+      if ((await currentSummaryLang(host)) === lang) {
+        await host.state.summaries.update(current => ({ ...current, [item.id]: '' }))
+      }
+    })
+  } catch (error) {
+    host.debug(`herald: could not mark the summary of ${item.id}: ${messageOf(error)}`)
+  }
+}
+
+/**
  * Asks the model for a summary, once a slot is free, and caches what it answers.
  *
  * @param host the engine
@@ -122,7 +166,7 @@ async function requestOf(
   }
 
   if (isMetaReply(reply.text)) {
-    host.debug(`herald: no ${kind} summary of ${item.id}: the reply describes the item`)
+    await reject(host, jobs, item, lang, kind)
 
     return undefined
   }
@@ -135,13 +179,14 @@ async function requestOf(
     return undefined
   }
 
+  jobs.rejected.delete(summaryKeyOf(item.id, lang, kind))
   await keep(host, jobs, item, lang, kind, text)
 
   return text
 }
 
 /**
- * An item's summary in a resolved language: nothing, with no model call, for an item without usable text; else the cached one with no model call, else one Haiku request through the limiter (shared with a request for the same key already in flight), cached when answered; undefined on any failure or on a reply that describes the item instead of the story, which is not cached, so a later call retries; never throws.
+ * An item's summary in a resolved language: nothing, with no model call, for an item without usable text; else the cached one with no model call, else one Haiku request through the limiter (shared with a request for the same key already in flight), cached when answered; undefined on any failure or on a reply that describes the item instead of the story, which is not cached, so a later call retries, except that after `SUMMARY_LIMITS.rejectedTries` rejected replies the item is not asked about for `SUMMARY_LIMITS.rejectedWindowMs`; never throws.
  *
  * @param host the engine
  * @param jobs the limiter and write queue
@@ -169,7 +214,13 @@ export async function summarize(
       return cached
     }
 
-    return await runLimited(jobs.limiter, `summary|${summaryKeyOf(item.id, lang, kind)}`, () =>
+    const key = summaryKeyOf(item.id, lang, kind)
+
+    if (isMuted(jobs.rejected.get(key), await host.clockNow())) {
+      return undefined
+    }
+
+    return await runLimited(jobs.limiter, `summary|${key}`, () =>
       requestOf(host, jobs, item, lang, kind, signal),
     )
   } catch (error) {

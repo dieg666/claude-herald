@@ -79,11 +79,18 @@ describe('band-model-of', () => {
       80,
     ).rows
 
-    expect(rows.map(row => [row.id, row.summary, row.isTextless])).toEqual([
+    expect(rows.map(row => [row.id, row.summary, row.hasNoSummary])).toEqual([
       ['src:a', undefined, true],
       ['src:b', undefined, true],
       ['src:c', 'Real.', undefined],
     ])
+  })
+
+  test('an empty summary, replies rejected for now, shows no summary line', () => {
+    const [row] = Band.bandModelOf(pageAt(0, 0), SOURCES, { 'src:1': '' }, [], 80).rows
+
+    expect(row).toMatchObject({ id: 'src:1', hasNoSummary: true })
+    expect(row?.summary).toBeUndefined()
   })
 
   test('the selected item reads saved when it is in the saved list', () => {

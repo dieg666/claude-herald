@@ -629,4 +629,68 @@ describe('band-view', () => {
       },
     )
   }
+
+  for (const surface of SURFACES) {
+    test(
+      `on ${surface}: an item whose replies were rejected twice stops showing … and is not asked about again`,
+      { timeoutMs: 20_000 },
+      async ($, on) => {
+        const clock = mock.clock(on)
+        const id = `muted-${surface}`
+        const asked: string[] = []
+
+        Fixtures.storeOn(on, {
+          sources: [Fixtures.sourceAt(id, { icon: 'S' })],
+          items: { [id]: Fixtures.datedItemsOf(id, 7) },
+          settings: { rotateSeconds: 3600 },
+        })
+        Fixtures.registerOn(on)
+        on('ui.render', () => Fixtures.BELOW_BAND)
+        on('ui.log', () => ({ value: undefined }))
+        on('model.complete', ($, e) => {
+          const title = /^Title: (.*)$/m.exec(e.prompt)?.[1] ?? ''
+
+          asked.push(title)
+
+          return {
+            value: Fixtures.answerOf(
+              title === `${id} 2`
+                ? 'A program grows, according to the title alone.'
+                : `Summary of ${title}.`,
+            ),
+          }
+        })
+        on('http.fetch', () => ({ deny: 'offline' }))
+        on('classic.SessionStart', () => ({}))
+
+        await $.classic.SessionStart({ source: 'clear' })
+
+        const ui = await $.ui.mount({ ...BAND, surface })
+        const turn = async () => {
+          await ui.press({ key: 'next' })
+          await ui.press({ key: 'prev' })
+          await clock.settle()
+        }
+        const askedOfMuted = () => asked.filter(title => title === `${id} 2`).length
+
+        await turn()
+
+        expect(askedOfMuted()).toBe(1)
+        expect((await ui.findAll({ type: 'Text', text: /^…$/ })).length).toBe(1)
+
+        await turn()
+
+        expect(askedOfMuted()).toBe(2)
+        expect(await ui.find({ type: 'Text', text: /^…$/ })).toBeUndefined()
+        expect(await ui.find({ type: 'Text', text: /according to the title/ })).toBeUndefined()
+        expect(
+          (await ui.findAll({ type: 'Box' })).filter(box => box.props.height === 1).length,
+        ).toBe(1)
+
+        await turn()
+
+        expect(askedOfMuted()).toBe(2)
+      },
+    )
+  }
 })

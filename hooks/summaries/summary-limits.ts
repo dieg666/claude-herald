@@ -27,4 +27,8 @@ export const SUMMARY_LIMITS = {
   titleChars: 300,
   /** The most new items one refresh run summarizes, newest first. */
   newPerRun: 12,
+  /** Rejected replies, for one item, language and kind, after which it is not asked about for the window. */
+  rejectedTries: 2,
+  /** How long an item stays unasked after its replies were rejected. */
+  rejectedWindowMs: 60 * 60_000,
 } as const

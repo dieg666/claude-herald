@@ -30,7 +30,7 @@ function lineOf(text: string): string {
 }
 
 /**
- * One item as the pane draws it, every line fitted to `columns` cells; a stack item shows 📦 (⚠ when breaking or security), `pkg current → new` and its ecosystem, level and flags; a news item without usable text shows no summary.
+ * One item as the pane draws it, every line fitted to `columns` cells; a stack item shows 📦 (⚠ when breaking or security), `pkg current → new` and its ecosystem, level and flags; a news item without usable text, or with an empty summary (replies rejected for now), shows no summary.
  *
  * @param item the item
  * @param icon its source's glyph, fitted
@@ -47,8 +47,8 @@ function rowOf(
 ): PaneRow {
   const stack = isStackItem(item) ? item : undefined
   const glyph = stack === undefined ? icon : fitColumns(stackIconOf(stack.release), ICON_COLUMNS)
-  const isTextless = stack === undefined && summaryTextOf(item) === ''
-  const note = stack !== undefined ? stackNoteOf(stack.release) : isTextless ? undefined : summary
+  const hasNoSummary = stack === undefined && (summary === '' || summaryTextOf(item) === '')
+  const note = stack !== undefined ? stackNoteOf(stack.release) : hasNoSummary ? undefined : summary
   const href = httpUrlOf(item.url)?.href
   const date = shortDateOf(item.publishedAt)
   const dated = date === undefined ? 0 : displayWidthOf(date) + 1
@@ -60,7 +60,7 @@ function rowOf(
     title: fitColumns(title, columns - ICON_COLUMNS - 3 - dated),
     ...(href === undefined ? {} : { href }),
     ...(note === undefined ? {} : { summary: fitColumns(lineOf(note), columns - SUMMARY_INDENT) }),
-    ...(isTextless ? { isTextless: true as const } : {}),
+    ...(hasNoSummary ? { hasNoSummary: true as const } : {}),
     ...(date === undefined ? {} : { date }),
     isSelected,
   }

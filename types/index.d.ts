@@ -337,7 +337,7 @@ declare module 'claude-code' {
       settings: HeraldSettings
       items: ItemsBySource
       saved: SavedItem[]
-      /** One-line summaries by item id, in the current summary language. */
+      /** One-line summaries by item id, in the current summary language; an empty text means none is shown for now. */
       summaries: Record<string, string>
       band: BandState
       pane: PaneState

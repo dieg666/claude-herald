@@ -22,6 +22,7 @@ export * from './tag.js'
 export * from './tag-at.js'
 export * from './teaser-cap.js'
 export * from './title-cap.js'
+export * from './with-page-teasers.js'
 export * from './without-trailing-commas.js'
 
 export * as default from '.'

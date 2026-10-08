@@ -4,6 +4,7 @@ import { extractionRequestOf } from '../page/extraction-request-of.js'
 import { htmlToText } from '../page/html-to-text.js'
 import { pageHashOf } from '../page/page-hash-of.js'
 import { parseExtracted } from '../page/parse-extracted.js'
+import { withPageTeasers } from '../page/with-page-teasers.js'
 import { loadPageHashes } from '../store/load-page-hashes.js'
 import type { Fetched } from './fetched.js'
 import { itemsOfExtracted } from './items-of-extracted.js'
@@ -11,7 +12,7 @@ import { messageOf } from './message-of.js'
 import { REFRESH_LIMITS } from './refresh-limits.js'
 
 /**
- * A page source's items, extracted by the model only when the hash of the page text and the extraction rules differs from the stored one; an answered reply with no usable item yields none, with its hash, so the same page is not asked about again.
+ * A page source's items, extracted by the model only when the hash of the page text and the extraction rules differs from the stored one, each teaser kept only when the page text holds it; an answered reply with no usable item yields none, with its hash, so the same page is not asked about again.
  *
  * @param host the engine
  * @param source the page source
@@ -64,7 +65,10 @@ export async function fetchPage(
     return { kind: 'failed', reason: `model: ${reply.reason}` }
   }
 
-  const items = itemsOfExtracted(source.id, parseExtracted(reply.text, source.url))
+  const items = itemsOfExtracted(
+    source.id,
+    withPageTeasers(parseExtracted(reply.text, source.url), text),
+  )
 
   return { kind: 'items', items, pageHash }
 }

@@ -23,7 +23,7 @@ function lineOf(text: string): string {
 }
 
 /**
- * What the band draws for a page, every line fitted to `columns` cells; a stack item shows 📦 (⚠ when breaking or security), `pkg current → new` and its ecosystem, level and flags; a news item without usable text shows no summary.
+ * What the band draws for a page, every line fitted to `columns` cells; a stack item shows 📦 (⚠ when breaking or security), `pkg current → new` and its ecosystem, level and flags; a news item without usable text, or with an empty summary (replies rejected for now), shows no summary.
  *
  * @param page the page shown
  * @param sources every source, for the glyphs
@@ -48,13 +48,10 @@ export function bandModelOf(
       ICON_COLUMNS,
     )
     const href = httpUrlOf(item.url)?.href
-    const isTextless = stack === undefined && summaryTextOf(item) === ''
+    const cached = Object.hasOwn(summaries, item.id) ? summaries[item.id] : undefined
+    const hasNoSummary = stack === undefined && (cached === '' || summaryTextOf(item) === '')
     const summary =
-      stack !== undefined
-        ? stackNoteOf(stack.release)
-        : !isTextless && Object.hasOwn(summaries, item.id)
-          ? summaries[item.id]
-          : undefined
+      stack !== undefined ? stackNoteOf(stack.release) : hasNoSummary ? undefined : cached
     const title = stack === undefined ? lineOf(item.title) : stackLineOf(stack)
 
     return {
@@ -65,7 +62,7 @@ export function bandModelOf(
       ...(summary === undefined
         ? {}
         : { summary: fitColumns(lineOf(summary), columns - SUMMARY_INDENT) }),
-      ...(isTextless ? { isTextless: true as const } : {}),
+      ...(hasNoSummary ? { hasNoSummary: true as const } : {}),
       isSelected: index === page.span.selected,
     }
   })

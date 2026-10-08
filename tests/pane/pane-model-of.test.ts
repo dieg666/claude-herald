@@ -65,10 +65,18 @@ describe('pane-model-of', () => {
     const page = Pane.panePageOf({ tab: 'a', selected: 0 }, SOURCES, items, [], 10)
     const model = Pane.paneModelOf(page, SOURCES, { 'a:1': 'Meta.', 'a:2': 'Real.' }, [], 80)
 
-    expect(model.rows.map(row => [row.id, row.summary, row.isTextless, row.date])).toEqual([
+    expect(model.rows.map(row => [row.id, row.summary, row.hasNoSummary, row.date])).toEqual([
       ['a:1', undefined, true, 'Jan 2'],
       ['a:2', 'Real.', undefined, 'Jan 1'],
     ])
+  })
+
+  test('an empty summary, replies rejected for now, shows no summary line', () => {
+    const page = Pane.panePageOf({ tab: 'a', selected: 0 }, SOURCES, ITEMS, [], 10)
+    const [row] = Pane.paneModelOf(page, SOURCES, { 'a:1': '' }, [], 80).rows
+
+    expect(row).toMatchObject({ id: 'a:1', hasNoSummary: true })
+    expect(row?.summary).toBeUndefined()
   })
 
   test('an empty tab names itself and says so', () => {

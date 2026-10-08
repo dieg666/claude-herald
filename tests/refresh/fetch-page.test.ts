@@ -187,7 +187,7 @@ describe('fetch-page', () => {
   })
 
   test(
-    "a teaser the page shows becomes the item's text, which a summary is written from",
+    "a teaser the page shows becomes the item's text, which a summary is written from; one the page does not show is dropped",
     { timeoutMs: 20_000 },
     async () => {
       const teaser =
@@ -203,9 +203,14 @@ describe('fetch-page', () => {
               title: 'Expanding the Cyber Verification Program',
               url: '/news/cyber-verification-program',
               date: '2026-10-06',
-              teaser: `Expanding the ${teaser}`,
+              teaser: teaser.toUpperCase(),
             },
             { title: 'Older', url: 'https://www.anthropic.com/news/older', teaser: null },
+            {
+              title: 'Invented',
+              url: 'https://www.anthropic.com/news/invented',
+              teaser: 'Anthropic expands access to a vetted cyber program for researchers.',
+            },
           ]),
         ),
       )
@@ -213,8 +218,8 @@ describe('fetch-page', () => {
       const fetched = await Refresh.fetchPage(host, SOURCE)
       const items = fetched.kind === 'items' ? fetched.items : []
 
-      expect(items.map(item => item.text)).toEqual([`Expanding the ${teaser}`, ''])
-      expect(items.map(item => Summaries.summaryTextOf(item) !== '')).toEqual([true, false])
+      expect(items.map(item => item.text)).toEqual([teaser.toUpperCase(), '', ''])
+      expect(items.map(item => Summaries.summaryTextOf(item) !== '')).toEqual([true, false, false])
     },
   )
 
