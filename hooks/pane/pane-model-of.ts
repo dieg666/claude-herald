@@ -1,4 +1,4 @@
-import type { Item, SavedItem, Source } from '../../types/index.js'
+import type { IdsBySource, Item, SavedItem, Source } from '../../types/index.js'
 import { fitColumns } from '../band/fit-columns.js'
 import { ICON_COLUMNS } from '../band/icon-columns.js'
 import { MARK_COLUMNS } from '../band/mark-columns.js'
@@ -57,6 +57,7 @@ function newsLineOf(title: string, name: string | undefined, columns: number) {
  * @param isSelected whether it is the selected item
  * @param columns the cells the pane's body has
  * @param sourceName the source's name when the tab mixes sources, drawn after the headline before the date, or leading a version-only title
+ * @param isRead whether the item was opened or copied for Claude
  */
 function rowOf(
   item: Item,
@@ -64,6 +65,7 @@ function rowOf(
   isSelected: boolean,
   columns: number,
   sourceName?: string,
+  isRead = false,
 ): PaneRow {
   const stack = isStackItem(item) ? item : undefined
   const hasNoSummary = stack === undefined && (summary === '' || summaryTextOf(item) === '')
@@ -88,6 +90,7 @@ function rowOf(
       : { summaryLines: wrapColumns(lineOf(note), columns - SUMMARY_INDENT, PANE_SUMMARY_LINES) }),
     ...(hasNoSummary ? { hasNoSummary: true as const } : {}),
     ...(date === undefined ? {} : { date }),
+    ...(isRead ? { isRead: true as const } : {}),
     isSelected,
   }
 }
@@ -114,7 +117,7 @@ function emptyOf(tab: string, name: string, filter: string): string {
 }
 
 /**
- * What the pane draws for a page, every line fitted to `columns` cells; on the saved tab a title that is only a version leads with its source's name; the stack tab draws a one-line row per package (and per release of an expanded one) under a heading per ecosystem, with its summary line and its filter; the footer holds the keys that act on the tab, after the focus hint while the pane does not hold the keyboard.
+ * What the pane draws for a page, every line fitted to `columns` cells; a news item that was read is marked so; on the saved tab a title that is only a version leads with its source's name; the stack tab draws a one-line row per package (and per release of an expanded one) under a heading per ecosystem, with its summary line and its filter; the footer holds the keys that act on the tab, after the focus hint while the pane does not hold the keyboard.
  *
  * @param page the page shown
  * @param sources every source, for the names
@@ -123,6 +126,7 @@ function emptyOf(tab: string, name: string, filter: string): string {
  * @param columns the cells the pane's body has
  * @param filter the stack tab's filter
  * @param isFocused whether the pane holds the keyboard
+ * @param read the read item ids by source id
  */
 export function paneModelOf(
   page: PanePage,
@@ -132,6 +136,7 @@ export function paneModelOf(
   columns: number,
   filter = '',
   isFocused = true,
+  read: Readonly<IdsBySource> = {},
 ): PaneModel {
   const names = new Map(sources.map(source => [source.id, lineOf(source.name)]))
   const isSavedTab = page.tab.id === SAVED_TAB
@@ -152,6 +157,7 @@ export function paneModelOf(
             index === page.span.selected,
             columns,
             isSavedTab ? names.get(item.sourceId) : undefined,
+            Object.hasOwn(read, item.sourceId) && read[item.sourceId]?.includes(item.id) === true,
           ),
         )
       : paneStackRowsOf(page.stack, page.span.selected, columns)

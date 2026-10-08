@@ -65,6 +65,28 @@ describe('move-pane', () => {
     expect(shown).toEqual([])
   })
 
+  test('a tab switch records the tab left and the tab shown as viewed; a move within a tab does not', async () => {
+    const { host, stored, state, onShown } = await paneWith()
+
+    await Pane.movePane(host, 'down', 4, onShown)
+
+    expect(stored.get('viewed')).toBeUndefined()
+
+    await Pane.movePane(host, { tab: 'b' }, 4, onShown)
+
+    const viewed = {
+      a: Fixtures.datedItemsOf('a', 6).map(item => item.id),
+      b: ['b:1'],
+    }
+
+    expect(stored.get('viewed')).toEqual(viewed)
+    expect(state.viewed).toEqual(viewed)
+
+    await Pane.movePane(host, { tab: 'saved' }, 4, onShown)
+
+    expect(stored.get('viewed')).toEqual(viewed)
+  })
+
   test('a move that changes nothing writes nothing', async () => {
     const { host, state, shown, onShown } = await paneWith()
 

@@ -49,6 +49,47 @@ describe('refresh-source', () => {
     expect((await Refresh.refreshSource(host, FEED)).newItems).toEqual([])
   })
 
+  test('a first load gives the source all its items as viewed, so none counts as new; later loads leave viewed alone', async () => {
+    const { host, stored, state, web } = feedHost(3)
+
+    await Refresh.refreshSource(host, FEED)
+
+    expect(stored.get('viewed')).toEqual({ big: ids(0, 1, 2) })
+    expect(state.viewed).toEqual({ big: ids(0, 1, 2) })
+
+    web.set(FEED.url, { status: 200, text: Feeds.rssWithItems(5) })
+    await Refresh.refreshSource(host, FEED)
+
+    expect(stored.get('viewed')).toEqual({ big: ids(0, 1, 2) })
+  })
+
+  test('a source seen before viewed ids existed gets the items it already had as viewed, the new ones left out', async () => {
+    const { host, stored, state } = feedHost(5, { seen: { big: ids(0, 1) } })
+
+    await Refresh.refreshSource(host, FEED)
+
+    expect(stored.get('viewed')).toEqual({ big: ids(0, 1) })
+    expect(state.viewed).toEqual({ big: ids(0, 1) })
+  })
+
+  test('a viewed write that fails is logged and the run keeps its new items', async () => {
+    const { host, logs } = feedHost(3, { seen: { big: ids(0) } })
+    const storeSet = host.storeSet
+
+    host.storeSet = async (key, value) => {
+      if (key === 'viewed') {
+        throw new Error('disk full')
+      }
+
+      return storeSet(key, value)
+    }
+
+    expect((await Refresh.refreshSource(host, FEED)).newItems.map(item => item.id)).toEqual(
+      ids(1, 2),
+    )
+    expect(logs).toEqual(['herald: big: could not record the viewed items: disk full'])
+  })
+
   test('items stay capped at 30', async () => {
     const kept = Array.from({ length: 30 }, (_, index) =>
       Fixtures.itemAt(`old${index}`, '2026-10-01T00:00:00.000Z'),

@@ -50,6 +50,27 @@ describe('hydrate', () => {
     expect(state.summaries).toEqual({ 'src:a': 'corto' })
   })
 
+  test('copies the read and viewed ids into state; a store from before them gives none', async () => {
+    const { host, state } = Fixtures.fakeHostOf({
+      ...STORE,
+      read: { own: ['own:a'] },
+      viewed: { own: ['own:a', 'own:b'], gone: [] },
+    })
+
+    await State.hydrate(host)
+
+    expect(state.read).toEqual({ own: ['own:a'] })
+    expect(state.viewed).toEqual({ own: ['own:a', 'own:b'], gone: [] })
+
+    const before = Fixtures.fakeHostOf(STORE)
+
+    await before.host.state.read.update(() => ({ own: ['stale'] }))
+    await State.hydrate(before.host)
+
+    expect(before.state.read).toEqual({})
+    expect(before.state.viewed).toEqual({})
+  })
+
   test('stored copies of one story fold onto the id the summary is cached under', async () => {
     const guid = {
       ...Fixtures.itemAt('story'),

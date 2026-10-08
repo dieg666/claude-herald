@@ -25,6 +25,7 @@ export async function handShownPage(
       await host.state.sources.read(),
       await host.state.items.read(),
       shownStackItemsOf(await host.state.stack.read()),
+      await host.state.read.read(),
     )
     const page = bandPageOf(await host.state.band.read(), items, rotation.pageSize)
 

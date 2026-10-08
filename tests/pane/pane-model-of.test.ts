@@ -41,6 +41,36 @@ describe('pane-model-of', () => {
     ])
   })
 
+  test('a news item read is marked, on its tab and on the saved tab', () => {
+    const read = { a: ['a:2'], src: ['src:kept'] }
+    const page = Pane.panePageOf({ tab: 'a', selected: 0 }, SOURCES, ITEMS, [], 10)
+    const model = Pane.paneModelOf(page, SOURCES, {}, [], 80, '', true, read)
+
+    expect(model.rows.map(row => [row.id, row.isRead])).toEqual([
+      ['a:1', undefined],
+      ['a:2', true],
+    ])
+    expect(Pane.paneModelOf(page, SOURCES, {}, [], 80).rows.some(row => row.isRead)).toBe(false)
+
+    const kept = { ...Fixtures.itemAt('kept'), savedAt: 1 }
+    const saved = Pane.panePageOf({ tab: 'saved', selected: 0 }, SOURCES, ITEMS, [kept], 10)
+
+    expect(
+      Pane.paneModelOf(saved, SOURCES, {}, [kept], 80, '', true, read).rows.map(row => row.isRead),
+    ).toEqual([true])
+  })
+
+  test('the tabs carry the new counts the page was built with', () => {
+    const page = Pane.panePageOf({ tab: 'a', selected: 0 }, SOURCES, ITEMS, [], 10, undefined, {
+      a: 3,
+    })
+
+    expect(Pane.paneModelOf(page, SOURCES, {}, [], 80).tabs.map(tab => tab.count)).toEqual([
+      3,
+      undefined,
+    ])
+  })
+
   test('on the saved tab: the stored snapshot drawn, a removed source with no name, undated with no date', () => {
     const kept = { ...Fixtures.itemAt('kept'), sourceId: 'gone', savedAt: 1 }
     const page = Pane.panePageOf({ tab: 'saved', selected: 0 }, SOURCES, ITEMS, [kept], 10)

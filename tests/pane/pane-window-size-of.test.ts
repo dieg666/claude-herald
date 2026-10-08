@@ -46,6 +46,16 @@ describe('pane-window-size-of', () => {
     expect(Pane.paneWindowSizeOf(sources, 57, 20, stack, saved)).toBe(12)
   })
 
+  test("the source tabs' new counts are spelled as drawn too, so a count that wraps the tab row takes a line", () => {
+    // `1: Alpha  0: Saved` is eighteen cells; `1: Alpha 14  0: Saved` is twenty-one.
+    expect(Pane.paneWindowSizeOf(ONE, 21, 40, undefined, [], { a: 14 })).toBe(
+      Pane.paneWindowSizeOf(ONE, 21, 40),
+    )
+    expect(Pane.paneWindowSizeOf(ONE, 20, 40, undefined, [], { a: 14 })).toBe(
+      Pane.paneWindowSizeOf(ONE, 20, 40) - 1,
+    )
+  })
+
   test('at least one item, however little room', () => {
     expect(Pane.paneWindowSizeOf(ONE, 80, 0)).toBe(1)
   })

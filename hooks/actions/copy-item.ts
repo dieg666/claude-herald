@@ -9,9 +9,10 @@ import { COPIED_TOAST } from './copied-toast.js'
 import { copyTextOf } from './copy-text-of.js'
 import { depsCopyTextOf } from './deps-copy-text-of.js'
 import { copyWithTool } from './copy-with-tool.js'
+import { readItem } from './read-item.js'
 
 /**
- * Copies an item for Claude (the template filled, the deps template for a stack item) to the clipboard of the surface pressed on, falling back to the platform's clipboard tools when the surface copied nothing; a refused copy is respected; toasts the outcome, never submits a prompt, never throws.
+ * Copies an item for Claude (the template filled, the deps template for a stack item) to the clipboard of the surface pressed on, falling back to the platform's clipboard tools when the surface copied nothing; a refused copy is respected; an item that reached a clipboard is recorded as read; toasts the outcome, never submits a prompt, never throws.
  *
  * @param host the engine
  * @param item the item
@@ -33,6 +34,7 @@ export async function copyItem(host: Host, item: Item, surface: RenderSurface): 
 
     if (copied.isCopied) {
       host.toast(COPIED_TOAST)
+      await readItem(host, item)
 
       return true
     }
@@ -47,6 +49,7 @@ export async function copyItem(host: Host, item: Item, surface: RenderSurface): 
 
     if (failure === undefined) {
       host.toast(COPIED_TOAST)
+      await readItem(host, item)
 
       return true
     }

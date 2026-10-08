@@ -2,10 +2,11 @@ import type { Item } from '../../types/index.js'
 import type { Host } from '../host/host.js'
 import { messageOf } from '../refresh/message-of.js'
 import { removeSaved } from '../store/remove-saved.js'
+import { readItem } from './read-item.js'
 import { titleLineOf } from './title-line-of.js'
 
 /**
- * Marks a saved item as read: removes it from the saved list in the store, then mirrors the list to state; a failure is toasted, never thrown.
+ * Marks a saved item as read: removes it from the saved list in the store, mirrors the list to state and, when it was saved, records it as read; a failure is toasted, never thrown.
  *
  * @param host the engine
  * @param item the saved item
@@ -13,9 +14,14 @@ import { titleLineOf } from './title-line-of.js'
  */
 export async function markRead(host: Host, item: Item): Promise<boolean> {
   try {
+    const before = await host.state.saved.read()
     const saved = await removeSaved(host, item.id)
 
     await host.state.saved.update(() => saved)
+
+    if (before.some(entry => entry.id === item.id)) {
+      await readItem(host, item)
+    }
 
     return !saved.some(entry => entry.id === item.id)
   } catch (error) {

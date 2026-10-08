@@ -1,6 +1,7 @@
 import type { Host } from '../host/host.js'
 import { PANE_ID } from '../names/pane-id.js'
 import { PANE_TITLE } from '../names/pane-title.js'
+import { viewShownTab } from '../pane/view-shown-tab.js'
 import { messageOf } from '../refresh/message-of.js'
 import { loadItems } from '../store/load-items.js'
 import { loadSources } from '../store/load-sources.js'
@@ -9,7 +10,7 @@ import { digestTextOf } from './digest-text-of.js'
 import { hasDrawingSurface } from './has-drawing-surface.js'
 
 /**
- * `/herald`: opens the pane where a surface draws one, asking for the summaries of the items it opens on; elsewhere, or when it cannot open, answers the latest items as text.
+ * `/herald`: opens the pane where a surface draws one, recording the tab it shows as viewed once drawn and asking for the summaries of the items it opens on; elsewhere, or when it cannot open, answers the latest items as text.
  *
  * @param host the engine
  */
@@ -24,6 +25,10 @@ export async function showHerald(host: Host): Promise<CommandReply> {
         focus: true,
         closeOnEscape: true,
       })
+
+      if (opened.isPlaced) {
+        await viewShownTab(host)
+      }
 
       return {
         text: opened.isPlaced

@@ -1,4 +1,4 @@
-import type { RenderSurface } from 'claude-code'
+import type { RenderSurface, UiOpenResult } from 'claude-code'
 import { describe, expect, mock, test } from 'claude-code/testing'
 
 import Fixtures from '../fixtures'
@@ -36,6 +36,26 @@ describe('show-herald', () => {
       expect(opened).toEqual([{ id: 'herald', title: 'Herald', focus: true, closeOnEscape: true }])
     })
   }
+
+  test('opening the pane records the tab it shows as viewed; a pane waiting for room does not', async ($, on) => {
+    const placed = Fixtures.storeOn(on, STORE)
+    let result: UiOpenResult = { isPlaced: false, reason: 'the terminal is 80 columns wide' }
+
+    on('session.surfaces', () => ({ value: ['terminal'] }))
+    on('ui.open', () => ({ value: result }))
+    on('ui.log', () => ({ value: undefined }))
+    on('classic.SessionStart', () => ({}))
+
+    await $.classic.SessionStart({ source: 'clear' })
+    await $.command.run(Fixtures.heraldOf(''))
+
+    expect(placed.get('viewed')).toBeUndefined()
+
+    result = { isPlaced: true }
+    await $.command.run(Fixtures.heraldOf(''))
+
+    expect(placed.get('viewed')).toEqual({ feed: ['src:a', 'src:b', 'src:c', 'src:d'] })
+  })
 
   test(
     'opening the pane summarizes the items its first tab shows; the digest asks for none',

@@ -26,6 +26,38 @@ describe('copy-item', () => {
     expect(toasts).toEqual(['📋 Copied'])
   })
 
+  test('an item that reached a clipboard, by the surface or a tool, is recorded as read; a refused or failed copy is not', async () => {
+    const copied = await hostWith()
+
+    expect(await Actions.copyItem(copied.host, ITEM, 'desktop')).toBe(true)
+    expect(copied.state.read).toEqual({ src: ['src:a'] })
+    expect(copied.stored.get('read')).toEqual({ src: ['src:a'] })
+
+    const tool = await hostWith()
+
+    tool.copyResult.value = { isCopied: false, reason: 'no-clipboard' }
+    tool.programs.set('uname', { stdout: 'Darwin\n' })
+
+    expect(await Actions.copyItem(tool.host, ITEM, 'terminal')).toBe(true)
+    expect(tool.state.read).toEqual({ src: ['src:a'] })
+
+    const refused = await hostWith()
+
+    refused.copyResult.value = { isCopied: false, reason: 'refused' }
+
+    expect(await Actions.copyItem(refused.host, ITEM, 'terminal')).toBe(false)
+    expect(refused.stored.get('read')).toBeUndefined()
+
+    const failed = await hostWith()
+
+    failed.copyResult.value = { isCopied: false, reason: 'no-clipboard' }
+    failed.programs.set('uname', { stdout: 'Darwin\n' })
+    failed.programs.set('pbcopy', { exitCode: 1 })
+
+    expect(await Actions.copyItem(failed.host, ITEM, 'terminal')).toBe(false)
+    expect(failed.stored.get('read')).toBeUndefined()
+  })
+
   test('when the surface copies nothing, the clipboard tools are tried in order with the text on stdin', async () => {
     const { host, copyResult, programs, runs, toasts } = await hostWith()
 
@@ -123,11 +155,12 @@ describe('copy-item', () => {
       await ui.unmount()
     }
 
-    const text = 'See src 1 at https://example.com/src/1 (Feed)'
+    const textOf = (n: number) => `See src ${n} at https://example.com/src/${n} (Feed)`
 
+    // The copied item leaves the band, so the second surface copies the next one.
     expect(copies).toEqual([
-      { text, surface: 'terminal' },
-      { text, surface: 'desktop' },
+      { text: textOf(1), surface: 'terminal' },
+      { text: textOf(2), surface: 'desktop' },
     ])
     expect(toasts).toEqual(['📋 Copied', '📋 Copied'])
     expect(submitted).toEqual([])

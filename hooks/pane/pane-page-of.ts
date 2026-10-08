@@ -40,6 +40,7 @@ function releasesShownOf(stack: Omit<PaneStackPage, 'summary'>): Item[] {
  * @param saved the saved items
  * @param size how many one-line items the window may show
  * @param stack the stack tab's items, filter and expanded packages; no stack tab when absent
+ * @param newCounts how many new items each source has, by source id, for the tabs' counts
  */
 export function panePageOf(
   pane: PaneState,
@@ -48,8 +49,9 @@ export function panePageOf(
   saved: readonly SavedItem[],
   size: number,
   stack?: PaneStack,
+  newCounts: Readonly<Record<string, number>> = {},
 ): PanePage {
-  const tabs = paneTabsOf(sources, stack, saved)
+  const tabs = paneTabsOf(sources, stack, saved, newCounts)
   const tab = tabs.find(entry => entry.id === pane.tab) ??
     tabs[0] ?? { id: SAVED_TAB, label: '', short: '' }
   const isStack = tab.id === STACK_TAB && stack !== undefined

@@ -7,6 +7,7 @@ import { loadSeen } from '../store/load-seen.js'
 import { markSeen } from '../store/mark-seen.js'
 import { saveItems } from '../store/save-items.js'
 import { savePageHash } from '../store/save-page-hash.js'
+import { seedViewed } from '../store/seed-viewed.js'
 import { sourcesOf } from '../store/sources-of.js'
 import { fetchFeed } from './fetch-feed.js'
 import { fetchPage } from './fetch-page.js'
@@ -51,7 +52,37 @@ async function newItemsOf(host: Host, sourceId: string, items: readonly Item[]):
 }
 
 /**
- * Refreshes one source: reads it, merges into its kept items, marks the new ones seen, saves the items and mirrors them to state, unless the source was removed or turned off meanwhile; on failure keeps the last items and logs one debug line; never throws.
+ * Gives a source without viewed ids the items that are not new as its first, so its new count starts from this run, and mirrors them to state; a failure is logged to debug, never thrown, and never costs the run its new items.
+ *
+ * @param host the engine
+ * @param sourceId the source
+ * @param items its items as kept now
+ * @param newItems the ones this run found new
+ */
+async function seedViewedOf(
+  host: Host,
+  sourceId: string,
+  items: readonly Item[],
+  newItems: readonly Item[],
+): Promise<void> {
+  try {
+    const fresh = new Set(newItems.map(item => item.id))
+    const viewed = await seedViewed(
+      host,
+      sourceId,
+      items.filter(item => !fresh.has(item.id)).map(item => item.id),
+    )
+
+    if (viewed !== undefined) {
+      await host.state.viewed.update(() => viewed)
+    }
+  } catch (error) {
+    host.debug(`herald: ${sourceId}: could not record the viewed items: ${messageOf(error)}`)
+  }
+}
+
+/**
+ * Refreshes one source: reads it, merges into its kept items, marks the new ones seen, saves the items and mirrors them to state, giving a source without viewed ids the items that are not new as its first, unless the source was removed or turned off meanwhile; on failure keeps the last items and logs one debug line; never throws.
  *
  * @param host the engine
  * @param source the source
@@ -100,6 +131,10 @@ export async function refreshSource(
       }
 
       await host.state.items.update(current => ({ ...current, [source.id]: items }))
+
+      if (fetched.kind === 'items') {
+        await seedViewedOf(host, source.id, items, newItems)
+      }
 
       return { newItems }
     })

@@ -10,6 +10,6 @@ export type PaneTab = {
   readonly short: string
   /** `1` to `9` for the first nine sources, `y` for the stack tab, `0` for the saved tab, none past the ninth source. */
   readonly hotkey?: string
-  /** The stack tab's packages behind or the saved tab's items, drawn after the name; absent when zero. */
+  /** A source tab's new items, the stack tab's packages behind or the saved tab's items, drawn after the name; absent when zero. */
   readonly count?: number
 }

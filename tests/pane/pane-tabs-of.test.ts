@@ -80,6 +80,29 @@ describe('pane-tabs-of', () => {
     ).toEqual([false, false, false])
   })
 
+  test('a source tab counts its new items; none for zero or for a source not given', () => {
+    const sources = [
+      Fixtures.sourceAt('a', { name: 'Alpha' }),
+      Fixtures.sourceAt('b', { name: 'Beta' }),
+      Fixtures.sourceAt('c', { name: 'Gamma' }),
+    ]
+
+    expect(
+      Pane.paneTabsOf(sources, undefined, [], { a: 2, b: 0, saved: 5 }).map(tab => [
+        tab.id,
+        tab.count,
+      ]),
+    ).toEqual([
+      ['a', 2],
+      ['b', undefined],
+      ['c', undefined],
+      ['saved', undefined],
+    ])
+    expect(Pane.paneTabTextOf(Pane.paneTabsOf(sources, undefined, [], { a: 14 })[0]!)).toBe(
+      'Alpha 14',
+    )
+  })
+
   test('the stack tab, when there is one, comes before Saved on y, a hotkey no other pane Button takes', () => {
     const tabs = Pane.paneTabsOf([Fixtures.sourceAt('a', { name: 'Alpha' })], {
       items: [],

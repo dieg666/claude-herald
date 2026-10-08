@@ -35,6 +35,7 @@ const KEY_SPELLINGS: Readonly<Record<PaneKey, string>> = {
  * @param bodyRows the rows the body has
  * @param stack the stack tab's items, for its tab and count; no stack tab when absent
  * @param saved the saved items, for the saved tab's count
+ * @param newCounts how many new items each source has, by source id, for the source tabs' counts
  */
 export function paneWindowSizeOf(
   sources: readonly Source[],
@@ -42,13 +43,16 @@ export function paneWindowSizeOf(
   bodyRows: number,
   stack?: PaneStack,
   saved: readonly SavedItem[] = [],
+  newCounts: Readonly<Record<string, number>> = {},
 ): number {
   if (!Number.isFinite(bodyRows)) {
     return PANE_FIRST_WINDOW
   }
 
   const width = Number.isFinite(columns) ? columns : 80
-  const tabs = paneFittedTabsOf(paneTabsOf(sources, stack, saved), width).map(paneTabSpellingOf)
+  const tabs = paneFittedTabsOf(paneTabsOf(sources, stack, saved, newCounts), width).map(
+    paneTabSpellingOf,
+  )
   const hint = fitColumns(PANE_FOCUS_HINT, width)
   const footer = Math.max(
     ...Object.values(PANE_TAB_KEYS).flatMap(keys => {

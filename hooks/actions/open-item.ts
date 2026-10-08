@@ -4,10 +4,11 @@ import type { Host } from '../host/host.js'
 import { messageOf } from '../refresh/message-of.js'
 import { openerArgvOf } from './opener-argv-of.js'
 import { platformOf } from './platform-of.js'
+import { readItem } from './read-item.js'
 import { titleLineOf } from './title-line-of.js'
 
 /**
- * Opens an item's address in the default browser with the platform's opener; an address that is not http(s) is refused and a failure toasted, never thrown.
+ * Opens an item's address in the default browser with the platform's opener, recording it as read once the opener exits cleanly; an address that is not http(s) is refused and a failure toasted, never thrown.
  *
  * @param host the engine
  * @param item the item to open
@@ -29,6 +30,8 @@ export async function openItem(host: Host, item: Item): Promise<boolean> {
     const { exitCode, stderr } = await host.processRun(argv, { timeoutMs: 10_000 })
 
     if (exitCode === 0) {
+      await readItem(host, item)
+
       return true
     }
 

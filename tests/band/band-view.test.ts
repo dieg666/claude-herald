@@ -335,6 +335,43 @@ describe('band-view', () => {
       expect(new Set(hotkeys).size).toBe(hotkeys.length)
     })
 
+    test(`on ${surface}: read items leave the band while unread ones remain, its count and pages over the rest; once all are read, all come back`, async ($, on) => {
+      mock.clock(on)
+
+      const { stored } = Fixtures.bandOn(on, { ...STORE, read: { src: ['src:1', 'src:3'] } })
+
+      on('ui.copy', () => ({ value: { isCopied: true } }))
+
+      await $.classic.SessionStart({ source: 'clear' })
+
+      const ui = await $.ui.mount({ ...BAND, surface })
+      const hrefsOf = async () => (await linksOf(ui)).map(([href]) => href)
+
+      expect(await rangeOf(ui)).toBe('1–3 of 5')
+      expect(await hrefsOf()).toEqual([2, 4, 5].map(n => `https://example.com/src/${n}`))
+
+      await ui.press({ key: 'copy' })
+
+      expect(stored.get('read')).toEqual({ src: ['src:2', 'src:1', 'src:3'] })
+      expect(await rangeOf(ui)).toBe('1–3 of 4')
+      expect(await hrefsOf()).toEqual([4, 5, 6].map(n => `https://example.com/src/${n}`))
+
+      await ui.press({ key: 'next' })
+
+      expect(await rangeOf(ui)).toBe('4 of 4')
+      expect(await hrefsOf()).toEqual(['https://example.com/src/7'])
+
+      await ui.press({ key: 'copy' })
+      await ui.press({ key: 'prev' })
+      await ui.press({ key: 'copy' })
+      await ui.press({ key: 'down' })
+      await ui.press({ key: 'copy' })
+      await ui.press({ key: 'copy' })
+
+      expect((stored.get('read') as Record<string, string[]>).src?.length).toBe(7)
+      expect(await rangeOf(ui)).toMatch(/ of 7$/)
+    })
+
     test(`on ${surface}: next shows the next page and pauses, prev pauses, auto resumes; pages wrap both ways`, async ($, on) => {
       mock.clock(on)
       Fixtures.bandOn(on, STORE)

@@ -2,20 +2,25 @@ import type { HeraldState } from './herald-state.js'
 import type { Host } from '../host/host.js'
 import { mergeItems } from '../items/merge-items.js'
 import { loadItems } from '../store/load-items.js'
+import { loadRead } from '../store/load-read.js'
 import { loadSaved } from '../store/load-saved.js'
 import { loadSettings } from '../store/load-settings.js'
 import { loadSources } from '../store/load-sources.js'
 import { loadSummaries } from '../store/load-summaries.js'
+import { loadViewed } from '../store/load-viewed.js'
 import { summariesFor } from '../store/summaries-for.js'
 import { summaryLangOf } from '../store/summary-lang-of.js'
 
 /**
  * What hydrate copies from the store into `$.state`.
  */
-type Hydrated = Pick<HeraldState, 'sources' | 'settings' | 'items' | 'saved' | 'summaries'>
+type Hydrated = Pick<
+  HeraldState,
+  'sources' | 'settings' | 'items' | 'saved' | 'summaries' | 'read' | 'viewed'
+>
 
 /**
- * Copies the store into `$.state` (sources, settings, items with duplicates of one story folded, saved, current-language short summaries), reading all before writing any; never throws, logs a failure to debug.
+ * Copies the store into `$.state` (sources, settings, items with duplicates of one story folded, saved, current-language short summaries, read and viewed ids), reading all before writing any; never throws, logs a failure to debug.
  *
  * @param host the engine
  * @returns what it wrote, or undefined when it failed
@@ -29,6 +34,8 @@ export async function hydrate(host: Host): Promise<Hydrated | undefined> {
     )
     const saved = await loadSaved(host)
     const entries = await loadSummaries(host)
+    const read = await loadRead(host)
+    const viewed = await loadViewed(host)
 
     const userLanguage =
       settings.lang === 'user' ? await host.userLanguage().catch(() => undefined) : undefined
@@ -40,8 +47,10 @@ export async function hydrate(host: Host): Promise<Hydrated | undefined> {
     await host.state.items.update(() => items)
     await host.state.saved.update(() => saved)
     await host.state.summaries.update(() => summaries)
+    await host.state.read.update(() => read)
+    await host.state.viewed.update(() => viewed)
 
-    return { sources, settings, items, saved, summaries }
+    return { sources, settings, items, saved, summaries, read, viewed }
   } catch (error) {
     host.debug(
       `herald: could not load the store: ${error instanceof Error ? error.message : String(error)}`,

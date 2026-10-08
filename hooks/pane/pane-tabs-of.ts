@@ -19,16 +19,18 @@ function countOf(count: number): { readonly count?: number } {
 }
 
 /**
- * The pane's tabs, each with its full name and the name cut to `PANE_TAB_COLUMNS` cells: one per enabled source in order (the first nine with the digits 1 to 9), then the stack tab on y with its packages behind when there is a stack, then the saved tab on 0 with its items; a source whose id is the saved tab's never gets a tab.
+ * The pane's tabs, each with its full name and the name cut to `PANE_TAB_COLUMNS` cells: one per enabled source in order (the first nine with the digits 1 to 9) with its new items, then the stack tab on y with its packages behind when there is a stack, then the saved tab on 0 with its items; a source whose id is the saved tab's never gets a tab.
  *
  * @param sources every source, in order
  * @param stack the stack tab's items; no stack tab when absent
  * @param saved the saved items
+ * @param newCounts how many new items each source has, by source id
  */
 export function paneTabsOf(
   sources: readonly Source[],
   stack?: PaneStack,
   saved: readonly SavedItem[] = [],
+  newCounts: Readonly<Record<string, number>> = {},
 ): PaneTab[] {
   const tabs = sources
     .filter(source => source.isEnabled && source.id !== SAVED_TAB)
@@ -40,6 +42,7 @@ export function paneTabsOf(
         label,
         short: fitColumns(label, PANE_TAB_COLUMNS),
         ...(index < 9 ? { hotkey: String(index + 1) } : {}),
+        ...countOf(Object.hasOwn(newCounts, source.id) ? (newCounts[source.id] ?? 0) : 0),
       }
     })
 

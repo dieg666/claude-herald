@@ -37,6 +37,7 @@ export async function turnBand(
       await host.state.sources.read(),
       await host.state.items.read(),
       shownStackItemsOf(await host.state.stack.read()),
+      await host.state.read.read(),
     )
     const before = await host.state.band.read()
     const size = rotation.pageSize

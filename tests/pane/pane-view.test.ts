@@ -1034,6 +1034,153 @@ describe('pane-view', () => {
     )
   }
 
+  // The addresses of the headlines drawn dim, in order.
+  const dimLinksOf = async (ui: Drawing) =>
+    (await ui.findAll({ type: 'Text' }))
+      .filter(text => text.props.dimColor === true)
+      .flatMap(text => text.children as FoundElement[])
+      .filter(child => typeof child === 'object' && child.type === 'Link')
+      .map(link => link.props.href)
+
+  const copyOn = (on: Parameters<typeof Fixtures.bandOn>[0]) =>
+    on('ui.copy', () => ({ value: { isCopied: true } }))
+
+  for (const surface of SURFACES) {
+    test(
+      `on ${surface}: an item copied for Claude is drawn dim once another row is selected, on its tab and on Saved; the selected row is drawn as selected`,
+      { timeoutMs: 20_000 },
+      async ($, on) => {
+        mock.clock(on)
+
+        const { stored } = Fixtures.bandOn(on, STORE)
+
+        copyOn(on)
+
+        await $.classic.SessionStart({ source: 'clear' })
+
+        const ui = await $.ui.mount({ ...PANE, surface })
+
+        await ui.press({ key: 'save' })
+        await ui.press({ key: 'copy' })
+
+        expect(stored.get('read')).toEqual({ a: ['a:1'] })
+        expect(await dimLinksOf(ui)).toEqual([])
+        expect(await selectedOf(ui)).toBe('https://example.com/a/1')
+
+        await ui.press({ key: 'down' })
+
+        expect(await dimLinksOf(ui)).toEqual(['https://example.com/a/1'])
+        expect(await selectedOf(ui)).toBe('https://example.com/a/2')
+
+        await ui.press({ key: 'save' })
+        await ui.press({ key: 'tab-saved' })
+
+        expect(await linksOf(ui)).toEqual(['https://example.com/a/2', 'https://example.com/a/1'])
+        expect(await dimLinksOf(ui)).toEqual(['https://example.com/a/1'])
+      },
+    )
+
+    test(
+      `on ${surface}: a source tab counts the items that arrived since it was last shown; showing it clears the count`,
+      { timeoutMs: 20_000 },
+      async ($, on) => {
+        mock.clock(on)
+
+        const { stored } = Fixtures.bandOn(on, {
+          ...STORE,
+          viewed: { a: ['a:1', 'a:2', 'a:3'], b: ['b:2'] },
+        })
+
+        await $.classic.SessionStart({ source: 'clear' })
+
+        const ui = await $.ui.mount({ ...PANE, surface })
+
+        expect(await tabsOf(ui)).toEqual([
+          ['tab-a', activeOf(surface, '1', 'Alpha'), undefined, 'active'],
+          ['tab-b', 'Beta 1', '2', 'dim'],
+          ['tab-saved', 'Saved', '0', 'dim'],
+        ])
+
+        await ui.press({ key: 'tab-b' })
+
+        expect(await tabsOf(ui)).toEqual([
+          ['tab-a', 'Alpha', '1', 'dim'],
+          ['tab-b', activeOf(surface, '2', 'Beta'), undefined, 'active'],
+          ['tab-saved', 'Saved', '0', 'dim'],
+        ])
+        expect((stored.get('viewed') as Record<string, string[]>).b).toEqual(['b:1', 'b:2'])
+
+        await ui.press({ key: 'tab-a' })
+
+        expect((await tabsOf(ui))[1]).toEqual(['tab-b', 'Beta', '2', 'dim'])
+      },
+    )
+
+    test(
+      `on ${surface}: the window counts a tab row that a new count wraps, and gets the line back once the count clears`,
+      { timeoutMs: 20_000 },
+      async ($, on) => {
+        mock.clock(on)
+        Fixtures.bandOn(on, {
+          sources: [ALPHA, BETA],
+          items: { a: Fixtures.datedItemsOf('a', 30), b: Fixtures.datedItemsOf('b', 2) },
+          viewed: { a: Fixtures.datedItemsOf('a', 10).map(item => item.id), b: [] },
+        })
+
+        await $.classic.SessionStart({ source: 'clear' })
+
+        const ui = await $.ui.mount({
+          ...PANE,
+          surface,
+          props: { ...Fixtures.PANE_PROPS, bodyColumns: 30, scroll: { offset: 0, bodyRows: 30 } },
+        })
+        const sizeOf = (counts: Record<string, number>) =>
+          Pane.paneWindowSizeOf([ALPHA, BETA], 30, 30, undefined, [], counts)
+
+        // `1: Alpha 20  2: Beta 2  0: Saved` takes thirty-two cells and wraps; without the counts it takes twenty-seven.
+        expect(sizeOf({ a: 20, b: 2 })).toBe(sizeOf({}) - 1)
+        expect(sizeOf({})).toBeLessThan(30)
+        expect((await linksOf(ui)).length).toBe(sizeOf({ a: 20, b: 2 }))
+
+        await ui.press({ key: 'tab-b' })
+        await ui.press({ key: 'tab-a' })
+
+        expect((await tabsOf(ui)).map(([key, text]) => [key, text])).toEqual([
+          ['tab-a', activeOf(surface, '1', 'Alpha')],
+          ['tab-b', 'Beta'],
+          ['tab-saved', 'Saved'],
+        ])
+        expect((await linksOf(ui)).length).toBe(sizeOf({}))
+      },
+    )
+
+    for (const source of ['clear', 'resume'] as const) {
+      test(
+        `on ${surface}: read items and new counts come back from the store after ${source}`,
+        { timeoutMs: 20_000 },
+        async ($, on) => {
+          mock.clock(on)
+          Fixtures.bandOn(on, {
+            ...STORE,
+            read: { a: ['a:2'] },
+            viewed: { a: ['a:2', 'a:3'], b: [] },
+          })
+
+          await $.classic.SessionStart({ source })
+
+          const ui = await $.ui.mount({ ...PANE, surface })
+
+          expect(await dimLinksOf(ui)).toEqual(['https://example.com/a/2'])
+          expect(await tabsOf(ui)).toEqual([
+            ['tab-a', activeOf(surface, '1', 'Alpha 1'), undefined, 'active'],
+            ['tab-b', 'Beta 2', '2', 'dim'],
+            ['tab-saved', 'Saved', '0', 'dim'],
+          ])
+        },
+      )
+    }
+  }
+
   const stackPaneOn = (
     on: Parameters<typeof Fixtures.bandOn>[0],
     settings: Parameters<typeof Fixtures.stackStoreOf>[1],

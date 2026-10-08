@@ -2,7 +2,7 @@ import type { BandRow } from '../band/band-row.js'
 import type { PaneCell } from './pane-cell.js'
 
 /**
- * One item as the pane draws it: the band's row (its one-line summary and source gap unused) plus the item's short date when it has one, the selected item's summary lines, and on the stack tab the ecosystem heading drawn above the first row of each group, the columns after the title and whether it is a release listed under its package.
+ * One item as the pane draws it: the band's row (its one-line summary and source gap unused) plus the item's short date when it has one, the selected item's summary lines, and on the stack tab the ecosystem heading drawn above the first row of each group, the columns after the title and whether it is a release listed under its package; and whether a news item was read.
  */
 export type PaneRow = BandRow & {
   readonly date?: string
@@ -13,4 +13,6 @@ export type PaneRow = BandRow & {
   readonly cells?: readonly PaneCell[]
   /** Whether the row is a release listed under its package, drawn indented. */
   readonly isIndented?: boolean
+  /** Present, true, when the item was opened or copied for Claude: its headline is drawn dim unless selected. */
+  readonly isRead?: true
 }

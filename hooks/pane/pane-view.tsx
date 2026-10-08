@@ -25,7 +25,7 @@ import type { PaneTabView } from './pane-tab-view.js'
 import type { PaneUi } from './pane-ui.js'
 
 /**
- * One item on one line: the selection mark, the headline (a release row has its glyph before it), on the saved tab the source name dim, and the date in a column at the right end; the selected item's summary dim beneath, `…` while pending, nothing for an item without one (no text, or replies rejected for now); a stack tab row keeps its columns after the headline, a release under its package indented.
+ * One item on one line: the selection mark, the headline (a release row has its glyph before it; dim once read, unless selected), on the saved tab the source name dim, and the date in a column at the right end; the selected item's summary dim beneath, `…` while pending, nothing for an item without one (no text, or replies rejected for now); a stack tab row keeps its columns after the headline, a release under its package indented.
  *
  * @param ui the elements
  * @param row the item as drawn
@@ -49,7 +49,11 @@ function rowView(ui: BandUi, row: PaneRow): RenderElement {
           </Text>,
           iconGapOf(row.icon),
         ]),
-    <Text bold={row.isSelected} {...style}>
+    <Text
+      bold={row.isSelected}
+      {...(row.isRead === true && !row.isSelected ? { dimColor: true } : {})}
+      {...style}
+    >
       {row.href === undefined ? row.title : <Link href={row.href}>{row.title}</Link>}
     </Text>,
   ]

@@ -26,6 +26,8 @@ const BAND = atom({ plugin: 'herald', key: 'band' } as const, State.INITIAL_STAT
 const PANE = atom({ plugin: 'herald', key: 'pane' } as const, State.INITIAL_STATE.pane)
 const STATUS = atom({ plugin: 'herald', key: 'status' } as const, State.INITIAL_STATE.status)
 const STACK_STATE = atom({ plugin: 'herald', key: 'stack' } as const, State.INITIAL_STATE.stack)
+const READ = atom({ plugin: 'herald', key: 'read' } as const, State.INITIAL_STATE.read)
+const VIEWED = atom({ plugin: 'herald', key: 'viewed' } as const, State.INITIAL_STATE.viewed)
 
 // Bounds the mod's model calls for summaries, at most two in flight; other model work may share it.
 const MODEL_LIMITER = Summaries.limiterOf(Summaries.SUMMARY_LIMITS.concurrentRequests)
@@ -93,6 +95,8 @@ function hostOf($: EngineInterface): Host {
         read: () => read($, STACK_STATE),
         update: change => update($, STACK_STATE, change),
       },
+      read: { read: () => read($, READ), update: change => update($, READ, change) },
+      viewed: { read: () => read($, VIEWED), update: change => update($, VIEWED, change) },
     },
     userLanguage: async () => Store.userLanguageOf(await $.settings.read()),
     debug: text => $.ui.log(text, { to: 'debug' }),
@@ -357,6 +361,7 @@ export const register: Register = on => {
       sources,
       await read($, ITEMS),
       Stack.shownStackItemsOf(await read($, STACK_STATE)),
+      await read($, READ),
     )
 
     if (items.length === 0) {
@@ -411,15 +416,25 @@ export const register: Register = on => {
   // The id stays literal so validate reports it; a test mounts the pane by Names.PANE_ID to keep them equal.
   on('ui.render', { component: 'Pane', requestId: 'herald' }, async ($, e) => {
     const sources = await read($, SOURCES)
+    const items = await read($, ITEMS)
     const saved = await read($, SAVED)
     const stack = Pane.paneStackOf(await read($, STACK_STATE))
+    const newCounts = Pane.paneNewCountsOf(items, await read($, VIEWED))
     const page = Pane.panePageOf(
       await read($, PANE),
       sources,
-      await read($, ITEMS),
+      items,
       saved,
-      Pane.paneWindowSizeOf(sources, e.props.bodyColumns, e.props.scroll.bodyRows, stack, saved),
+      Pane.paneWindowSizeOf(
+        sources,
+        e.props.bodyColumns,
+        e.props.scroll.bodyRows,
+        stack,
+        saved,
+        newCounts,
+      ),
       stack,
+      newCounts,
     )
     const table = $.ui.resolve(e)
     const { Box, Text, Button, Link } = table
@@ -439,6 +454,7 @@ export const register: Register = on => {
         stack?.filter,
         // A phone taps the Buttons, so it never needs the focus chord.
         e.props.isFocused || e.surface === 'mobile',
+        await read($, READ),
       ),
       paneHandlersOf($, page.items[page.selected], page.size),
       e.surface,

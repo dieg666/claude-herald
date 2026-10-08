@@ -71,6 +71,8 @@ export function fakeHostOf(entries: Readonly<Record<string, unknown>> = {}, user
       pane: cellOf('pane'),
       status: cellOf('status'),
       stack: cellOf('stack'),
+      read: cellOf('read'),
+      viewed: cellOf('viewed'),
     },
     userLanguage: async () => userLanguage,
     debug: text => {

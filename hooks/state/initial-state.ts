@@ -15,4 +15,6 @@ export const INITIAL_STATE: Readonly<HeraldState> = {
   pane: { tab: '', selected: 0 },
   status: { lastRefreshAt: null, isRefreshing: false, errors: {} },
   stack: { root: null, settings: { ...DEFAULT_DEPS_SETTINGS }, items: [], filter: '' },
+  read: {},
+  viewed: {},
 }

@@ -37,6 +37,22 @@ describe('open-item', () => {
     })
   }
 
+  test('an opener that exits cleanly records the item as read; one that fails does not', async () => {
+    const opened = Fixtures.fakeHostOf()
+
+    expect(await Actions.openItem(opened.host, ITEM)).toBe(true)
+    expect(opened.stored.get('read')).toEqual({ src: ['src:a'] })
+    expect(opened.state.read).toEqual({ src: ['src:a'] })
+
+    const failed = Fixtures.fakeHostOf()
+
+    failed.programs.set('sh', { exitCode: 1 })
+
+    expect(await Actions.openItem(failed.host, ITEM)).toBe(false)
+    expect(failed.stored.get('read')).toBeUndefined()
+    expect(failed.state.read).toEqual({})
+  })
+
   test('a uname that cannot run means xdg-open', async () => {
     const { host, programs, runs, logs } = Fixtures.fakeHostOf()
 
@@ -123,10 +139,11 @@ describe('open-item', () => {
       await ui.unmount()
     }
 
+    // An opened item leaves the band while unread ones remain; once all are read, all come back.
     expect(runs).toEqual([
       ['uname', '-s'],
       [...XDG, 'https://example.com/src/1'],
-      ['rundll32', 'url.dll,FileProtocolHandler', 'https://example.com/src/2'],
+      ['rundll32', 'url.dll,FileProtocolHandler', 'https://example.com/src/3'],
       ['uname', '-s'],
       [...XDG, 'https://example.com/src/2'],
       ['rundll32', 'url.dll,FileProtocolHandler', 'https://example.com/src/3'],

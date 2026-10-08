@@ -91,6 +91,11 @@ export type Settings = {
 export type ItemsBySource = Record<string, Item[]>
 
 /**
+ * Item ids by source id, newest first, capped per source: the items read (opened or copied for Claude), or the items each source tab held when it was last shown in the pane.
+ */
+export type IdsBySource = Record<string, string[]>
+
+/**
  * The band's page and selection.
  */
 export type BandState = {
@@ -341,6 +346,10 @@ declare module 'claude-code' {
       pane: PaneState
       status: RefreshStatus
       stack: StackState
+      /** The news items read, opened or copied for Claude, by source id. */
+      read: IdsBySource
+      /** The items each source tab held when it was last shown in the pane, by source id; a source without an entry counts nothing new. */
+      viewed: IdsBySource
     }
   }
 }

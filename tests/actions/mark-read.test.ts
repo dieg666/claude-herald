@@ -15,6 +15,16 @@ describe('mark-read', () => {
     expect(state.saved).toEqual([KEPT])
   })
 
+  test('records the saved item as read too, in the store and state', async () => {
+    const { host, stored, state } = Fixtures.fakeHostOf({ saved: [READ, KEPT] })
+
+    await host.state.saved.update(() => [READ, KEPT])
+
+    expect(await Actions.markRead(host, READ)).toBe(true)
+    expect(stored.get('read')).toEqual({ src: ['src:read'] })
+    expect(state.read).toEqual({ src: ['src:read'] })
+  })
+
   test('reads the store right before writing, so another session saving meanwhile is kept', async () => {
     const { host, stored, state } = Fixtures.fakeHostOf({ saved: [READ] })
 
