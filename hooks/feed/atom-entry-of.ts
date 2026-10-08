@@ -11,11 +11,12 @@ import { childOf } from './xml/child-of.js'
 import { textOf } from './xml/text-of.js'
 import type { XmlElement } from './xml/xml-element.js'
 
-/** An Atom `entry` as an entry: summary before content, published before updated. */
+/** An Atom `entry` as an entry: summary before content, published before updated; the summary capped at `summaryChars` when given. */
 export function atomEntryOf(
   entry: XmlElement,
   prefix: string,
   base: string | undefined,
+  summaryChars?: number,
 ): ParsedEntry | undefined {
   const entryBase = resolveLink(entry.attrs.get('xml:base'), base) ?? base
   const title = atomMarkupOf(childOf(entry, `${prefix}title`))
@@ -29,8 +30,8 @@ export function atomEntryOf(
     link: resolveLink(pickAtomLink(entry, prefix), entryBase),
     title: cleanTitle(title.value, title.isHtml),
     summary:
-      summaryOf(summary.value, summary.isHtml) ??
-      (content ? summaryOf(content.value, content.isHtml) : undefined),
+      summaryOf(summary.value, summary.isHtml, summaryChars) ??
+      (content ? summaryOf(content.value, content.isHtml, summaryChars) : undefined),
     publishedAt: dateOf('published') ?? dateOf('updated') ?? dateOf('issued') ?? dateOf('modified'),
     lang: langOf(entry.attrs.get('xml:lang')),
   })

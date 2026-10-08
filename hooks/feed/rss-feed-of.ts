@@ -9,8 +9,12 @@ import { childrenOf } from './xml/children-of.js'
 import { textOf } from './xml/text-of.js'
 import type { XmlElement } from './xml/xml-element.js'
 
-/** An RSS 2.0 (or 0.9x, or 1.0) document as a feed, or undefined when it has no channel. */
-export function rssFeedOf(root: XmlElement, baseUrl: string | undefined): ParsedFeed | undefined {
+/** An RSS 2.0 (or 0.9x, or 1.0) document as a feed, or undefined when it has no channel; summaries capped at `summaryChars` when given. */
+export function rssFeedOf(
+  root: XmlElement,
+  baseUrl: string | undefined,
+  summaryChars?: number,
+): ParsedFeed | undefined {
   const channel = childOf(root, 'channel')
 
   if (!channel) {
@@ -26,7 +30,7 @@ export function rssFeedOf(root: XmlElement, baseUrl: string | undefined): Parsed
       root.attrs.get('xml:lang'),
   )
   const entries = [...childrenOf(channel, 'item'), ...childrenOf(root, 'item')]
-    .map(item => rssEntryOf(item, base))
+    .map(item => rssEntryOf(item, base, summaryChars))
     .filter((entry): entry is ParsedEntry => entry !== undefined)
 
   return {

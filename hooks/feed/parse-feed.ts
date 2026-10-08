@@ -6,8 +6,12 @@ import { scanXml } from './xml/scan-xml.js'
 
 const BLANK = /^[\s\uFEFF]*$/
 
-/** An RSS or Atom document as plain-text entries, or why it is not a feed; never throws. */
-export function parseFeed(xml: string, baseUrl?: string): FeedResult {
+/** An RSS or Atom document as plain-text entries, or why it is not a feed; `limits.summaryChars` raises or lowers the summary cap (default `FEED_LIMITS.summaryChars`); never throws. */
+export function parseFeed(
+  xml: string,
+  baseUrl?: string,
+  limits: { readonly summaryChars?: number } = {},
+): FeedResult {
   if (BLANK.test(xml)) {
     return { ok: false, reason: 'empty' }
   }
@@ -23,7 +27,11 @@ export function parseFeed(xml: string, baseUrl?: string): FeedResult {
     return { ok: false, reason: 'truncated' }
   }
 
-  const feed = kind === 'atom' ? atomFeedOf(root, baseUrl) : rssFeedOf(root, baseUrl)
+  const { summaryChars } = limits
+  const feed =
+    kind === 'atom'
+      ? atomFeedOf(root, baseUrl, summaryChars)
+      : rssFeedOf(root, baseUrl, summaryChars)
 
   return feed ? { ok: true, feed } : { ok: false, reason: 'not-a-feed' }
 }

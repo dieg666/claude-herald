@@ -520,4 +520,27 @@ describe('parse-feed', () => {
     expect(feedOf(withUnclosed(Feed.FEED_LIMITS.endTagReach - 2)).entries).toHaveLength(1)
     expect(reasonOf(withUnclosed(Feed.FEED_LIMITS.endTagReach + 1))).toBe('truncated')
   })
+
+  test('a larger summary cap keeps release notes past the default 500 characters', () => {
+    const notes = `${'Fixed a bug in the parser. '.repeat(111)}Patches CVE-2024-9999 in redirects.`
+    const xml = `<feed xmlns="http://www.w3.org/2005/Atom"><title>r</title><entry><id>tag:github.com,2008:Repository/1/v1.2.0</id><title>v1.2.0</title><content type="html">&lt;p&gt;${notes}&lt;/p&gt;</content></entry></feed>`
+    const summaryOf = (result: Feed.FeedResult) =>
+      result.ok ? (result.feed.entries[0]?.summary ?? '') : ''
+
+    expect(notes.indexOf('CVE-2024-9999')).toBeGreaterThan(2900)
+    expect(summaryOf(Feed.parseFeed(xml))).not.toContain('CVE-2024-9999')
+    expect(summaryOf(Feed.parseFeed(xml)).length).toBeLessThanOrEqual(Feed.FEED_LIMITS.summaryChars)
+    expect(summaryOf(Feed.parseFeed(xml, undefined, { summaryChars: 4000 }))).toContain(
+      'Patches CVE-2024-9999 in redirects.',
+    )
+    expect(summaryOf(Feed.parseFeed(xml, undefined, {}))).toBe(summaryOf(Feed.parseFeed(xml)))
+  })
+
+  test('the summary cap applies to RSS too', () => {
+    const body = `${'word '.repeat(700)}tail`
+    const xml = `${OPEN}<item><title>a</title><description>${body}</description></item></channel></rss>`
+    const result = Feed.parseFeed(xml, undefined, { summaryChars: 4000 })
+
+    expect(result.ok ? result.feed.entries[0]?.summary : undefined).toBe(body)
+  })
 })

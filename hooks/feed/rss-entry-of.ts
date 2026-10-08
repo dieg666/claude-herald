@@ -10,8 +10,12 @@ import { innerHtmlOf } from './xml/inner-html-of.js'
 import { textOf } from './xml/text-of.js'
 import type { XmlElement } from './xml/xml-element.js'
 
-/** An RSS `item` as an entry; a permalink guid stands in for a missing link. */
-export function rssEntryOf(item: XmlElement, base: string | undefined): ParsedEntry | undefined {
+/** An RSS `item` as an entry; a permalink guid stands in for a missing link; the summary capped at `summaryChars` when given. */
+export function rssEntryOf(
+  item: XmlElement,
+  base: string | undefined,
+  summaryChars?: number,
+): ParsedEntry | undefined {
   const guidElement = childOf(item, 'guid')
   const guid = textOf(guidElement).trim() || item.attrs.get('rdf:about')?.trim() || undefined
   const linkElement = childOf(item, 'link')
@@ -25,8 +29,8 @@ export function rssEntryOf(item: XmlElement, base: string | undefined): ParsedEn
     link,
     title: cleanTitle(textOf(childOf(item, 'title')), false),
     summary:
-      summaryOf(innerHtmlOf(childOf(item, 'description')), true) ??
-      summaryOf(innerHtmlOf(childOf(item, 'content:encoded')), true),
+      summaryOf(innerHtmlOf(childOf(item, 'description')), true, summaryChars) ??
+      summaryOf(innerHtmlOf(childOf(item, 'content:encoded')), true, summaryChars),
     publishedAt:
       parseDate(textOf(childOf(item, 'pubDate'))) ?? parseDate(textOf(childOf(item, 'dc:date'))),
     lang: langOf(textOf(childOf(item, 'dc:language')) || item.attrs.get('xml:lang')),

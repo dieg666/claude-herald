@@ -10,15 +10,19 @@ import { childOf } from './xml/child-of.js'
 import { childrenOf } from './xml/children-of.js'
 import type { XmlElement } from './xml/xml-element.js'
 
-/** An Atom `feed` element as a feed; its children are matched under the root's own prefix. */
-export function atomFeedOf(root: XmlElement, baseUrl: string | undefined): ParsedFeed {
+/** An Atom `feed` element as a feed; its children are matched under the root's own prefix; summaries capped at `summaryChars` when given. */
+export function atomFeedOf(
+  root: XmlElement,
+  baseUrl: string | undefined,
+  summaryChars?: number,
+): ParsedFeed {
   const prefix = root.name.slice(0, root.name.indexOf(':') + 1)
   const base = resolveLink(root.attrs.get('xml:base'), baseUrl) ?? baseUrl
   const link = resolveLink(pickAtomLink(root, prefix), base)
   const lang = langOf(root.attrs.get('xml:lang'))
   const title = atomMarkupOf(childOf(root, `${prefix}title`))
   const entries = childrenOf(root, `${prefix}entry`)
-    .map(entry => atomEntryOf(entry, prefix, base ?? link))
+    .map(entry => atomEntryOf(entry, prefix, base ?? link, summaryChars))
     .filter((entry): entry is ParsedEntry => entry !== undefined)
 
   return {
