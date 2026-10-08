@@ -35,4 +35,27 @@ describe('packagist-lookup', () => {
     ).toBe('none')
     expect(fetched).toEqual([])
   })
+
+  test('a name that could change the path or query is refused with no request', async () => {
+    for (const name of [
+      'vendor/pkg?x=1',
+      'vendor/p#kg',
+      '../etc',
+      'vendor/..',
+      '../..',
+      'vendor/a/b',
+      'ven dor/pkg',
+      'vendor',
+    ]) {
+      const { host, fetched } = Fixtures.fakeHostOf()
+
+      expect(
+        await Resolve.packagistLookup(
+          url => Resolve.fetchGently(host, url),
+          Fixtures.depAt(name, { ecosystem: 'packagist' }),
+        ),
+      ).toEqual({ kind: 'none', reason: 'not a valid packagist name' })
+      expect(fetched).toEqual([])
+    }
+  })
 })

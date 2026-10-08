@@ -23,4 +23,18 @@ describe('rubygems-lookup', () => {
       expect(fetched).toEqual([`https://rubygems.org/api/v1/gems/${name}.json`])
     })
   }
+
+  test('a name that could change the path or query is refused with no request', async () => {
+    for (const name of ['rails?x=1', 'ra#ils', '../rails', '..', 'a/b', 'ra ils']) {
+      const { host, fetched } = Fixtures.fakeHostOf()
+
+      expect(
+        await Resolve.rubygemsLookup(
+          url => Resolve.fetchGently(host, url),
+          Fixtures.depAt(name, { ecosystem: 'rubygems' }),
+        ),
+      ).toEqual({ kind: 'none', reason: 'not a valid rubygems name' })
+      expect(fetched).toEqual([])
+    }
+  })
 })

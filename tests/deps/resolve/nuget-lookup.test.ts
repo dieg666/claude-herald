@@ -57,4 +57,18 @@ describe('nuget-lookup', () => {
       ),
     ).toEqual({ kind: 'none', reason: 'repository not on GitHub: https://www.newtonsoft.com/json' })
   })
+
+  test('a name that could change the path or query is refused with no request', async () => {
+    for (const name of ['Newtonsoft?x=1', 'News#oft', '../x', '..', 'a/b', 'New tonsoft']) {
+      const { host, fetched } = Fixtures.fakeHostOf()
+
+      expect(
+        await Resolve.nugetLookup(
+          url => Resolve.fetchGently(host, url),
+          Fixtures.depAt(name, { ecosystem: 'nuget' }),
+        ),
+      ).toEqual({ kind: 'none', reason: 'not a valid nuget name' })
+      expect(fetched).toEqual([])
+    }
+  })
 })

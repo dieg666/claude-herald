@@ -86,4 +86,30 @@ describe('maven-lookup', () => {
       ),
     ).toEqual({ kind: 'repo', repo: 'o/r' })
   })
+
+  test('a name that could change the path or query is refused with no request', async () => {
+    for (const name of [
+      'com.example:art?x=1',
+      'com.example:ar#t',
+      'com.example:..',
+      '..:art',
+      'com..example:art',
+      'com.example.:art',
+      '.com:art',
+      'com/example:art',
+      'com.example:art:extra',
+      'com.ex ample:art',
+      'com.example',
+    ]) {
+      const { host, fetched } = Fixtures.fakeHostOf()
+
+      expect(
+        await Resolve.mavenLookup(
+          url => Resolve.fetchGently(host, url),
+          Fixtures.depAt(name, { ecosystem: 'maven' }),
+        ),
+      ).toEqual({ kind: 'none', reason: 'not a valid maven name' })
+      expect(fetched).toEqual([])
+    }
+  })
 })

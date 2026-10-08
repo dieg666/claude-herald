@@ -64,4 +64,26 @@ describe('pypi-lookup', () => {
       ),
     ).toEqual({ kind: 'none', reason: 'no repository in the registry metadata' })
   })
+
+  test('a name that could change the path or query is refused with no request', async () => {
+    for (const name of [
+      'requests?x=1',
+      'req#uests',
+      '../requests',
+      '..',
+      'a/b',
+      're quests',
+      're\nquests',
+    ]) {
+      const { host, fetched } = Fixtures.fakeHostOf()
+
+      expect(
+        await Resolve.pypiLookup(
+          url => Resolve.fetchGently(host, url),
+          Fixtures.depAt(name, { ecosystem: 'pypi' }),
+        ),
+      ).toEqual({ kind: 'none', reason: 'not a valid pypi name' })
+      expect(fetched).toEqual([])
+    }
+  })
 })

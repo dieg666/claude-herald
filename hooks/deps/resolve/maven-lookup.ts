@@ -1,5 +1,6 @@
 import { xmlChildOf } from '../detect/xml-child-of.js'
 import { lookupVersioned } from './lookup-versioned.js'
+import { pathSegmentOf } from './path-segment-of.js'
 import { plainVersionOf } from './plain-version-of.js'
 import type { RegistryLookup } from './registry-lookup.js'
 import { repoLookupOf } from './repo-lookup-of.js'
@@ -53,13 +54,15 @@ function pomUrlsOf(pom: string): (string | undefined)[] {
  * Java and Kotlin: the pom's `<scm>` URLs, then its project `<url>`, from Maven Central, for the version in use or else the `<release>` its maven-metadata.xml names. A pom that inherits its scm from a parent stays unresolved.
  */
 export const mavenLookup: RegistryLookup = (get, dependency) => {
-  const [group = '', artifact = '', ...rest] = dependency.name.split(':')
+  const [group = '', artifactName = '', ...rest] = dependency.name.split(':')
+  const groups = group.split('.').map(part => pathSegmentOf(part, /^[\w-]+$/))
+  const artifact = pathSegmentOf(artifactName)
 
-  if (!/^[\w.-]+$/.test(group) || !/^[\w.-]+$/.test(artifact) || rest.length > 0) {
-    return Promise.resolve({ kind: 'none', reason: 'not a Maven group:artifact' })
+  if (groups.includes(undefined) || artifact === undefined || rest.length > 0) {
+    return Promise.resolve({ kind: 'none', reason: 'not a valid maven name' })
   }
 
-  const base = `https://repo1.maven.org/maven2/${group.replace(/\./g, '/')}/${artifact}`
+  const base = `https://repo1.maven.org/maven2/${groups.join('/')}/${artifact}`
 
   return lookupVersioned(
     get,

@@ -35,4 +35,18 @@ describe('cargo-lookup', () => {
       ).kind,
     ).toBe('failed')
   })
+
+  test('a name that could change the path or query is refused with no request', async () => {
+    for (const name of ['serde?x=1', 'ser#de', '../serde', '..', 'a/b', 'se rde', 'se.rde']) {
+      const { host, fetched } = Fixtures.fakeHostOf()
+
+      expect(
+        await Resolve.cargoLookup(
+          url => Resolve.fetchGently(host, url),
+          Fixtures.depAt(name, { ecosystem: 'cargo' }),
+        ),
+      ).toEqual({ kind: 'none', reason: 'not a valid cargo name' })
+      expect(fetched).toEqual([])
+    }
+  })
 })

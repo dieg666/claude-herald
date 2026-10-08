@@ -1,5 +1,6 @@
 import { recordAt } from '../detect/record-at.js'
 import { lookupJson } from './lookup-json.js'
+import { pathSegmentOf } from './path-segment-of.js'
 import type { RegistryLookup } from './registry-lookup.js'
 import { repoLookupOf } from './repo-lookup-of.js'
 
@@ -26,11 +27,13 @@ const HOME_LABELS = new Set(['homepage', 'home'])
  * PyPI: `project_urls` whose label names the source (`Source`, `Source Code`, `Repository`, `GitHub`, any case), then the home page ones, then `home_page`, then every other URL, from pypi.org's JSON API.
  */
 export const pypiLookup: RegistryLookup = (get, dependency) => {
-  if (!/^[\w.-]+$/.test(dependency.name)) {
-    return Promise.resolve({ kind: 'none', reason: 'not a PyPI project name' })
+  const name = pathSegmentOf(dependency.name)
+
+  if (name === undefined) {
+    return Promise.resolve({ kind: 'none', reason: 'not a valid pypi name' })
   }
 
-  return lookupJson(get, `https://pypi.org/pypi/${dependency.name}/json`, json => {
+  return lookupJson(get, `https://pypi.org/pypi/${name}/json`, json => {
     const info = recordAt(json, 'info')
     const labelled = Object.entries(recordAt(info, 'project_urls')).map(
       ([label, url]) => [label.toLowerCase().replace(/[^a-z\d]/g, ''), url] as const,

@@ -1,6 +1,7 @@
 import { isRecord } from '../../store/is-record.js'
 import { recordAt } from '../detect/record-at.js'
 import { lookupJson } from './lookup-json.js'
+import { pathSegmentOf } from './path-segment-of.js'
 import type { RegistryLookup } from './registry-lookup.js'
 import { repoLookupOf } from './repo-lookup-of.js'
 
@@ -10,11 +11,13 @@ import { repoLookupOf } from './repo-lookup-of.js'
 export const packagistLookup: RegistryLookup = (get, dependency) => {
   const name = dependency.name.toLowerCase()
 
-  if (!/^[\w.-]+\/[\w.-]+$/.test(name)) {
-    return Promise.resolve({ kind: 'none', reason: 'not a Composer package name' })
+  const parts = name.split('/').map(part => pathSegmentOf(part))
+
+  if (parts.length !== 2 || parts.includes(undefined)) {
+    return Promise.resolve({ kind: 'none', reason: 'not a valid packagist name' })
   }
 
-  return lookupJson(get, `https://repo.packagist.org/p2/${name}.json`, json => {
+  return lookupJson(get, `https://repo.packagist.org/p2/${parts.join('/')}.json`, json => {
     const versions = recordAt(json, 'packages')[name]
     const newest = Array.isArray(versions) && isRecord(versions[0]) ? versions[0] : {}
 
