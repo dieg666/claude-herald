@@ -217,7 +217,7 @@ The mod detects the stack a moment after the session starts, on `/news deps resc
 2. Otherwise the package's registry does ([Network hosts](docs/security.md#network-hosts)). A Go module under `github.com/` or `golang.org/x/` needs no request. Swift and Dart (pub) have no registry lookup.
 3. The mod reads `https://github.com/OWNER/REPO/releases.atom`, or `tags.atom` when the repository publishes no releases.
 
-A package is unresolved when its repository is not on GitHub, its registry does not know it or it has no lookup. `/news deps` lists it with the reason, and nothing shows for it. A mapping, an unresolved one included, is kept for 7 days. A failed request is not kept: `/news deps` shows that package as `not looked up yet` (or with its older mapping), the failure goes to the debug log only, and the mod waits an hour before it tries again.
+A package is unresolved when its repository is not on GitHub, its registry does not know it, its name is not valid for that registry or it has no lookup. `/news deps` lists it with the reason, and nothing shows for it. A mapping, an unresolved one included, is kept for 7 days. A failed request is not kept: `/news deps` shows that package as `not looked up yet` (or with its older mapping), the failure goes to the debug log only, and the mod waits an hour before it tries again.
 
 `/news deps map` sets where a package's releases are read, in every project, and the mapping never expires. To replace it, run `map` again; `/news deps map <package> off` removes it, so the package is looked up in its registry again. `/news reset` does not clear it. `/news deps add owner/repo` follows a repository as the `github` ecosystem: no registry lookup, every tag counts as a release, and with no version in use every level is `unknown`. For any other package, a release whose tag names another package of the repository (`other@1.2.0`) is skipped.
 
@@ -377,7 +377,7 @@ On Claude Code 2.1.293 the store file was observed at `~/.claude/plugins/store/<
 | `/news` does nothing visible. | Run `/plugin` and look for `news` on the `mods active` line. If it is missing, run `/reload-plugins`. |
 | A source shows an error in `/news list`. | It failed its last fetch, and the mod keeps its older items. See [Limitations](#limitations) for headers and fetch policy. |
 | A release does not show. | It is at or below your version; it is a patch release and the show level is `minor+`; it is a pre-release and the show level is not `all`; its package waits for a lookup (10 per refresh), is paused for an hour after a failure, or is `unresolved` in `/news deps`; or the stack is off for this project. |
-| A package is `unresolved`. | Its registry names no GitHub repository, or GitHub does not have it. Run `/news deps map <package> <owner/repo\|feed-url>`. |
+| A package is `unresolved`. | Its registry names no GitHub repository, GitHub does not have it, or its name is not valid for that registry. Run `/news deps map <package> <owner/repo\|feed-url>`. |
 | A hotkey types the letter into the prompt. | The band or the pane does not have keyboard focus. Open the pane with `/news`. |
 | A summary shows `…` for a long time. | It waits for a model call. A failed call is retried the next time the item is shown. |
 
@@ -387,7 +387,7 @@ On Claude Code 2.1.293 the store file was observed at `~/.claude/plugins/store/<
 - **`$.process.run` is available in the CLI only.** On the Desktop app, Open and the clipboard fallback can fail with a toast. Copy uses `$.ui.copy` first, and the headline link opens the item.
 - **The `clip.exe` fallback can garble non-ASCII text.** It reads the OEM code page. The mod tries PowerShell first on Windows and WSL.
 - **Source fetches add no headers of their own.** Claude Code may add its own, and its documentation does not say which. Registry and release feed requests send the `User-Agent` in [docs/security.md](docs/security.md#what-leaves-your-machine). A feed that needs a specific User-Agent shows as a failed source in `/news list`.
-- **`$.http.fetch` cannot be aborted.** A request that hangs counts as failed for its source after 90 seconds, but it keeps running until it ends.
+- **`$.http.fetch` cannot be aborted.** A request that hangs counts as failed for its source after 90 seconds, and a stack registry or feed request after 30 seconds, but it keeps running until it ends. Turning a refresh off or restarting it waits for the request in progress to fail.
 - **The mod has no host allowlist and does not block private addresses.** `/news add`, `/news add-page` and `/news deps map <package> <feed-url>` fetch any http or https address you give, including `localhost` and addresses on your network. Redirects are followed, so a redirect can lead to any host, those included.
 - **A web-fetch policy of your organization can refuse the fetches.** The sources then show as failed.
 - **Every session refreshes on its own.** Two open sessions fetch each source twice per interval, look up and read your stack twice, and share one store. The one hour pause after a failure is not shared.
