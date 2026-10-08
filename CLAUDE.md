@@ -4,13 +4,13 @@ A Claude Code mod (a plugin with a hooks module) that shows news from RSS/Atom f
 
 ## Sources of truth
 
-- The types for the installed build: `.claude-plugin/types/claude-code/index.d.ts` (written by `scripts/check.sh` on first run, gitignored). Grep it for the event or method at hand (`'command.run'`, `AbovePrompt: {`, `export type ModelCompleteRequest`) and read the declaration. Never guess an API; when the docs or types disagree with a bead, the types win and the deviation goes in the README.
+- The types for the installed build: `.claude-plugin/types/claude-code/index.d.ts` (written by `scripts/check.sh` on first run, gitignored). Grep it for the event or method at hand (`'command.run'`, `AbovePrompt: {`, `export type ModelCompleteRequest`) and read the declaration. Never guess an API; when the docs or types disagree with a bead, the types win and the deviation goes in `docs/design.md`.
 - Docs: https://code.claude.com/docs/en/plugins/mods/overview.md and its siblings (`create`, `interface`, `events`, `api`, `reference`, `test`, `troubleshoot`).
 - Structure and test style mirror Anthropic's built-in mods (https://github.com/anthropics/claude-code/tree/main/mods, `diff` in particular).
 
 ## Checks
 
-`scripts/check.sh` runs `claude plugin validate .`, `bunx prettier@3 --check` (settings in `.prettierrc.json`), `bunx -p typescript@5 tsc -p .` and `claude plugin test .`. All of them must pass before a change is done. `claude plugin validate` must stay clean: no new `calls:` entry without a matching line in the README's permissions table.
+`scripts/check.sh` runs `claude plugin validate .`, `bunx prettier@3 --check` (settings in `.prettierrc.json`), `bunx -p typescript@5 tsc -p .` and `claude plugin test .`. All of them must pass before a change is done. `claude plugin validate` must stay clean: no new `calls:` entry without a matching row in the calls table of `docs/security.md`.
 
 ## Layout
 
@@ -36,7 +36,7 @@ Concern folders: `names` (plugin, command, pane ids, store keys, hotkeys), `defa
 
 ## Design rules
 
-- Least privilege: call only what a feature needs. Every `calls:` entry is justified in the README.
+- Least privilege: call only what a feature needs. Every `calls:` entry is justified in `docs/security.md`.
 - Colors are theme keys (`ThemeKey`: `claude`, `suggestion`, `subtle`, `inactive`, `success`, `warning`, `error`, `text`, ...) or `dimColor`. Never a hex value or a named color like `'red'`.
 - Glyphs are single-width text symbols, not emoji, except in toasts.
 - Button hotkeys are one lowercase letter or one digit (the engine refuses anything else). Digits on the band also fire from an empty prompt, so the band uses letters only.

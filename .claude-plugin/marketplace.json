@@ -10,7 +10,8 @@
     {
       "name": "herald",
       "source": "./",
-      "description": "Herald: news and releases for your stack, right above the prompt."
+      "description": "Herald: news and releases for your stack, right above the prompt.",
+      "license": "MIT"
     }
   ]
 }
