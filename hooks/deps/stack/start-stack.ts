@@ -31,6 +31,8 @@ export async function startStack(
     })
   }
 
+  // This detection serves a rescan asked so far.
+  loop.isDetectPending = false
   await detectDeps(host, root)
 
   loop.isStarted = true

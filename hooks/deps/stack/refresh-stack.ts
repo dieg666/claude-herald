@@ -22,6 +22,7 @@ import { currentVersionOf } from '../classify/current-version-of.js'
 import { flagReleases } from '../classify/flag-releases.js'
 import { releaseIdOf } from '../classify/release-id-of.js'
 import { RELEASE_LIMITS } from '../classify/release-limits.js'
+import { detectDeps } from '../detect/detect-deps.js'
 import { projectRootOf } from '../detect/project-root-of.js'
 import { redetectIfChanged } from '../detect/redetect-if-changed.js'
 import { depFeedKeyOf } from '../resolve/dep-feed-key-of.js'
@@ -318,7 +319,7 @@ function projectAfter(
  * @param loop the loop
  * @param jobs the limiter shared with summaries
  * @param signal stops requests, waits and model calls
- * @param redetect whether to check the manifests for changes first
+ * @param redetect whether to check the manifests for changes first (a rescan asked detects again whatever they say)
  */
 async function runOf(
   host: Host,
@@ -328,7 +329,10 @@ async function runOf(
   redetect: boolean,
 ): Promise<StackRun> {
   try {
-    if (redetect) {
+    if (loop.isDetectPending) {
+      loop.isDetectPending = false
+      await detectDeps(host)
+    } else if (redetect) {
       await redetectIfChanged(host)
     }
 
@@ -396,21 +400,33 @@ async function runOf(
       ).map(release => [release.id, release]),
     )
 
-    const followed = new Set(project.dependencies.map(depFeedKeyOf))
+    // Settings or packages a command changed during this run win over those it started with.
+    let latest = project
 
     await loop.serially(async () => {
+      latest = await loadDepsProject(host, root.path)
+
+      const followed = new Set(latest.dependencies.map(depFeedKeyOf))
       const saved = await saveStackProject(host, root.path, before =>
-        projectAfter(before, cachedReads, flagged, followed, now),
+        projectAfter(
+          before,
+          cachedReads.filter(read => followed.has(read.key)),
+          flagged,
+          followed,
+          now,
+        ),
       )
 
-      await host.state.stack.update(current => stackStateOf(root.path, project, saved, current))
+      await host.state.stack.update(current => stackStateOf(root.path, latest, saved, current))
     })
 
+    const followed = new Set(latest.dependencies.map(depFeedKeyOf))
     const newReleases: StackItem[] = fresh.map(({ release, page }) =>
       stackItemOfRelease(flagged.get(release.id) ?? release, page),
     )
     const toasted = newReleases
-      .filter(item => isAtLevel(item.release, project.settings.toastLevel))
+      .filter(item => latest.settings.isEnabled && followed.has(depFeedKeyOf(item.release)))
+      .filter(item => isAtLevel(item.release, latest.settings.toastLevel))
       .map((item, index) => ({
         item,
         index,
@@ -438,7 +454,7 @@ async function runOf(
 }
 
 /**
- * Refreshes the releases of the project's stack, off any hook's dispatch: checks the manifests for changes when asked (`redetect`), resolves the followed packages (at most a few registry lookups, none for a package whose lookup failed within the hour), reads the due release feeds (a few per run, with the notes long enough for the classifier), classifies their releases against the versions in use, keeps the newest few per package in the store and state, asks the model about the flags of the releases new since the last read (none on a package's first read), and shows one toast for those at the project's toast level. Does nothing before the start detection or while the project's stack is off (no request at all then); a refresh asked while one runs makes one more run after it; never throws.
+ * Refreshes the releases of the project's stack, off any hook's dispatch: checks the manifests for changes when asked (`redetect`), resolves the followed packages (at most a few registry lookups, none for a package whose lookup failed within the hour), reads the due release feeds (a few per run, with the notes long enough for the classifier), classifies their releases against the versions in use, keeps the newest few per package in the store and state, asks the model about the flags of the releases new since the last read (none on a package's first read), and shows one toast for those at the project's toast level. Does nothing before the start detection or while the project's stack is off (no request at all then); a refresh asked while one runs makes one more run after it, which detects the stack again first when a rescan was asked (`isDetectPending`); settings or packages changed during a run are those it writes and toasts by; never throws.
  *
  * @param host the engine
  * @param loop the loop

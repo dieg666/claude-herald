@@ -10,6 +10,7 @@ export function stackLoopOf(): StackLoop {
     root: undefined,
     running: undefined,
     isPending: false,
+    isDetectPending: false,
     failedAt: new Map(),
     serially: serialOf(),
   }

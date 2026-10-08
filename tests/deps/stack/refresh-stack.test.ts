@@ -360,6 +360,44 @@ describe('refresh-stack', () => {
     expect(fs.lists.filter(path => path === '/repo').length).toBe(2)
   })
 
+  for (const [change, patch] of [
+    ['turned off', { settings: { isEnabled: false, toastLevel: 'all' } }],
+    ['ignored', { ignored: ['npm:react'], dependencies: [] }],
+  ] as const) {
+    test(`a package ${change} while a run reads its feed is neither toasted nor kept in state`, async () => {
+      const { web, stored, state, toasts, clock, loop, refresh } = stackAt([REACT], {
+        toastLevel: 'all',
+      })
+
+      web.set(feedOf('react'), { status: 200, text: Feeds.releasesAtomOf('react', [['v18.2.0']]) })
+      await refresh()
+      web.set(feedOf('react'), { status: 200, text: Feeds.releasesAtomOf('react', [['v19.0.0']]) })
+      await clock.advance(HOUR)
+
+      let release = () => {}
+      const held = new Promise<void>(resolve => {
+        release = resolve
+      })
+      const first = loop.serially(() => held)
+      const running = refresh()
+
+      await clock.settle()
+
+      const projects = stored.get('deps') as Record<string, Record<string, unknown>>
+
+      stored.set('deps', { '/repo': { ...projects['/repo'], ...patch } })
+      release()
+      await first
+      await running
+
+      const stack = state.stack as { settings: { isEnabled: boolean }; items: unknown[] }
+
+      expect(toasts).toEqual([])
+      expect(Stack.shownStackItemsOf(state.stack as never)).toEqual([])
+      expect(stack.settings.isEnabled).toBe(change !== 'turned off')
+    })
+  }
+
   test('a feed missing at first (404) stays silent once it appears; only later releases toast', async () => {
     const { web, toasts, clock, refresh } = stackAt([REACT], { toastLevel: 'all' })
 
