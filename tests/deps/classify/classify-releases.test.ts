@@ -184,6 +184,20 @@ describe('classify-releases', () => {
     expect(levelsOf(Classify.classifyReleases(v2, entries))).toEqual([['v2.1.0', 'minor']])
   })
 
+  test('a repository followed by hand keeps every tag, whichever package it names', () => {
+    const xml = Feeds.releasesAtomOf('changesets', [['@changesets/cli@2.0.0'], ['cli-v1.2.0']])
+    const repo = depOf('github', 'changesets/changesets', {
+      manifestPath: '',
+      source: 'https://github.com/changesets/changesets',
+    })
+    const npm = depOf('npm', 'react')
+
+    expect(Classify.classifyReleases(repo, entriesOf(xml)).map(release => release.version)).toEqual(
+      ['2.0.0', 'v1.2.0'],
+    )
+    expect(Classify.classifyReleases(npm, entriesOf(xml))).toEqual([])
+  })
+
   test('monorepo tags: only the entries whose tag names the package are taken', () => {
     const entries = [
       '@scope/pkg@1.3.0',

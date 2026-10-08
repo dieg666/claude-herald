@@ -24,7 +24,7 @@ function isPrereleaseOf(version: Version): boolean {
 }
 
 /**
- * A dependency's release feed entries classified against the version in use: the version each names (from the GitHub tag, else the title), how far it is (patch, minor, major) and its keyword flags. Releases at or below the version in use are left out, and so are entries whose tag names another package of a monorepo; a release or a version in use that cannot be compared stays, as `unknown`. Pure: no model call.
+ * A dependency's release feed entries classified against the version in use: the version each names (from the GitHub tag, else the title), how far it is (patch, minor, major) and its keyword flags. Releases at or below the version in use are left out, and so are entries whose tag names another package of a monorepo (except for a repository followed by hand, `github`); a release or a version in use that cannot be compared stays, as `unknown`. Pure: no model call.
  *
  * @param dependency the followed dependency
  * @param entries its release feed's entries, in feed order
@@ -42,7 +42,12 @@ export function classifyReleases(
     const tagged =
       (tag === undefined ? undefined : taggedVersionOf(tag)) ?? taggedVersionOf(entry.title, true)
 
-    if (tagged?.package !== undefined && !namesDependency(tagged.package, dependency)) {
+    // A repository followed by hand takes every tag it publishes, whichever package it names.
+    if (
+      dependency.ecosystem !== 'github' &&
+      tagged?.package !== undefined &&
+      !namesDependency(tagged.package, dependency)
+    ) {
       return []
     }
 
