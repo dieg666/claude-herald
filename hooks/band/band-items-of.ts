@@ -1,8 +1,9 @@
 import type { IdsBySource, Item, ItemsBySource, Source } from '../../types/index.js'
 import { timeOf } from '../items/time-of.js'
+import { sourceMixOf } from './source-mix-of.js'
 
 /**
- * What the band pages through: every enabled source's items and the stack items shown in one list, newest first, undated items after the dated ones in source order, stack items last; items read are left out while any unread one remains, and all are kept once every one is read.
+ * What the band pages through: every enabled source's items and the stack items shown in one list; items read are left out first while any unread one remains (all kept once every one is read), then the dated ones are mixed by source (the stack counts as one) so no page repeats a source while others have items, and the undated ones follow in source order, stack items last.
  *
  * @param sources every source, in order
  * @param items the kept items by source id, newest first
@@ -24,9 +25,8 @@ export function bandItemsOf(
   const isRead = (item: Item) =>
     Object.hasOwn(read, item.sourceId) && read[item.sourceId]?.includes(item.id) === true
   const unread = all.filter(item => !isRead(item))
+  const kept = unread.length > 0 ? unread : all
+  const isDated = (item: Item) => timeOf(item.publishedAt) !== Number.NEGATIVE_INFINITY
 
-  return (unread.length > 0 ? unread : all)
-    .map((item, index) => ({ item, index, time: timeOf(item.publishedAt) }))
-    .sort((a, b) => (a.time === b.time ? a.index - b.index : b.time - a.time))
-    .map(({ item }) => item)
+  return [...sourceMixOf(kept.filter(isDated)), ...kept.filter(item => !isDated(item))]
 }

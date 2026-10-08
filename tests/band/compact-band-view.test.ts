@@ -110,7 +110,8 @@ describe('compact-band-view', () => {
           ])
           expect((await linksOf(ui)).map(([, text]) => text)).toEqual(['src 1'])
 
-          await ui.press({ key: 'prev' })
+          // The release's source comes second, before the rest of the busier one.
+          await ui.press({ key: 'next' })
 
           const release = await ui.find({ type: 'Text', text: /^Claude Code…$/ })
 
@@ -121,9 +122,51 @@ describe('compact-band-view', () => {
           expect(Fixtures.rowsOf(await rootOf(ui), columns)).toBe(rows + 1)
 
           // Back to the first item for the next width.
-          await ui.press({ key: 'next' })
+          await ui.press({ key: 'prev' })
           await ui.unmount()
         }
+      },
+    )
+
+    test(
+      `on ${surface}: over a skewed store each turn shows another source, at the same positions and total`,
+      { timeoutMs: 20_000 },
+      async ($, on) => {
+        const clock = mock.clock(on)
+        const { sources, items, stack } = Fixtures.SKEWED_BAND
+
+        Fixtures.bandOn(
+          on,
+          { sources, items, ...Fixtures.stackStoreOf(stack, { showLevel: 'all' }) },
+          Fixtures.stackTreeOf(stack),
+        )
+
+        await $.session.start(Fixtures.SESSION)
+        await clock.settle()
+
+        const ui = await $.ui.mount(at(surface, 60))
+        const turns: unknown[] = []
+
+        for (let turn = 0; turn < 6; turn += 1) {
+          const [[href] = []] = await linksOf(ui)
+
+          turns.push([
+            await positionOf(ui),
+            /^https:\/\/example\.com\/([^/]+)\//.exec(String(href))?.[1] ?? 'stack',
+          ])
+          await ui.press({ key: 'next' })
+        }
+
+        expect(turns).toEqual([
+          ['1/27', 'hn'],
+          ['2/27', 'sdk'],
+          ['3/27', 'stack'],
+          ['4/27', 'anthropic'],
+          ['5/27', 'willison'],
+          ['6/27', 'hn'],
+        ])
+
+        await ui.unmount()
       },
     )
 

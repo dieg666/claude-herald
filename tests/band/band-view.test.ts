@@ -731,7 +731,7 @@ describe('band-view', () => {
       expect(await selectedOf(ui)).toBe('src 1')
     })
 
-    test(`on ${surface}: items from every enabled source, newest first; when they shrink the page and selection come back inside`, async ($, on) => {
+    test(`on ${surface}: items from every enabled source, one source after another, newest first; when they shrink the page and selection come back inside`, async ($, on) => {
       mock.clock(on)
       Fixtures.bandOn(on, {
         sources: [Fixtures.sourceAt('old'), Fixtures.sourceAt('new')],
@@ -745,7 +745,7 @@ describe('band-view', () => {
 
       const ui = await $.ui.mount({ ...BAND, surface })
 
-      expect((await linksOf(ui)).map(([, text]) => text)).toEqual(['new 1', 'new 2', 'old 1'])
+      expect((await linksOf(ui)).map(([, text]) => text)).toEqual(['new 1', 'old 1', 'new 2'])
 
       await ui.press({ key: 'next' })
       await ui.press({ key: 'next' })
@@ -761,6 +761,7 @@ describe('band-view', () => {
       expect(await rangeOf(ui)).toBe('7 of 7')
 
       await ui.press({ key: 'next' })
+      await ui.press({ key: 'up' })
       await ui.press({ key: 'up' })
 
       expect(await selectedOf(ui)).toBe('https://example.com/old/1')
@@ -915,24 +916,70 @@ describe('band-view', () => {
 
         const ui = await $.ui.mount({ ...BAND, surface })
         const leads: number[] = []
+        const names: unknown[][] = []
 
         for (let page = 0; page < 3; page += 1) {
           leads.push(...(await leadsOf(ui)))
+          names.push(
+            ...(
+              await ui.findAll({ type: 'Text', text: /^(react|vite|lodash|requests|next|zod)$/ })
+            ).map(name => [name.text, name.props.color]),
+          )
           await ui.press({ key: 'next' })
         }
 
-        // Three pages turned, the first is back.
         expect(leads).toEqual(Array.from({ length: 9 }, () => 16))
-        expect(
-          (await ui.findAll({ type: 'Text', text: /^(react|vite|lodash)$/ })).map(name => [
-            name.text,
-            name.props.color,
-          ]),
-        ).toEqual([
-          ['react', 'claude'],
-          ['vite', 'claude'],
-          ['lodash', 'claude'],
+        expect(names).toEqual(
+          ['react', 'vite', 'lodash', 'requests', 'next', 'zod'].map(name => [name, 'claude']),
+        )
+      },
+    )
+  }
+
+  // The source of a drawn link: a news item's from its address, a release's `stack`.
+  const linkSourceOf = (href: unknown) =>
+    /^https:\/\/example\.com\/([^/]+)\//.exec(String(href))?.[1] ??
+    (String(href).startsWith('https://github.com/owner/') ? 'stack' : String(href))
+
+  const skewedBandOn = (on: Parameters<typeof Fixtures.bandOn>[0]) => {
+    const { sources, items, stack } = Fixtures.SKEWED_BAND
+
+    return Fixtures.bandOn(
+      on,
+      { sources, items, ...Fixtures.stackStoreOf(stack, { showLevel: 'all' }) },
+      Fixtures.stackTreeOf(stack),
+    )
+  }
+
+  for (const surface of SURFACES) {
+    test(
+      `on ${surface}: a skewed store's pages each show different sources, at the same positions and total`,
+      { timeoutMs: 20_000 },
+      async ($, on) => {
+        const clock = mock.clock(on)
+
+        skewedBandOn(on)
+
+        await $.session.start(Fixtures.SESSION)
+        await clock.settle()
+
+        const ui = await $.ui.mount({ ...BAND, surface })
+        const pages: unknown[] = []
+
+        for (let page = 0; page < 9; page += 1) {
+          pages.push([await rangeOf(ui), (await linksOf(ui)).map(([href]) => linkSourceOf(href))])
+          await ui.press({ key: 'next' })
+        }
+
+        expect(pages.slice(0, 4)).toEqual([
+          ['1–3 of 27', ['hn', 'sdk', 'stack']],
+          ['4–6 of 27', ['anthropic', 'willison', 'hn']],
+          ['7–9 of 27', ['sdk', 'anthropic', 'stack']],
+          ['10–12 of 27', ['hn', 'hn', 'hn']],
         ])
+        expect(pages.map(page => (page as unknown[])[0])).toEqual(
+          Array.from({ length: 9 }, (_, page) => `${page * 3 + 1}–${page * 3 + 3} of 27`),
+        )
       },
     )
   }

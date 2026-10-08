@@ -1551,7 +1551,7 @@ describe('register', () => {
     { plugins: [Fixtures.PANE_CLOSER], timeoutMs: 30_000 },
     async ($, on) => {
       const clock = mock.clock(on)
-      // The pane opens on the older source's tab; the band pages through the newer one first.
+      // The pane opens on the older source's tab, whose newest item the band's first page shares.
       const { asked } = Fixtures.bandOn(on, {
         sources: [Fixtures.sourceAt('a'), Fixtures.sourceAt('b')],
         items: { a: Fixtures.datedItemsOf('a', 2, 100), b: Fixtures.datedItemsOf('b', 12) },
@@ -1570,14 +1570,14 @@ describe('register', () => {
         props: Fixtures.BAND_PROPS,
       })
 
-      expect([...asked].sort()).toEqual(['b 1', 'b 2', 'b 3'])
+      expect([...asked].sort()).toEqual(['a 1', 'b 1', 'b 2'])
 
       await $.command.run(Fixtures.heraldOf(''))
       await clock.settle()
 
       const opened = asked.length
 
-      expect(asked.slice(3).sort()).toEqual(['a 1', 'a 2'])
+      expect(asked.slice(3)).toEqual(['a 2'])
 
       await clock.advance(3 * 20_000)
       await clock.settle()
@@ -1587,11 +1587,11 @@ describe('register', () => {
       await $.command.run(Fixtures.CLOSE_PANE)
       await clock.settle()
 
-      expect(asked.slice(opened).sort()).toEqual(['b 10', 'b 11', 'b 12'])
+      expect(asked.slice(opened).sort()).toEqual(['b 10', 'b 8', 'b 9'])
       expect((await ui.findAll({ type: 'Link' })).map(link => link.children.join(''))).toEqual([
+        'b 8',
+        'b 9',
         'b 10',
-        'b 11',
-        'b 12',
       ])
 
       await ui.unmount()
