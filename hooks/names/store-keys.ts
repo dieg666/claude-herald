@@ -11,4 +11,5 @@ export const STORE_KEYS = {
   summaries: 'summaries',
   deps: 'deps',
   depFeeds: 'depFeeds',
+  releaseFlags: 'releaseFlags',
 } as const
