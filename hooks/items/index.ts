@@ -1,6 +1,7 @@
 export * from './combined-item-of.js'
 export * from './display-title-of.js'
 export * from './has-text.js'
+export * from './is-link-identified.js'
 export * from './is-link-label.js'
 export * from './is-version-only.js'
 export * from './item-id-of.js'

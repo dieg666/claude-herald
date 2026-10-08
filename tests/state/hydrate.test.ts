@@ -79,6 +79,21 @@ describe('hydrate', () => {
     expect(state.summaries).toEqual({ [guid.id]: 'corto' })
   })
 
+  test('distinct entries that share one address are all kept', async () => {
+    const entries = ['a', 'b', 'c'].map(key => ({
+      ...Fixtures.itemAt(key),
+      id: `own:${key}`,
+      sourceId: 'own',
+      url: 'https://example.com/changelog',
+    }))
+
+    const { host, state } = Fixtures.fakeHostOf({ ...STORE, items: { own: entries } })
+
+    await State.hydrate(host)
+
+    expect(state.items).toEqual({ own: entries })
+  })
+
   test('a short summary an older prompt version wrote stays out of state', async () => {
     const { host, state } = Fixtures.fakeHostOf({
       ...STORE,

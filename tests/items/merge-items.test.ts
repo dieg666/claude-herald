@@ -75,46 +75,60 @@ describe('merge-items', () => {
   })
 
   describe('one story under two ids', () => {
-    const story = (id: string, fields: Record<string, unknown> = {}) => ({
+    const URL = 'https://example.com/story'
+
+    // An entry the source gave its own identifier.
+    const guided = (id: string, fields: Record<string, unknown> = {}) => ({
       ...Fixtures.itemAt('story', '2026-01-01T00:00:00Z'),
       id: `src:${id}`,
       ...fields,
     })
 
-    test("an incoming item at a stored item's address merges into it and keeps the stored id", () => {
-      const stored = story('guid-1', { text: 'Real text about the story, long enough' })
-      const incoming = story('https://example.com/story', { title: 'Story, edited', text: '' })
+    // An entry with no guid, so its id came from its link.
+    const linked = (fields: Record<string, unknown> = {}) =>
+      guided(URL, { url: URL, text: 'Comments', ...fields })
+
+    test('an incoming link copy merges into the stored item with a guid and keeps its id', () => {
+      const stored = guided('guid-1', { url: URL, text: 'Real text about the story, long enough' })
+      const incoming = linked({ title: 'Story, edited' })
 
       expect(Items.mergeItems([stored], [incoming])).toEqual([
         { ...stored, title: 'Story, edited' },
       ])
     })
 
+    test('an incoming guid item merges into the stored link copy and keeps the stored id', () => {
+      const stored = linked()
+      const incoming = guided('guid-1', {
+        url: URL,
+        text: 'Real text about the story, long enough',
+      })
+
+      expect(Items.mergeItems([stored], [incoming])).toEqual([{ ...incoming, id: stored.id }])
+    })
+
     test('the incoming title and text win when it has text of its own', () => {
-      const stored = story('guid-1', { text: 'Old text of the story, long enough' })
-      const incoming = story('other', { title: 'New title', text: 'New text of the story' })
+      const stored = guided('guid-1', { url: URL, text: 'Old text of the story, long enough' })
+      const incoming = linked({ title: 'New title', text: 'New text of the story' })
 
       expect(Items.mergeItems([stored], [incoming])).toEqual([
         { ...stored, title: 'New title', text: 'New text of the story' },
       ])
     })
 
-    test('a link label as text counts as none, so the stored text stays', () => {
-      const stored = story('guid-1', { text: 'Real text about the story, long enough' })
-      const incoming = story('other', { text: 'Comments' })
+    test('a link label as text counts as none, so the real text stays', () => {
+      const stored = guided('guid-1', { url: URL, text: 'Real text about the story, long enough' })
 
-      expect(Items.mergeItems([stored], [incoming])[0]?.text).toBe(stored.text)
+      expect(Items.mergeItems([stored], [linked({ text: 'Comments' })])[0]?.text).toBe(stored.text)
+      expect(Items.mergeItems([stored], [linked({ text: '' })])[0]?.text).toBe(stored.text)
       expect(
-        Items.mergeItems(
-          [story('guid-1', { text: 'Comments' })],
-          [{ ...incoming, text: 'Real text' }],
-        )[0]?.text,
+        Items.mergeItems([linked()], [guided('guid-1', { url: URL, text: 'Real text' })])[0]?.text,
       ).toBe('Real text')
     })
 
-    test('the incoming item adds the date and language the stored one lacks', () => {
-      const { publishedAt, ...undated } = story('guid-1')
-      const incoming = story('other', { publishedAt: '2026-02-02T00:00:00Z', lang: 'en' })
+    test('the folded item adds the date and language the winning copy lacks', () => {
+      const { publishedAt, ...undated } = guided('guid-1', { url: URL })
+      const incoming = linked({ publishedAt: '2026-02-02T00:00:00Z', lang: 'en' })
 
       expect(publishedAt).toBeDefined()
       expect(Items.mergeItems([undated], [incoming])[0]).toMatchObject({
@@ -125,34 +139,36 @@ describe('merge-items', () => {
     })
 
     test('scheme and host case, a fragment and a trailing slash do not tell stories apart; a query does', () => {
-      const stored = story('guid-1', { url: 'https://example.com/story' })
-
-      const same = story('b', { url: 'HTTPS://Example.com/story/#comments' })
-      const other = story('c', { url: 'https://example.com/story?page=2' })
-
-      expect(idsOf(Items.mergeItems([stored], [same]))).toEqual(['guid-1'])
-      expect(idsOf(Items.mergeItems([stored], [other])).sort()).toEqual(['c', 'guid-1'])
-    })
-
-    test('stored duplicates collapse, keeping the oldest id and the copy with more text', () => {
-      const older = story('older', { publishedAt: '2026-01-01T00:00:00Z', text: 'Comments' })
-      const newer = story('newer', {
-        publishedAt: '2026-01-02T00:00:00Z',
-        text: 'The text worth keeping',
+      const stored = guided('guid-1', { url: URL })
+      const same = guided('HTTPS://Example.com/story/#comments', {
+        url: 'HTTPS://Example.com/story/#comments',
       })
 
-      const merged = Items.mergeItems([newer, older], [])
+      const other = guided('https://example.com/story?page=2', {
+        url: 'https://example.com/story?page=2',
+      })
 
-      expect(merged).toEqual([{ ...newer, id: 'src:older' }])
+      expect(idsOf(Items.mergeItems([stored], [same]))).toEqual(['guid-1'])
+      expect(idsOf(Items.mergeItems([stored], [other])).sort()).toEqual([
+        'guid-1',
+        'https://example.com/story?page=2',
+      ])
     })
 
-    test('stored duplicates of the same date keep the one with text, else the one stored last', () => {
-      const withText = story('with-text')
-      const label = story('label', { text: 'Comments' })
+    test('stored copies fold into the one with a guid, whichever order they were stored in', () => {
+      const guid = guided('guid-1', { url: URL, text: 'The text worth keeping' })
+      const copy = linked()
 
-      expect(idsOf(Items.mergeItems([withText, label], []))).toEqual(['with-text'])
-      expect(idsOf(Items.mergeItems([label, withText], []))).toEqual(['with-text'])
-      expect(idsOf(Items.mergeItems([story('first'), story('last')], []))).toEqual(['last'])
+      expect(Items.mergeItems([copy, guid], [])).toEqual([guid])
+      expect(Items.mergeItems([guid, copy], [])).toEqual([guid])
+    })
+
+    test('several link copies fold into the one guid item', () => {
+      const guid = guided('guid-1', { url: URL })
+      const copy = linked()
+      const other = linked({ url: `${URL}/`, id: `src:${URL}/` })
+
+      expect(idsOf(Items.mergeItems([guid, copy, other], []))).toEqual(['guid-1'])
     })
 
     test('items without a usable address, and items of other addresses, are untouched', () => {
@@ -164,25 +180,48 @@ describe('merge-items', () => {
     })
 
     test('the same address under two sources stays two items', () => {
-      const here = story('x')
-      const there = { ...story('y'), sourceId: 'other', id: 'other:y' }
+      const here = guided('x', { url: URL })
+      const there = linked({ sourceId: 'other', id: `other:${URL}` })
 
       expect(Items.mergeItems([here], [there]).length).toBe(2)
     })
 
-    test('entries the fetch lists under their own ids stay apart', () => {
-      const a = story('a')
-      const b = story('b')
+    describe('entries with identifiers of their own at one address stay apart', () => {
+      const A = guided('a', { url: URL, publishedAt: '2026-10-03T00:00:00Z' })
+      const B = guided('b', { url: URL, publishedAt: '2026-10-02T00:00:00Z' })
+      const C = guided('c', { url: URL, publishedAt: '2026-10-01T00:00:00Z' })
+      const D = guided('d', { url: URL, publishedAt: '2026-10-04T00:00:00Z' })
+      const OLD = guided('old', { url: URL, publishedAt: '2026-09-01T00:00:00Z' })
 
-      expect(idsOf(Items.mergeItems([a, b], [a, b]))).toEqual(['a', 'b'])
-      expect(idsOf(Items.mergeItems([], [a, b]))).toEqual(['a', 'b'])
-    })
+      test('a first fetch and a repeated one keep all of them', () => {
+        let kept = Items.mergeItems([], [A, B, C])
 
-    test('a listed item folds into a stored one it shares an address with, even when it is stored too', () => {
-      const guid = story('guid-1')
-      const dup = story('dup', { text: 'Comments' })
+        expect(idsOf(kept)).toEqual(['a', 'b', 'c'])
 
-      expect(idsOf(Items.mergeItems([guid, dup], [dup]))).toEqual(['guid-1'])
+        kept = Items.mergeItems(kept, [A, B, C])
+
+        expect(idsOf(kept)).toEqual(['a', 'b', 'c'])
+      })
+
+      test('loading stored ones folds nothing', () => {
+        expect(idsOf(Items.mergeItems([A, B, C], []))).toEqual(['a', 'b', 'c'])
+      })
+
+      test('a fetch that lists only some of them loses none', () => {
+        expect(idsOf(Items.mergeItems([A, B, C], [A]))).toEqual(['a', 'b', 'c'])
+        expect(idsOf(Items.mergeItems([D, A, B, C], [D, A]))).toEqual(['d', 'a', 'b', 'c'])
+      })
+
+      test('a fetch of two of them next to a stored one keeps all three', () => {
+        expect(idsOf(Items.mergeItems([OLD], [A, B]))).toEqual(['a', 'b', 'old'])
+      })
+
+      test('a link copy next to two or more of them folds into none', () => {
+        const copy = linked()
+
+        expect(idsOf(Items.mergeItems([A, B, copy], [])).sort()).toEqual(['a', 'b', URL])
+        expect(idsOf(Items.mergeItems([A, B], [copy])).sort()).toEqual(['a', 'b', URL])
+      })
     })
   })
 })

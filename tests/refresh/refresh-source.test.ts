@@ -110,6 +110,28 @@ describe('refresh-source', () => {
   )
 
   test(
+    'an unchanged page keeps distinct entries that share one address',
+    { timeoutMs: 20_000 },
+    async () => {
+      const kept = ['a', 'b', 'c'].map(key => ({
+        ...Fixtures.itemAt(key, `2026-10-0${key === 'a' ? 3 : key === 'b' ? 2 : 1}T00:00:00Z`),
+        url: 'https://example.com/changelog',
+      }))
+
+      const { host, web, state } = Fixtures.fakeHostOf({
+        items: { anthropic: kept },
+        pageHashes: { anthropic: HASH },
+        seen: { anthropic: kept.map(item => item.id) },
+      })
+
+      web.set(PAGE.url, { status: 200, text: Pages.ANTHROPIC_NEWS_HTML })
+      await Refresh.refreshSource(host, PAGE)
+
+      expect(state.items).toEqual({ anthropic: kept })
+    },
+  )
+
+  test(
     'a changed page stores its items and the new hash after the extraction',
     { timeoutMs: 20_000 },
     async () => {
@@ -340,6 +362,24 @@ describe('refresh-source', () => {
         'Push ifs up and fors down: The idiom, its algebra, and its limits',
       ])
       expect(stored.get('items')).toEqual({ hn: kept })
+    })
+
+    test("with the first address back, stored fallback copies keep their ids and take the guid copy's text", async () => {
+      const copies = itemsOf(Feeds.HN_RSS, HN.fallbackUrl ?? '')
+      const { host, web, state } = Fixtures.fakeHostOf({
+        items: { hn: copies },
+        seen: { hn: copies.map(item => item.id) },
+      })
+
+      web.set(HN.url, { status: 200, text: Feeds.HNRSS_SAME_STORIES })
+
+      const outcome = await Refresh.refreshSource(host, HN)
+      const kept = (state.items as Record<string, typeof copies>).hn ?? []
+
+      expect(kept.length).toBe(4)
+      expect(kept.map(item => item.id).sort()).toEqual(copies.map(item => item.id).sort())
+      expect(kept.filter(item => item.text.includes('Article URL:')).length).toBe(3)
+      expect(outcome.newItems).toEqual([])
     })
 
     test('duplicates a user already has stored collapse onto the oldest id on the next refresh', async () => {

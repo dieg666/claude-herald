@@ -1,6 +1,7 @@
 import type { Item } from '../../types/index.js'
 import { combinedItemOf } from './combined-item-of.js'
 import { hasText } from './has-text.js'
+import { isLinkIdentified } from './is-link-identified.js'
 import { ITEMS_PER_SOURCE } from './items-per-source.js'
 import { normalizedUrlOf } from './normalized-url-of.js'
 
@@ -34,32 +35,7 @@ function bestFirst(members: readonly Item[], listed: ReadonlySet<string>): Item[
 }
 
 /**
- * The kept item that is oldest by date; on a tie the one with text of its own, then the one stored last (the list is newest first).
- *
- * @param members the kept items of one address, at least one
- * @param position where each is in the kept list
- */
-function oldestOf(members: readonly Item[], position: ReadonlyMap<string, number>): Item {
-  const [first, ...rest] = members
-
-  return rest.reduce((oldest, item) => {
-    const a = timeOf(oldest)
-    const b = timeOf(item)
-
-    if (a !== null && b !== null && a !== b) {
-      return a < b ? oldest : item
-    }
-
-    if (hasText(oldest) !== hasText(item)) {
-      return hasText(item) ? item : oldest
-    }
-
-    return (position.get(item.id) ?? 0) >= (position.get(oldest.id) ?? 0) ? item : oldest
-  }, first as Item)
-}
-
-/**
- * Folds items of one source that share an address into the oldest kept one, so a story a feed lists under a new id (its second address, a changed guid) stays one item under the id the user's seen, saved and summaries use; items the fetch lists under their own ids, all of them, stay apart, and an item without an http(s) address is left alone.
+ * Folds an item whose id came from its link into the one item with an identifier of its own at the same address, within a source: a story that a source's second address lists without a guid stays one item. It keeps the stored id when exactly one of the group is stored, else the identified item's; entries that carry identifiers of their own never fold, however many share an address, and nothing folds when there are two or more of them.
  *
  * @param items the items, one per id
  * @param listed the ids the fetch lists
@@ -77,41 +53,43 @@ function foldedByAddress(
 
     if (address !== undefined) {
       const key = `${item.sourceId}\n${address}`
+      const group = groups.get(key)
 
-      groups.set(key, [...(groups.get(key) ?? []), item])
-    }
-  }
-
-  const folded = new Map<string, Item>()
-  const emitted = new Set<string>()
-
-  for (const members of groups.values()) {
-    const kept = members.filter(item => position.has(item.id))
-    const [first, ...rest] = bestFirst(members, listed)
-    const isListedAll = members.every(item => listed.has(item.id))
-
-    if (members.length > 1 && kept.length > 0 && !isListedAll && first !== undefined) {
-      const { id } = oldestOf(kept, position)
-
-      folded.set(members[0]?.id ?? id, combinedItemOf(id, [first, ...rest]))
-
-      for (const member of members.slice(1)) {
-        emitted.add(member.id)
+      if (group === undefined) {
+        groups.set(key, [item])
+      } else {
+        group.push(item)
       }
     }
   }
 
-  return items.flatMap(item => {
-    if (emitted.has(item.id)) {
-      return []
-    }
+  const folded = new Map<string, Item>()
+  const dropped = new Set<string>()
 
-    return [folded.get(item.id) ?? item]
-  })
+  for (const members of groups.values()) {
+    const identified = members.filter(item => !isLinkIdentified(item))
+    const [owner] = identified
+
+    if (identified.length === 1 && owner !== undefined && members.length > 1) {
+      const stored = members.filter(item => position.has(item.id))
+      const [first, ...rest] = bestFirst(members, listed)
+      const id = stored.length === 1 ? (stored[0] ?? owner).id : owner.id
+
+      if (first !== undefined) {
+        folded.set(members[0]?.id ?? id, combinedItemOf(id, [first, ...rest]))
+
+        for (const member of members.slice(1)) {
+          dropped.add(member.id)
+        }
+      }
+    }
+  }
+
+  return items.flatMap(item => (dropped.has(item.id) ? [] : [folded.get(item.id) ?? item]))
 }
 
 /**
- * Merges a fetch into kept items: one per id (the incoming copy, keeping a known date and text), one per address within a source (the oldest kept id wins), dated newest first, then undated in incoming-then-kept order, so the cap drops undated items first; with nothing incoming it only folds the kept duplicates.
+ * Merges a fetch into kept items: one per id (the incoming copy, keeping a known date and text), an entry identified only by its link folded into the entry with an identifier of its own at the same address, dated newest first, then undated in incoming-then-kept order, so the cap drops undated items first; with nothing incoming it only folds the kept ones.
  *
  * @param existing the items kept so far
  * @param incoming the items just fetched, in feed order
