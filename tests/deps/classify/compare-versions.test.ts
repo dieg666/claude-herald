@@ -65,6 +65,9 @@ const EQUAL: readonly (readonly [string, string, Ecosystem])[] = [
   ['6.4.0.Final', '6.4.0', 'maven'],
   ['1.0-GA', '1.0', 'maven'],
   ['v1.12.0', '1.12.0', 'pypi'],
+  ['32.1.3-jre', '32.1.3-android', 'maven'],
+  ['32.1.3-jre', '32.1.3', 'maven'],
+  ['1.0-jdk8', '1.0', 'maven'],
 ]
 
 /**
@@ -103,8 +106,8 @@ describe('compare-versions', () => {
     }
   })
 
-  test('a Maven classifier version sorts after the plain release, an npm pre-release before it', () => {
-    expect(orderOf('32.1.3', '32.1.3-jre', 'maven')).toBe(-1)
+  test('an unknown Maven qualifier sorts after the plain release, an npm pre-release before it', () => {
+    expect(orderOf('1.0', '1.0-foo', 'maven')).toBe(-1)
     expect(orderOf('1.0.0', '1.0.0-next.1', 'npm')).toBe(1)
   })
 })

@@ -5,6 +5,9 @@ import type { Version } from './version.js'
 /** Qualifier words that name the final release itself and change nothing in the order. */
 const FINAL_WORDS = new Set(['final', 'ga', 'release', 'stable'])
 
+/** Maven flavour classifiers (`32.1.3-jre`, `32.1.3-android`, `1.0-jdk8`), which name a build of the same version. */
+const MAVEN_FLAVOURS = /^(?:jre|android|jdk\d*)$/
+
 /** A calendar date at the start of a version: `2025-11-25`, `2025-11`. */
 const DATE = /^((?:19|20)\d{2})-(\d{1,2})(?:-(\d{1,2}))?(?!\d)/
 
@@ -46,7 +49,7 @@ function rankOf(word: string, ecosystem?: Ecosystem): number {
 }
 
 /**
- * Parses a version of any supported scheme: semver (`v1.2.3-rc.1+build`), PEP 440 (`1!2.0rc1.post1.dev2`), calendar (`2024.10.1`, `2025-11-25-RC`), Go (`v2.1.0`, pseudo-versions) and Maven (`1.0-SNAPSHOT`, `5.3.31.RELEASE`, `2.0-M1`); build metadata and local labels after `+` are ignored; undefined when it does not start with a number.
+ * Parses a version of any supported scheme: semver (`v1.2.3-rc.1+build`), PEP 440 (`1!2.0rc1.post1.dev2`), calendar (`2024.10.1`, `2025-11-25-RC`), Go (`v2.1.0`, pseudo-versions) and Maven (`1.0-SNAPSHOT`, `5.3.31.RELEASE`, `2.0-M1`, flavours such as `-jre` ignored); build metadata and local labels after `+` are ignored; undefined when it does not start with a number.
  *
  * @param text the version as written
  * @param ecosystem decides what a bare number after the release means (a post release for PyPI and Maven, a pre-release elsewhere) and where an unknown word sorts (after the final release for Maven, before it elsewhere)
@@ -69,6 +72,7 @@ export function parseVersion(text: string, ecosystem?: Ecosystem): Version | und
   const tokens = tail
     .toLowerCase()
     .split(/[._-]+/)
+    .filter(piece => ecosystem !== 'maven' || !MAVEN_FLAVOURS.test(piece))
     .flatMap(piece => piece.match(/\d+|[a-z]+/g) ?? [])
     .filter(token => !FINAL_WORDS.has(token))
     .map(token =>

@@ -51,12 +51,26 @@ describe('parse-version', () => {
   test('Maven final words vanish, an unknown word sorts after the final release for Maven only', () => {
     expect(Classify.parseVersion('5.3.31.RELEASE', 'maven')?.qualifiers).toEqual([])
     expect(Classify.parseVersion('6.4.0.Final', 'maven')?.qualifiers).toEqual([])
-    expect(Classify.parseVersion('32.1.3-jre', 'maven')?.qualifiers).toEqual([
-      { word: 'jre', rank: 2 },
+    expect(Classify.parseVersion('1.0-foo', 'maven')?.qualifiers).toEqual([
+      { word: 'foo', rank: 2 },
     ])
     expect(Classify.parseVersion('1.0.0-next.1', 'npm')?.qualifiers).toEqual([
       { word: 'next', rank: -5 },
       1,
+    ])
+  })
+
+  test('Maven flavour classifiers (jre, android, jdkN) are dropped for Maven only', () => {
+    for (const version of ['32.1.3-jre', '32.1.3-android', '32.1.3-jdk', '32.1.3.jdk8']) {
+      expect(Classify.parseVersion(version, 'maven')?.qualifiers, version).toEqual([])
+    }
+
+    expect(Classify.parseVersion('1.0-rc1-jre', 'maven')?.qualifiers).toEqual([
+      { word: 'rc', rank: -2 },
+      1,
+    ])
+    expect(Classify.parseVersion('32.1.3-jre', 'npm')?.qualifiers).toEqual([
+      { word: 'jre', rank: -5 },
     ])
   })
 
