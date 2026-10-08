@@ -64,6 +64,17 @@ describe('excerpt-of', () => {
     expect(Summaries.excerptOf('Some Title Here', 'Some title here, in full')).toBe('')
   })
 
+  test('text that is only a link label leaves no excerpt', () => {
+    expect(Summaries.excerptOf('Comments', 'Docker Agent')).toBe('')
+    expect(Summaries.excerptOf('Comments (1,204)', 'Docker Agent')).toBe('')
+    expect(
+      Summaries.excerptOf(
+        'Comments are closed here for the length of the migration',
+        'Docker Agent',
+      ),
+    ).not.toBe('')
+  })
+
   test('the excerpt is cut to the text limit', () => {
     const excerpt = Summaries.excerptOf('word '.repeat(2000), 'Other')
 

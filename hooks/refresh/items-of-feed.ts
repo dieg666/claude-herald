@@ -1,9 +1,10 @@
 import type { Item } from '../../types/index.js'
 import type { ParsedFeed } from '../feed/parsed-feed.js'
+import { isLinkLabel } from '../items/is-link-label.js'
 import { itemIdOf } from '../items/item-id-of.js'
 
 /**
- * A parsed feed's entries as items, in feed order; an entry with no title, no link (its own or the feed's) or nothing to identify it is left out.
+ * A parsed feed's entries as items, in feed order; a summary that is only a link label is no text; an entry with no title, no link (its own or the feed's) or nothing to identify it is left out.
  *
  * @param sourceId the source the feed belongs to
  * @param feed the parsed feed
@@ -26,7 +27,7 @@ export function itemsOfFeed(sourceId: string, feed: ParsedFeed): Item[] {
         title,
         url,
         ...(entry.publishedAt === undefined ? {} : { publishedAt: entry.publishedAt }),
-        text: entry.summary ?? '',
+        text: isLinkLabel(entry.summary ?? '') ? '' : (entry.summary ?? ''),
         ...(lang === undefined ? {} : { lang }),
       },
     ]

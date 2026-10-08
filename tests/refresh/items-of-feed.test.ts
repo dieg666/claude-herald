@@ -82,4 +82,15 @@ describe('items-of-feed', () => {
       },
     ])
   })
+
+  test('the Comments link the Hacker News feed carries as its description is no text', () => {
+    const parsed = Feed.parseFeed(Feeds.HN_RSS, 'https://news.ycombinator.com/rss')
+
+    if (!parsed.ok) {
+      throw new Error(parsed.reason)
+    }
+
+    expect(parsed.feed.entries.map(entry => entry.summary)).toEqual(Array(4).fill('Comments'))
+    expect(Refresh.itemsOfFeed('hn', parsed.feed).map(item => item.text)).toEqual(Array(4).fill(''))
+  })
 })

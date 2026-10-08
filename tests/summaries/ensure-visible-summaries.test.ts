@@ -235,4 +235,14 @@ describe('ensure-visible-summaries', () => {
     expect(state.summaries).toEqual({ [A.id]: '', [B.id]: 'B.' })
     expect(asked.length).toBe(3)
   })
+
+  test('an item whose text is only the Comments link makes no model request', async () => {
+    const { host, asked } = Fixtures.fakeHostOf()
+    const item = { ...A, title: 'Docker Agent', text: 'Comments' }
+
+    expect(await Summaries.ensureVisibleSummaries(host, Summaries.summaryJobsOf(), [item])).toEqual(
+      {},
+    )
+    expect(asked).toEqual([])
+  })
 })

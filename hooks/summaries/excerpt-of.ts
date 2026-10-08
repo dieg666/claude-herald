@@ -1,3 +1,4 @@
+import { isLinkLabel } from '../items/is-link-label.js'
 import { collapsedTextOf } from '../page/collapsed-text-of.js'
 import { cutTo } from '../page/cut-to.js'
 import { SUMMARY_LIMITS } from './summary-limits.js'
@@ -15,7 +16,7 @@ const EDGE_SEPARATORS = /^[\s|·•\-–—:;,]+|[\s|·•\-–—:;,]+$/g
 const LETTERS_AND_DIGITS = /[\p{L}\p{N}]/gu
 
 /**
- * The text of an item worth sending to the model: link-and-counter boilerplate (labelled URLs, point and comment counts, bare addresses) removed, cut to the limit; empty when what is left is trivial or only repeats the title.
+ * The text of an item worth sending to the model: link-and-counter boilerplate (labelled URLs, point and comment counts, bare addresses) removed, cut to the limit; empty when what is left is trivial, only repeats the title or is only a link label.
  *
  * @param text the item's excerpt, one line
  * @param title the item's title
@@ -30,7 +31,7 @@ export function excerptOf(text: string, title: string): string {
   const meaningful = kept.match(LETTERS_AND_DIGITS)?.length ?? 0
   const repeatsTitle = collapsedTextOf(title).toLowerCase().includes(kept.toLowerCase())
 
-  if (meaningful < SUMMARY_LIMITS.minExcerptChars || repeatsTitle) {
+  if (meaningful < SUMMARY_LIMITS.minExcerptChars || repeatsTitle || isLinkLabel(kept)) {
     return ''
   }
 
