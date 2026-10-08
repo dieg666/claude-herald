@@ -14,6 +14,7 @@ import { STACK_TAB } from '../names/stack-tab.js'
 import { collapsedTextOf } from '../page/collapsed-text-of.js'
 import { summaryTextOf } from '../summaries/summary-text-of.js'
 import { PANE_DATE_COLUMNS } from './pane-date-columns.js'
+import { paneFittedTabsOf } from './pane-fitted-tabs-of.js'
 import { PANE_HEADING_RESERVE } from './pane-heading-reserve.js'
 import type { PaneModel } from './pane-model.js'
 import type { PanePage } from './pane-page.js'
@@ -153,7 +154,10 @@ export function paneModelOf(
   const selectedRow = page.stack?.rows[page.selected]
 
   return {
-    tabs: page.tabs.map(tab => ({ ...tab, isActive: tab.id === page.tab.id })),
+    tabs: paneFittedTabsOf(page.tabs, columns).map(tab => ({
+      ...tab,
+      isActive: tab.id === page.tab.id,
+    })),
     ...(page.items.length === 0
       ? {}
       : {

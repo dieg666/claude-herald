@@ -13,14 +13,16 @@ describe('pane-tabs-of', () => {
         Fixtures.sourceAt('b', { name: 'Beta' }),
       ]),
     ).toEqual([
-      { id: 'a', label: 'Alpha', hotkey: '1' },
-      { id: 'b', label: 'Beta', hotkey: '2' },
-      { id: 'saved', label: 'Saved', hotkey: '0' },
+      { id: 'a', label: 'Alpha', short: 'Alpha', hotkey: '1' },
+      { id: 'b', label: 'Beta', short: 'Beta', hotkey: '2' },
+      { id: 'saved', label: 'Saved', short: 'Saved', hotkey: '0' },
     ])
   })
 
   test('no sources leaves the saved tab alone', () => {
-    expect(Pane.paneTabsOf([])).toEqual([{ id: 'saved', label: 'Saved', hotkey: '0' }])
+    expect(Pane.paneTabsOf([])).toEqual([
+      { id: 'saved', label: 'Saved', short: 'Saved', hotkey: '0' },
+    ])
   })
 
   test('the tenth source on gets no hotkey', () => {
@@ -48,7 +50,7 @@ describe('pane-tabs-of', () => {
     ).toEqual(['a', 'saved'])
   })
 
-  test('names become one line cut to sixteen cells, wide characters counting two; a blank name shows the id', () => {
+  test('names become one line, kept whole and also cut to sixteen cells, wide characters counting two; a blank name shows the id', () => {
     const [long, edge, wide, blank] = Pane.paneTabsOf([
       Fixtures.sourceAt('long', { name: 'Claude Code\nreleases' }),
       Fixtures.sourceAt('edge', { name: 'AINews (smol.ai)' }),
@@ -57,10 +59,10 @@ describe('pane-tabs-of', () => {
     ])
 
     expect(Pane.PANE_TAB_COLUMNS).toBe(16)
-    expect(long?.label).toBe('Claude Code rel…')
-    expect(edge?.label).toBe('AINews (smol.ai)')
-    expect(wide?.label).toBe('日本語のニュー…')
-    expect(blank?.label).toBe('blank')
+    expect([long?.label, long?.short]).toEqual(['Claude Code releases', 'Claude Code rel…'])
+    expect([edge?.label, edge?.short]).toEqual(['AINews (smol.ai)', 'AINews (smol.ai)'])
+    expect([wide?.label, wide?.short]).toEqual(['日本語のニュースサイト', '日本語のニュー…'])
+    expect([blank?.label, blank?.short]).toEqual(['blank', 'blank'])
   })
 
   test('the stack tab counts its packages behind and Saved its items; no count for none', () => {
@@ -86,9 +88,9 @@ describe('pane-tabs-of', () => {
     })
 
     expect(tabs).toEqual([
-      { id: 'a', label: 'Alpha', hotkey: '1' },
-      { id: '@stack', label: 'Your stack', hotkey: 'y' },
-      { id: 'saved', label: 'Saved', hotkey: '0' },
+      { id: 'a', label: 'Alpha', short: 'Alpha', hotkey: '1' },
+      { id: '@stack', label: 'Your stack', short: 'Your stack', hotkey: 'y' },
+      { id: 'saved', label: 'Saved', short: 'Saved', hotkey: '0' },
     ])
 
     const others = [...Object.values(Names.PANE_HOTKEYS), ...Object.values(Names.ACTION_HOTKEYS)]

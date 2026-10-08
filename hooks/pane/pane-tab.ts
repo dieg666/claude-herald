@@ -4,8 +4,10 @@
 export type PaneTab = {
   /** A source id, `@stack` or `saved`. */
   readonly id: string
-  /** The name drawn on the tab, one line fitted to a tab's width. */
+  /** The name drawn on the tab, one line. */
   readonly label: string
+  /** The name cut to `PANE_TAB_COLUMNS` cells, drawn instead when that takes fewer lines of tabs. */
+  readonly short: string
   /** `1` to `9` for the first nine sources, `y` for the stack tab, `0` for the saved tab, none past the ninth source. */
   readonly hotkey?: string
   /** The stack tab's packages behind or the saved tab's items, drawn after the name; absent when zero. */

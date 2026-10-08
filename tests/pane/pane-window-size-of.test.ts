@@ -31,7 +31,9 @@ describe('pane-window-size-of', () => {
     const saved = [1, 2].map(n => ({ ...Fixtures.itemAt(`k${n}`), savedAt: n }))
     const stack = { items: Fixtures.STACK_RELEASES, filter: '', expanded: [] }
 
-    // `1: Alpha  2: Claude Code rel…  0: Saved 2` is forty-one cells; the actions take two lines from forty on.
+    // Full, `1: Alpha  2: Claude Code releases  0: Saved 2` is forty-five cells and fits one line.
+    expect(Pane.paneWindowSizeOf(sources, 45, 20, undefined, saved)).toBe(13)
+    // Cut, it is forty-one cells, one line where the full names take two; the actions take two lines from forty on.
     expect(Pane.paneWindowSizeOf(sources, 41, 20, undefined, saved)).toBe(13)
     expect(Pane.paneWindowSizeOf(sources, 40, 20, undefined, saved)).toBe(12)
     expect(Pane.paneWindowSizeOf(sources, 40, 20)).toBe(13)

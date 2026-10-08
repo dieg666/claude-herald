@@ -284,7 +284,7 @@ describe('pane-view', () => {
       expect(await selectedOf(ui)).toBe('https://example.com/a/1')
     })
 
-    test(`on ${surface}: the active tab is highlighted text, not a Button; the others stay dim Buttons on their hotkeys, names cut at sixteen cells, Saved last with its count`, async ($, on) => {
+    test(`on ${surface}: the active tab is highlighted text, not a Button; the others stay dim Buttons on their hotkeys, full names where they fit, Saved last with its count`, async ($, on) => {
       mock.clock(on)
 
       const long = Fixtures.sourceAt('long', { name: 'Claude Code releases' })
@@ -301,7 +301,7 @@ describe('pane-view', () => {
 
       expect(await tabsOf(ui)).toEqual([
         ['tab-a', '1: Alpha', undefined, 'active'],
-        ['tab-long', 'Claude Code rel…', '2', 'dim'],
+        ['tab-long', 'Claude Code releases', '2', 'dim'],
         ['tab-saved', 'Saved 2', '0', 'dim'],
       ])
       expect((await ui.find({ key: 'tab-a' }))?.type).toBe('Box')
@@ -311,7 +311,7 @@ describe('pane-view', () => {
 
       expect(await tabsOf(ui)).toEqual([
         ['tab-a', 'Alpha', '1', 'dim'],
-        ['tab-long', '2: Claude Code rel…', undefined, 'active'],
+        ['tab-long', '2: Claude Code releases', undefined, 'active'],
         ['tab-saved', 'Saved 2', '0', 'dim'],
       ])
 
@@ -363,7 +363,7 @@ describe('pane-view', () => {
       expect(await positionOf(ui)).toBe('1–2 of 2')
     })
 
-    test(`on ${surface}: the window counts the tab row's lines as drawn, one line where the tabs fit and two where they wrap`, async ($, on) => {
+    test(`on ${surface}: names are cut only where that saves a line of tabs, and the window counts the tab row's lines as drawn`, async ($, on) => {
       mock.clock(on)
 
       const long = Fixtures.sourceAt('long', { name: 'Claude Code releases' })
@@ -383,7 +383,7 @@ describe('pane-view', () => {
           props: { ...Fixtures.PANE_PROPS, bodyColumns, scroll: { offset: 0, bodyRows: 15 } },
         })
 
-      // `1: Alpha`, `2: Beta`, `3: Claude Code rel…` and `0: Saved 2` with three two-cell gaps take fifty cells.
+      // Cut, `1: Alpha`, `2: Beta`, `3: Claude Code rel…` and `0: Saved 2` with three two-cell gaps take fifty cells; full, fifty-four.
       const wide = await mountAt(50)
 
       expect(await tabsOf(wide)).toEqual([
@@ -395,13 +395,30 @@ describe('pane-view', () => {
       // Fifteen rows less one tab line, the title line, two action lines and three summary lines leave eight.
       expect([(await linksOf(wide)).length, await positionOf(wide)]).toEqual([8, '1–8 of 20'])
 
+      // The active tab is spelled as wide as its Button, so switching keeps the cut names.
+      await wide.press({ key: 'tab-long' })
+
+      expect((await tabsOf(wide)).map(([key, text]) => [key, text])).toEqual([
+        ['tab-a', 'Alpha'],
+        ['tab-b', 'Beta'],
+        ['tab-long', '3: Claude Code rel…'],
+        ['tab-saved', 'Saved 2'],
+      ])
+
+      await wide.press({ key: 'tab-a' })
       await wide.unmount()
 
-      // One cell less wraps the tab row onto a second line, and the window loses a row.
+      // One cell less, cut names take two lines as full ones do, so the full names come back and the window loses a row.
       const narrow = await mountAt(49)
 
+      expect(await tabsOf(narrow)).toEqual([
+        ['tab-a', '1: Alpha', undefined, 'active'],
+        ['tab-b', 'Beta', '2', 'dim'],
+        ['tab-long', 'Claude Code releases', '3', 'dim'],
+        ['tab-saved', 'Saved 2', '0', 'dim'],
+      ])
       expect([(await linksOf(narrow)).length, await positionOf(narrow)]).toEqual([7, '1–7 of 20'])
-      // Without the count, `0: Saved` is two cells shorter and the row still fits forty-nine.
+      // Without the count, `0: Saved` is two cells shorter and the cut row fits forty-nine.
       expect(Pane.paneWindowSizeOf([ALPHA, BETA, long], 49, 15)).toBe(8)
     })
 

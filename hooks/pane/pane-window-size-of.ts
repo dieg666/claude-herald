@@ -1,10 +1,11 @@
 import type { SavedItem, Source } from '../../types/index.js'
-import { displayWidthOf } from '../band/display-width-of.js'
+import { paneFittedTabsOf } from './pane-fitted-tabs-of.js'
 import { PANE_FIRST_WINDOW } from './pane-first-window.js'
 import type { PaneStack } from './pane-stack.js'
 import { PANE_SUMMARY_LINES } from './pane-summary-lines.js'
 import { paneTabSpellingOf } from './pane-tab-spelling-of.js'
 import { paneTabsOf } from './pane-tabs-of.js'
+import { wrappedLinesOf } from './wrapped-lines-of.js'
 
 /**
  * The widest action rows the pane draws, the saved tab's and the stack tab's, as the terminal spells plain Buttons: `<hotkey>: <label>`.
@@ -15,31 +16,7 @@ const ACTION_ROWS = [
 ]
 
 /**
- * The lines a row of labels takes when it wraps at `columns` cells, two cells between labels.
- *
- * @param labels the labels as drawn
- * @param columns the cells across
- */
-function linesOf(labels: readonly string[], columns: number): number {
-  let lines = 1
-  let used = 0
-
-  for (const label of labels) {
-    const width = displayWidthOf(label)
-
-    if (used > 0 && used + 2 + width > columns) {
-      lines += 1
-      used = width
-    } else {
-      used += (used > 0 ? 2 : 0) + width
-    }
-  }
-
-  return lines
-}
-
-/**
- * How many one-line items fit in the pane's body of `columns` by `bodyRows` once the tab row (every tab spelled as the terminal draws it, the active one included), the title line, the action row and the selected item's summary lines are drawn; at least one, `PANE_FIRST_WINDOW` when `bodyRows` is not a number, 80 columns taken when `columns` is not.
+ * How many one-line items fit in the pane's body of `columns` by `bodyRows` once the tab row (every tab spelled as the terminal draws it, full or cut names as the row chooses, the active one included), the title line, the action row and the selected item's summary lines are drawn; at least one, `PANE_FIRST_WINDOW` when `bodyRows` is not a number, 80 columns taken when `columns` is not.
  *
  * @param sources every source, for the tab row
  * @param columns the cells across the body
@@ -59,9 +36,11 @@ export function paneWindowSizeOf(
   }
 
   const width = Number.isFinite(columns) ? columns : 80
-  const tabs = paneTabsOf(sources, stack, saved).map(paneTabSpellingOf)
+  const tabs = paneFittedTabsOf(paneTabsOf(sources, stack, saved), width).map(paneTabSpellingOf)
   const chrome =
-    linesOf(tabs, width) + 1 + Math.max(...ACTION_ROWS.map(labels => linesOf(labels, width)))
+    wrappedLinesOf(tabs, width) +
+    1 +
+    Math.max(...ACTION_ROWS.map(labels => wrappedLinesOf(labels, width)))
 
   return Math.max(1, Math.floor(bodyRows - chrome - PANE_SUMMARY_LINES))
 }
