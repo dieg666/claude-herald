@@ -437,9 +437,12 @@ export const register: Register = on => {
         saved,
         e.props.bodyColumns,
         stack?.filter,
+        // A phone taps the Buttons, so it never needs the focus chord.
+        e.props.isFocused || e.surface === 'mobile',
       ),
       paneHandlersOf($, page.items[page.selected], page.size),
       e.surface,
+      Pane.paneFillRowsOf(e.props.placement, e.props.scroll.bodyRows),
     )
   })
 

@@ -3,7 +3,6 @@
 /* @jsxFrag Fragment */
 import type { RenderElement, RenderSurface } from 'claude-code'
 
-import { actionRowView } from '../band/action-row-view.js'
 import type { BandUi } from '../band/band-ui.js'
 import { iconGapOf } from '../band/icon-gap-of.js'
 import { selectedFillOf } from '../band/selected-fill-of.js'
@@ -11,9 +10,13 @@ import { selectedStyleOf } from '../band/selected-style-of.js'
 import { SOURCE_GAP_COLUMNS } from '../band/source-gap-columns.js'
 import { SUMMARY_INDENT } from '../band/summary-indent.js'
 import { SUMMARY_PLACEHOLDER } from '../band/summary-placeholder.js'
+import { ACTION_HOTKEYS } from '../names/action-hotkeys.js'
+import { ACTION_LABELS } from '../names/action-labels.js'
 import { PANE_HOTKEYS } from '../names/pane-hotkeys.js'
+import { PANE_LABELS } from '../names/pane-labels.js'
 import { PANE_DATE_COLUMNS } from './pane-date-columns.js'
 import type { PaneHandlers } from './pane-handlers.js'
+import type { PaneKey } from './pane-key.js'
 import type { PaneModel } from './pane-model.js'
 import type { PaneRow } from './pane-row.js'
 import { paneTabSpellingOf } from './pane-tab-spelling-of.js'
@@ -183,7 +186,7 @@ function filterView(ui: PaneUi, filter: string, handlers: PaneHandlers): RenderE
   return [
     <Input
       key="filter"
-      label="Filter"
+      label="Filter (click or Tab)"
       placeholder="package, ecosystem, level or flag"
       value={filter}
       submitLabel="filter"
@@ -194,64 +197,126 @@ function filterView(ui: PaneUi, filter: string, handlers: PaneHandlers): RenderE
 }
 
 /**
- * The pane: the tab row (the active tab highlighted), the title line with the selection Buttons and the window's position at its right end, the stack tab's summary line and filter, the window of items (the stack tab's under ecosystem headings) or what an empty tab says, then the selected item's actions, with mark-as-read on the saved tab and the releases toggle on the stack tab.
+ * One footer key as a plain Button: Save reads Saved, dim, once the selected item is saved; the releases toggle reads Hide releases while the selected package's releases are listed.
+ *
+ * @param ui the elements
+ * @param key which key
+ * @param model what the pane draws
+ * @param handlers what pressing it runs
+ */
+function keyView(
+  ui: PaneUi,
+  key: PaneKey,
+  model: PaneModel,
+  handlers: PaneHandlers,
+): RenderElement {
+  const { Button } = ui
+
+  switch (key) {
+    case 'save':
+      return (
+        <Button
+          key="save"
+          label={model.isSelectedSaved ? ACTION_LABELS.saved : ACTION_LABELS.save}
+          hotkey={ACTION_HOTKEYS.save}
+          plain
+          dimColor={model.isSelectedSaved}
+          onPress={handlers.save}
+        />
+      )
+    case 'read':
+      return (
+        <Button
+          key="read"
+          label={PANE_LABELS.read}
+          hotkey={PANE_HOTKEYS.read}
+          plain
+          onPress={handlers.read}
+        />
+      )
+    case 'releases':
+      return (
+        <Button
+          key="releases"
+          label={model.isExpanded === true ? PANE_LABELS.hideReleases : PANE_LABELS.releases}
+          hotkey={PANE_HOTKEYS.releases}
+          plain
+          onPress={handlers.releases}
+        />
+      )
+    default:
+      return (
+        <Button
+          key={key}
+          label={ACTION_LABELS[key]}
+          hotkey={ACTION_HOTKEYS[key]}
+          plain
+          onPress={handlers[key]}
+        />
+      )
+  }
+}
+
+/**
+ * The footer: the focus hint dim while the pane does not hold the keyboard, then the keys that act on the active tab; nothing on an empty tab.
+ *
+ * @param ui the elements
+ * @param model what the pane draws
+ * @param handlers what each Button runs
+ */
+function footerView(ui: PaneUi, model: PaneModel, handlers: PaneHandlers): RenderElement[] {
+  const { Box, Text } = ui
+
+  if (model.keys.length === 0) {
+    return []
+  }
+
+  return [
+    <Box key="footer" flexDirection="row" flexWrap="wrap" columnGap={2} flexShrink={0}>
+      {model.hint === undefined ? [] : [<Text dimColor>{model.hint}</Text>]}
+      {model.keys.map(key => keyView(ui, key, model, handlers))}
+    </Box>,
+  ]
+}
+
+/**
+ * The pane: the tab row (the active tab highlighted), the title line with the selection Buttons and the window's position at its right end, the stack tab's summary line and filter, the window of items (the stack tab's under ecosystem headings) or what an empty tab says in a Box that takes the free rows, then the footer, at the pane's bottom when the tree fills it.
  *
  * @param ui the elements, `Input` among them where the surface has one
  * @param model what to draw
  * @param handlers what each Button and the filter run
  * @param surface where the pane is drawn
+ * @param fillRows the rows the tree takes at least, so the footer sits at the pane's bottom; none to fit the content
  */
 export function paneView(
   ui: PaneUi,
   model: PaneModel,
   handlers: PaneHandlers,
   surface: RenderSurface,
+  fillRows?: number,
 ): RenderElement {
   const { Box, Text, Button } = ui
-
-  const read = model.isSavedTab
-    ? [
-        <Button
-          key="read"
-          label="Mark as read"
-          hotkey={PANE_HOTKEYS.read}
-          plain
-          onPress={handlers.read}
-        />,
-      ]
-    : []
-  const releases =
-    model.isExpanded === undefined
-      ? []
-      : [
-          <Button
-            key="releases"
-            label={model.isExpanded ? 'Hide releases' : 'Releases'}
-            hotkey={PANE_HOTKEYS.releases}
-            plain
-            onPress={handlers.releases}
-          />,
-        ]
 
   const body =
     model.rows.length === 0
       ? [<Text dimColor>{model.empty}</Text>]
-      : [
-          ...model.rows.flatMap(row => [
-            ...(row.heading === undefined
-              ? []
-              : [
-                  <Text color="suggestion" bold>
-                    {row.heading}
-                  </Text>,
-                ]),
-            rowView(ui, row),
-          ]),
-          actionRowView(ui, model.isSelectedSaved, handlers, [...releases, ...read]),
-        ]
+      : model.rows.flatMap(row => [
+          ...(row.heading === undefined
+            ? []
+            : [
+                <Text color="suggestion" bold>
+                  {row.heading}
+                </Text>,
+              ]),
+          rowView(ui, row),
+        ])
 
   return (
-    <Box flexDirection="column">
+    <Box
+      flexDirection="column"
+      flexGrow={1}
+      {...(fillRows === undefined ? {} : { minHeight: fillRows })}
+    >
       <Box flexDirection="row" flexWrap="wrap" columnGap={2}>
         {model.tabs.map(tab => tabView(ui, tab, handlers, surface))}
       </Box>
@@ -277,7 +342,10 @@ export function paneView(
       </Box>
       {model.summary === undefined ? [] : [<Text dimColor>{model.summary}</Text>]}
       {model.filter === undefined ? [] : filterView(ui, model.filter, handlers)}
-      {body}
+      <Box key="rows" flexDirection="column" flexGrow={1}>
+        {body}
+      </Box>
+      {footerView(ui, model, handlers)}
     </Box>
   )
 }

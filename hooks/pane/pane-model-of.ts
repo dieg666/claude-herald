@@ -16,12 +16,14 @@ import { collapsedTextOf } from '../page/collapsed-text-of.js'
 import { summaryTextOf } from '../summaries/summary-text-of.js'
 import { PANE_DATE_COLUMNS } from './pane-date-columns.js'
 import { paneFittedTabsOf } from './pane-fitted-tabs-of.js'
+import { PANE_FOCUS_HINT } from './pane-focus-hint.js'
 import { PANE_HEADING_RESERVE } from './pane-heading-reserve.js'
 import type { PaneModel } from './pane-model.js'
 import type { PanePage } from './pane-page.js'
 import type { PaneRow } from './pane-row.js'
 import { paneStackRowsOf } from './pane-stack-rows-of.js'
 import { PANE_SUMMARY_LINES } from './pane-summary-lines.js'
+import { PANE_TAB_KEYS } from './pane-tab-keys.js'
 import { shortDateOf } from './short-date-of.js'
 import { wrapColumns } from './wrap-columns.js'
 
@@ -112,7 +114,7 @@ function emptyOf(tab: string, name: string, filter: string): string {
 }
 
 /**
- * What the pane draws for a page, every line fitted to `columns` cells; on the saved tab a title that is only a version leads with its source's name; the stack tab draws a one-line row per package (and per release of an expanded one) under a heading per ecosystem, with its summary line and its filter.
+ * What the pane draws for a page, every line fitted to `columns` cells; on the saved tab a title that is only a version leads with its source's name; the stack tab draws a one-line row per package (and per release of an expanded one) under a heading per ecosystem, with its summary line and its filter; the footer holds the keys that act on the tab, after the focus hint while the pane does not hold the keyboard.
  *
  * @param page the page shown
  * @param sources every source, for the names
@@ -120,6 +122,7 @@ function emptyOf(tab: string, name: string, filter: string): string {
  * @param saved the saved items
  * @param columns the cells the pane's body has
  * @param filter the stack tab's filter
+ * @param isFocused whether the pane holds the keyboard
  */
 export function paneModelOf(
   page: PanePage,
@@ -128,6 +131,7 @@ export function paneModelOf(
   saved: readonly SavedItem[],
   columns: number,
   filter = '',
+  isFocused = true,
 ): PaneModel {
   const names = new Map(sources.map(source => [source.id, lineOf(source.name)]))
   const isSavedTab = page.tab.id === SAVED_TAB
@@ -152,6 +156,8 @@ export function paneModelOf(
         )
       : paneStackRowsOf(page.stack, page.span.selected, columns)
   const selectedRow = page.stack?.rows[page.selected]
+  const keys =
+    rows.length === 0 ? [] : PANE_TAB_KEYS[isSavedTab ? 'saved' : isStackTab ? 'stack' : 'news']
 
   return {
     tabs: paneFittedTabsOf(page.tabs, columns).map(tab => ({
@@ -168,7 +174,8 @@ export function paneModelOf(
         }),
     rows,
     empty: fitColumns(emptyOf(page.tab.id, name, filter), columns),
-    isSavedTab,
+    keys,
+    ...(isFocused || keys.length === 0 ? {} : { hint: fitColumns(PANE_FOCUS_HINT, columns) }),
     ...(isStackTab ? { filter } : {}),
     ...(page.stack === undefined || page.stack.summary === ''
       ? {}

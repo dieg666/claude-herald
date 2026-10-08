@@ -402,7 +402,7 @@ describe('pane-view', () => {
         $.ui.mount({
           ...PANE,
           surface,
-          props: { ...Fixtures.PANE_PROPS, bodyColumns, scroll: { offset: 0, bodyRows: 15 } },
+          props: { ...Fixtures.PANE_PROPS, bodyColumns, scroll: { offset: 0, bodyRows: 16 } },
         })
 
       // Cut, `1: Alpha`, `2: Beta`, `3: Claude Code rel…` and `0: Saved 2` with three two-cell gaps take fifty cells; full, fifty-four.
@@ -414,7 +414,7 @@ describe('pane-view', () => {
         ['tab-long', 'Claude Code rel…', '3', 'dim'],
         ['tab-saved', 'Saved 2', '0', 'dim'],
       ])
-      // Fifteen rows less one tab line, the title line, two action lines and three summary lines leave eight.
+      // Sixteen rows less one tab line, the title line, three footer lines and three summary lines leave eight.
       expect([(await linksOf(wide)).length, await positionOf(wide)]).toEqual([8, '1–8 of 20'])
 
       // The active tab is spelled as wide as its Button, so switching keeps the cut names.
@@ -441,7 +441,7 @@ describe('pane-view', () => {
       ])
       expect([(await linksOf(narrow)).length, await positionOf(narrow)]).toEqual([7, '1–7 of 20'])
       // Without the count, `0: Saved` is two cells shorter and the cut row fits forty-nine.
-      expect(Pane.paneWindowSizeOf([ALPHA, BETA, long], 49, 15)).toBe(8)
+      expect(Pane.paneWindowSizeOf([ALPHA, BETA, long], 49, 16)).toBe(8)
     })
 
     test(`on ${surface}: a source's own tab draws no source mark; Saved draws the name dim, then the date`, async ($, on) => {
@@ -552,7 +552,8 @@ describe('pane-view', () => {
 
         expect(await positionOf(ui)).toBe('1 of 1')
         expect(await linksOf(ui)).toEqual(['https://example.com/a/2'])
-        expect((await ui.find({ key: 'save' }))?.props.label).toBe('Saved')
+        // Saved draws no Save: its items are saved already, and r takes one off the list.
+        expect(await ui.find({ key: 'save' })).toBeUndefined()
         expect((await ui.find({ key: 'read' }))?.props.hotkey).toBe('r')
         expect(stored.get('saved')).toEqual([{ ...STORE.items.a[1], savedAt: 5000 }])
         expect(await savedOf(peek)).toEqual(['a:2'])
@@ -606,11 +607,11 @@ describe('pane-view', () => {
 
       await $.classic.SessionStart({ source: 'clear' })
 
-      // Twelve rows less the tab row, the heading, the action row and three summary lines leave six items.
+      // Thirteen rows less the tab row, the heading, the footer's two lines and three summary lines leave six items.
       const ui = await $.ui.mount({
         ...PANE,
         surface,
-        props: { ...Fixtures.PANE_PROPS, scroll: { offset: 0, bodyRows: 12 } },
+        props: { ...Fixtures.PANE_PROPS, scroll: { offset: 0, bodyRows: 13 } },
       })
 
       expect(await positionOf(ui)).toBe('1–6 of 20')
@@ -665,11 +666,11 @@ describe('pane-view', () => {
 
         await $.classic.SessionStart({ source: 'clear' })
 
-        // Thirty-two cells: the action row wraps onto three lines, so twelve rows less the tab row, the heading, those and three summary lines leave four items.
+        // Thirty-two cells: the widest footer wraps onto four lines, so thirteen rows less the tab row, the heading, those and three summary lines leave four items.
         const ui = await $.ui.mount({
           ...PANE,
           surface,
-          props: { ...Fixtures.PANE_PROPS, bodyColumns: 32, scroll: { offset: 0, bodyRows: 12 } },
+          props: { ...Fixtures.PANE_PROPS, bodyColumns: 32, scroll: { offset: 0, bodyRows: 13 } },
         })
         const layoutOf = async () =>
           (await ui.findAll({ type: 'Box' }))
@@ -742,10 +743,11 @@ describe('pane-view', () => {
 
         await $.classic.SessionStart({ source: 'clear' })
 
+        // Thirteen rows leave a window of six items.
         const ui = await $.ui.mount({
           ...PANE,
           surface,
-          props: { ...Fixtures.PANE_PROPS, scroll: { offset: 0, bodyRows: 12 } },
+          props: { ...Fixtures.PANE_PROPS, scroll: { offset: 0, bodyRows: 13 } },
         })
 
         await ui.redraw()
@@ -831,11 +833,11 @@ describe('pane-view', () => {
 
         expect([...asked].sort()).toEqual(titlesTo(Pane.PANE_FIRST_WINDOW))
 
-        // Thirty rows less the tab row, the heading, the action row and three summary lines leave twenty-four items.
+        // Thirty-one rows less the tab row, the heading, the footer's two lines and three summary lines leave twenty-four items.
         const ui = await $.ui.mount({
           ...PANE,
           surface,
-          props: { ...Fixtures.PANE_PROPS, scroll: { offset: 0, bodyRows: 30 } },
+          props: { ...Fixtures.PANE_PROPS, scroll: { offset: 0, bodyRows: 31 } },
         })
 
         expect(await positionOf(ui)).toBe('1–24 of 30')
@@ -1739,4 +1741,199 @@ describe('pane-view', () => {
       expect(await summaryOf()).toEqual([[], []])
     })
   }
+
+  // A child as drawn carries its key among its props.
+  const footerKeyOf = (child: unknown) =>
+    (child as FoundElement | undefined)?.key ?? (child as FoundElement | undefined)?.props.key
+
+  // The footer as drawn: the hint's text, then each Button's key, label and hotkey; undefined with no footer.
+  const footerOf = async (ui: Drawing) =>
+    (await ui.find({ key: 'footer' }))?.children.map(child => {
+      const found = child as FoundElement
+
+      return found.type === 'Text'
+        ? [lineOf(found), found.props.dimColor === true ? 'dim' : 'lit']
+        : [footerKeyOf(found), found.props.label, found.props.hotkey]
+    })
+
+  const NEWS_KEYS = [
+    ['open', 'Open', 'o'],
+    ['summarize', 'Summarize', 's'],
+    ['save', 'Save', 'v'],
+    ['copy', 'Copy for Claude', 'c'],
+  ]
+
+  for (const surface of SURFACES) {
+    test(`on ${surface}: unfocused, the footer leads with "ctrl+x tab to use these keys:"; focused, it shows the keys alone; the window is the same either way`, async ($, on) => {
+      mock.clock(on)
+      Fixtures.bandOn(on, { sources: [ALPHA], items: { a: Fixtures.datedItemsOf('a', 20) } })
+
+      await $.classic.SessionStart({ source: 'clear' })
+
+      const mountWith = (isFocused: boolean) =>
+        $.ui.mount({
+          ...PANE,
+          surface,
+          props: { ...Fixtures.PANE_PROPS, isFocused, scroll: { offset: 0, bodyRows: 13 } },
+        })
+
+      const away = await mountWith(false)
+
+      expect(await footerOf(away)).toEqual([['ctrl+x tab to use these keys:', 'dim'], ...NEWS_KEYS])
+      // Thirteen rows less the tab row, the heading, the footer's two lines and three summary lines leave six.
+      expect([await positionOf(away), (await linksOf(away)).length]).toEqual(['1–6 of 20', 6])
+
+      // A press still reaches an unfocused footer's Button, as a click does.
+      await away.press({ key: 'save' })
+
+      expect((await away.find({ key: 'save' }))?.props.label).toBe('Saved')
+
+      await away.unmount()
+
+      const held = await mountWith(true)
+
+      expect(await footerOf(held)).toEqual([
+        ['open', 'Open', 'o'],
+        ['summarize', 'Summarize', 's'],
+        ['save', 'Saved', 'v'],
+        ['copy', 'Copy for Claude', 'c'],
+      ])
+      expect(await held.find({ type: 'Text', text: /ctrl\+x tab/ })).toBeUndefined()
+      expect([await positionOf(held), (await linksOf(held)).length]).toEqual(['1–6 of 20', 6])
+    })
+
+    test(`on ${surface}: the footer is pinned under the rows: the rows take the free room, so a short tab leaves it above the footer`, async ($, on) => {
+      mock.clock(on)
+      Fixtures.bandOn(on, STORE)
+
+      await $.classic.SessionStart({ source: 'clear' })
+
+      const ui = await $.ui.mount({
+        ...PANE,
+        surface,
+        props: { ...Fixtures.PANE_PROPS, isFocused: false },
+      })
+      const root = (await ui.findAll({ type: 'Box' })).find(box =>
+        box.children.some(child => footerKeyOf(child) === 'footer'),
+      ) as FoundElement
+      const [rows, footer] = root.children.slice(-2) as FoundElement[]
+
+      // Docked, the tree is at least as tall as the body, so the growing rows push the footer to the last row.
+      expect([root.props.flexDirection, root.props.flexGrow, root.props.minHeight]).toEqual([
+        'column',
+        1,
+        40,
+      ])
+      expect([footerKeyOf(rows), rows?.props.flexGrow, rows?.props.flexDirection]).toEqual([
+        'rows',
+        1,
+        'column',
+      ])
+      expect([footerKeyOf(footer), footer?.props.flexShrink]).toEqual(['footer', 0])
+      // Every row sits in the growing Box, none after the footer.
+      expect((await newsRowsOf(ui)).length).toBe(3)
+      expect(lineOf(rows)).toContain('a 3')
+      expect(lineOf(footer)).not.toContain('a 3')
+
+      await ui.unmount()
+
+      // Inline the frame fits the tree, so it fills nothing.
+      const inline = await $.ui.mount({
+        ...PANE,
+        surface,
+        props: { ...Fixtures.PANE_PROPS, placement: 'inline' },
+      })
+      const fitted = (await inline.findAll({ type: 'Box' })).find(box =>
+        box.children.some(child => footerKeyOf(child) === 'footer'),
+      )
+
+      expect(fitted?.props.minHeight).toBeUndefined()
+      expect(footerKeyOf(fitted?.children.at(-1))).toBe('footer')
+    })
+
+    test(`on ${surface}: the footer shows only the keys that act on the tab: Saved has r in place of v, Your stack adds e, an empty tab none`, async ($, on) => {
+      const clock = mock.clock(on)
+
+      Fixtures.bandOn(on, {
+        ...STORE,
+        items: { ...STORE.items, b: [] },
+        saved: [{ ...STORE.items.a[2], savedAt: 1 }],
+      })
+
+      await $.classic.SessionStart({ source: 'clear' })
+
+      const ui = await $.ui.mount({
+        ...PANE,
+        surface,
+        props: { ...Fixtures.PANE_PROPS, isFocused: false },
+      })
+
+      expect((await footerOf(ui))?.slice(1)).toEqual(NEWS_KEYS)
+
+      await ui.press({ key: 'tab-saved' })
+
+      expect(await footerOf(ui)).toEqual([
+        ['ctrl+x tab to use these keys:', 'dim'],
+        ['open', 'Open', 'o'],
+        ['summarize', 'Summarize', 's'],
+        ['copy', 'Copy for Claude', 'c'],
+        ['read', 'Mark as read', 'r'],
+      ])
+
+      await ui.press({ key: 'tab-b' })
+      await clock.settle()
+
+      expect(await ui.find({ type: 'Text', text: 'Nothing from Beta yet.' })).toBeDefined()
+      expect(await footerOf(ui)).toBeUndefined()
+      expect(await ui.find({ type: 'Text', text: /ctrl\+x tab/ })).toBeUndefined()
+    })
+
+    test(
+      `on ${surface}: on Your stack the footer adds the releases toggle after the actions, focused or not`,
+      { timeoutMs: 20_000 },
+      async ($, on) => {
+        const clock = mock.clock(on)
+
+        stackPaneOn(on, {})
+
+        await $.session.start(Fixtures.SESSION)
+        await clock.settle()
+
+        const ui = await $.ui.mount({
+          ...PANE,
+          surface,
+          props: { ...Fixtures.PANE_PROPS, isFocused: false },
+        })
+
+        await ui.press({ key: 'tab-@stack' })
+
+        // The filter's label says what reaches it: a click, or Tab walking the controls.
+        expect((await ui.find({ key: 'filter' }))?.props.label).toBe('Filter (click or Tab)')
+        expect(await footerOf(ui)).toEqual([
+          ['ctrl+x tab to use these keys:', 'dim'],
+          ...NEWS_KEYS,
+          ['releases', 'Releases', 'e'],
+        ])
+
+        await ui.press({ key: 'releases' })
+
+        expect((await footerOf(ui))?.at(-1)).toEqual(['releases', 'Hide releases', 'e'])
+      },
+    )
+  }
+
+  test('on mobile, where the Buttons are tapped, the footer has the keys and no focus hint, focused or not', async ($, on) => {
+    mock.clock(on)
+    Fixtures.bandOn(on, STORE)
+
+    await $.classic.SessionStart({ source: 'clear' })
+
+    const ui = await $.ui.mount({
+      ...PANE,
+      surface: 'mobile',
+      props: { ...Fixtures.PANE_PROPS, isFocused: false },
+    })
+
+    expect(await footerOf(ui)).toEqual(NEWS_KEYS)
+  })
 })

@@ -1,22 +1,34 @@
 import type { SavedItem, Source } from '../../types/index.js'
+import { fitColumns } from '../band/fit-columns.js'
+import { ACTION_HOTKEYS } from '../names/action-hotkeys.js'
+import { ACTION_LABELS } from '../names/action-labels.js'
+import { PANE_HOTKEYS } from '../names/pane-hotkeys.js'
+import { PANE_LABELS } from '../names/pane-labels.js'
 import { paneFittedTabsOf } from './pane-fitted-tabs-of.js'
 import { PANE_FIRST_WINDOW } from './pane-first-window.js'
+import { PANE_FOCUS_HINT } from './pane-focus-hint.js'
+import type { PaneKey } from './pane-key.js'
 import type { PaneStack } from './pane-stack.js'
 import { PANE_SUMMARY_LINES } from './pane-summary-lines.js'
+import { PANE_TAB_KEYS } from './pane-tab-keys.js'
 import { paneTabSpellingOf } from './pane-tab-spelling-of.js'
 import { paneTabsOf } from './pane-tabs-of.js'
 import { wrappedLinesOf } from './wrapped-lines-of.js'
 
 /**
- * The widest action rows the pane draws, the saved tab's and the stack tab's, as the terminal spells plain Buttons: `<hotkey>: <label>`.
+ * Each footer key at its widest, as the terminal spells a plain Button: `<hotkey>: <label>`.
  */
-const ACTION_ROWS = [
-  ['o: Open', 's: Summarize', 'v: Saved', 'c: Copy for Claude', 'r: Mark as read'],
-  ['o: Open', 's: Summarize', 'v: Saved', 'c: Copy for Claude', 'e: Hide releases'],
-]
+const KEY_SPELLINGS: Readonly<Record<PaneKey, string>> = {
+  open: `${ACTION_HOTKEYS.open}: ${ACTION_LABELS.open}`,
+  summarize: `${ACTION_HOTKEYS.summarize}: ${ACTION_LABELS.summarize}`,
+  save: `${ACTION_HOTKEYS.save}: ${ACTION_LABELS.saved}`,
+  copy: `${ACTION_HOTKEYS.copy}: ${ACTION_LABELS.copy}`,
+  read: `${PANE_HOTKEYS.read}: ${PANE_LABELS.read}`,
+  releases: `${PANE_HOTKEYS.releases}: ${PANE_LABELS.hideReleases}`,
+}
 
 /**
- * How many one-line items fit in the pane's body of `columns` by `bodyRows` once the tab row (every tab spelled as the terminal draws it, full or cut names as the row chooses, the active one included), the title line, the action row and the selected item's summary lines are drawn; at least one, `PANE_FIRST_WINDOW` when `bodyRows` is not a number, 80 columns taken when `columns` is not.
+ * How many one-line items fit in the pane's body of `columns` by `bodyRows` once the tab row (every tab spelled as the terminal draws it, full or cut names as the row chooses, the active one included), the title line, the footer (the widest any tab draws, focus hint included, so giving the pane the keyboard never moves the window) and the selected item's summary lines are drawn; at least one, `PANE_FIRST_WINDOW` when `bodyRows` is not a number, 80 columns taken when `columns` is not.
  *
  * @param sources every source, for the tab row
  * @param columns the cells across the body
@@ -37,10 +49,15 @@ export function paneWindowSizeOf(
 
   const width = Number.isFinite(columns) ? columns : 80
   const tabs = paneFittedTabsOf(paneTabsOf(sources, stack, saved), width).map(paneTabSpellingOf)
-  const chrome =
-    wrappedLinesOf(tabs, width) +
-    1 +
-    Math.max(...ACTION_ROWS.map(labels => wrappedLinesOf(labels, width)))
+  const hint = fitColumns(PANE_FOCUS_HINT, width)
+  const footer = Math.max(
+    ...Object.values(PANE_TAB_KEYS).flatMap(keys => {
+      const spelled = keys.map(key => KEY_SPELLINGS[key])
+
+      return [wrappedLinesOf(spelled, width), wrappedLinesOf([hint, ...spelled], width)]
+    }),
+  )
+  const chrome = wrappedLinesOf(tabs, width) + 1 + footer
 
   return Math.max(1, Math.floor(bodyRows - chrome - PANE_SUMMARY_LINES))
 }

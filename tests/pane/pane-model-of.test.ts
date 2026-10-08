@@ -2,6 +2,7 @@ import { describe, expect, test } from 'claude-code/testing'
 
 import Band from '../../hooks/band'
 import Pane from '../../hooks/pane'
+import type { ItemsBySource } from '../../types/index.js'
 import Fixtures from '../fixtures'
 
 describe('pane-model-of', () => {
@@ -34,7 +35,10 @@ describe('pane-model-of', () => {
         isSelected: true,
       },
     ])
-    expect([model.isSavedTab, model.isSelectedSaved]).toEqual([false, false])
+    expect([model.keys, model.isSelectedSaved]).toEqual([
+      ['open', 'summarize', 'save', 'copy'],
+      false,
+    ])
   })
 
   test('on the saved tab: the stored snapshot drawn, a removed source with no name, undated with no date', () => {
@@ -51,7 +55,10 @@ describe('pane-model-of', () => {
         isSelected: true,
       },
     ])
-    expect([model.isSavedTab, model.isSelectedSaved]).toEqual([true, true])
+    expect([model.keys, model.isSelectedSaved]).toEqual([
+      ['open', 'summarize', 'copy', 'read'],
+      true,
+    ])
   })
 
   test('an item without usable text is marked so and shows no summary, even a cached one', () => {
@@ -266,5 +273,40 @@ describe('pane-model-of', () => {
       undefined,
       'No new release of your dependencies at this level.',
     ])
+  })
+
+  test('the footer holds the keys that act on each tab, after the focus hint only while the pane does not hold the keyboard, and nothing on an empty tab', () => {
+    const stack = { items: Fixtures.STACK_RELEASES, filter: '', expanded: [] }
+    const saved = [{ ...Fixtures.itemAt('kept'), savedAt: 1 }]
+    const footerOf = (
+      tab: string,
+      isFocused: boolean,
+      columns = 80,
+      items: ItemsBySource = ITEMS,
+    ) => {
+      const page = Pane.panePageOf({ tab, selected: 0 }, SOURCES, items, saved, 20, stack)
+      const model = Pane.paneModelOf(page, SOURCES, {}, saved, columns, '', isFocused)
+
+      return [model.hint, model.keys]
+    }
+
+    expect(footerOf('a', true)).toEqual([undefined, ['open', 'summarize', 'save', 'copy']])
+    expect(footerOf('a', false)).toEqual([
+      'ctrl+x tab to use these keys:',
+      ['open', 'summarize', 'save', 'copy'],
+    ])
+    expect(footerOf('saved', false)).toEqual([
+      Pane.PANE_FOCUS_HINT,
+      ['open', 'summarize', 'copy', 'read'],
+    ])
+    expect(footerOf('@stack', true)).toEqual([
+      undefined,
+      ['open', 'summarize', 'save', 'copy', 'releases'],
+    ])
+    expect(footerOf('@stack', false)[0]).toBe(Pane.PANE_FOCUS_HINT)
+    // Narrower than the hint, it is cut to the width.
+    expect(footerOf('a', false, 20)[0]).toBe('ctrl+x tab to use t…')
+    expect(footerOf('a', false, 80, {})).toEqual([undefined, []])
+    expect(footerOf('a', true, 80, {})).toEqual([undefined, []])
   })
 })
