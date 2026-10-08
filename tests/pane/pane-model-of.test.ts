@@ -814,4 +814,31 @@ describe('pane-model-of', () => {
       ).empty,
     ).toBe('Every source is off. /herald enable <name> turns one on.')
   })
+
+  test("on the All tab a package is one row with its target as the headline, ⚠ for a breaking release among its others, its target's date, and the note under the selected row", () => {
+    const stack = { items: [...Fixtures.STACK_MIDDLE], filter: '', expanded: [] }
+    const page = Pane.panePageOf({ tab: '@all', selected: 0 }, SOURCES, ITEMS, [], 10, stack)
+    const model = Pane.paneModelOf(
+      page,
+      SOURCES,
+      {},
+      [],
+      100,
+      false,
+      '',
+      true,
+      {},
+      Fixtures.PANE_NOW,
+    )
+    const packages = model.rows.filter(row => row.isRelease === true)
+
+    expect(packages.map(row => [row.icon, row.sourceColumn, row.title, row.date])).toEqual([
+      ['⚠', 'zod', '3.23.8 → 4.6.5', 'Sep 13'],
+      ['📦', 'vite', '5.0.0 → 5.2.0', 'Sep 18'],
+      ['📦', 'ky', '0.9.0 → 1.0.0', 'Sep 7'],
+    ])
+    expect(model.rows.find(row => row.isSelected)?.summaryLines).toEqual([
+      'npm · major · breaking in 4.6.3 · 4 releases',
+    ])
+  })
 })

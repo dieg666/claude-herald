@@ -2,6 +2,7 @@ import { describe, expect, test } from 'claude-code/testing'
 
 import Band from '../../hooks/band'
 import Defaults from '../../hooks/defaults'
+import Stack from '../../hooks/deps/stack'
 import Fixtures from '../fixtures'
 
 describe('band-model-of', () => {
@@ -475,5 +476,43 @@ describe('band-model-of', () => {
       expect(on.hasSummaries).toBe(true)
       expect(on.rows).toHaveLength(3)
     }
+  })
+
+  test("a package's row draws its target as the headline, ⚠ for a breaking release among its others, and names it in the summary or inline", () => {
+    const items = Stack.stackPackageItemsOf(Fixtures.STACK_MIDDLE)
+    const page = Band.bandPageOf({ offset: 0, selected: 0, isPaused: false }, items)
+    const on = Band.bandModelOf(page, SOURCES, {}, [], 120, true, EPOCH)
+    const off = Band.bandModelOf(page, SOURCES, {}, [], 120, false, EPOCH)
+
+    expect(on.rows.map(row => [row.icon, row.source, row.title, row.summary])).toEqual([
+      ['📦', 'vite', '5.0.0 → 5.2.0', 'npm · minor · 2 releases'],
+      ['⚠', 'zod', '3.23.8 → 4.6.5', 'npm · major · breaking in 4.6.3 · 4 releases'],
+      ['📦', 'ky', '0.9.0 → 1.0.0', 'npm · major'],
+    ])
+    expect(off.rows.map(row => [row.title, row.note])).toEqual([
+      ['5.0.0 → 5.2.0', 'npm · minor · 2 releases'],
+      ['3.23.8 → 4.6.5', 'npm · major · breaking in 4.6.3 · 4 releases'],
+      ['0.9.0 → 1.0.0', 'npm · major'],
+    ])
+    expect(on.rows[1]?.href).toBe('https://github.com/owner/zod/releases/tag/v4.6.5')
+  })
+
+  test("a package's inline note is cut to the room, and dropped when fewer than four cells are left", () => {
+    const [, zod] = Stack.stackPackageItemsOf(Fixtures.STACK_MIDDLE)
+    const page = Band.bandPageOf({ offset: 0, selected: 0, isPaused: false }, [zod!])
+
+    for (const columns of [60, 50, 40, 30]) {
+      const [row] = Band.bandModelOf(page, SOURCES, {}, [], columns, false, EPOCH).rows
+      const note = row?.note === undefined ? 0 : 2 + Band.displayWidthOf(row.note)
+
+      expect(leadOf(row) + Band.displayWidthOf(row?.title ?? '') + note).toBeLessThanOrEqual(
+        columns,
+      )
+    }
+
+    expect(Band.bandModelOf(page, SOURCES, {}, [], 30, false, EPOCH).rows[0]?.note).toBeUndefined()
+    expect(Band.bandModelOf(page, SOURCES, {}, [], 100, false, EPOCH).rows[0]?.note).toBe(
+      'npm · major · breaking in 4.6.3 · 4 releases',
+    )
   })
 })

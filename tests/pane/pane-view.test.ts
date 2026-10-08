@@ -1689,6 +1689,13 @@ describe('pane-view', () => {
     )
   }
 
+  const middlePaneOn = (on: Parameters<typeof Fixtures.bandOn>[0]) =>
+    Fixtures.bandOn(
+      on,
+      { ...STORE, ...Fixtures.stackStoreOf(Fixtures.STACK_MIDDLE, { showLevel: 'all' }) },
+      Fixtures.stackTreeOf(Fixtures.STACK_MIDDLE),
+    )
+
   const releasesPaneOn = (on: Parameters<typeof Fixtures.bandOn>[0]) =>
     Fixtures.bandOn(
       on,
@@ -1891,6 +1898,69 @@ describe('pane-view', () => {
         expect(expanded.every(box => childOf(box, 1)?.props.width === 7)).toBe(true)
 
         await ui.unmount()
+      },
+    )
+
+    test(
+      `on ${surface}: the All tab lists a package once, current → its target with the target's date and a note naming the breaking release, as Your stack does; o and c act on the target`,
+      { timeoutMs: 30_000 },
+      async ($, on) => {
+        const clock = mock.clock(on)
+        const runs: (readonly string[])[] = []
+        const copies: string[] = []
+
+        middlePaneOn(on)
+        on('env.get', () => ({ value: undefined }))
+        on('process.run', ($, e) => {
+          runs.push(e.argv)
+
+          return {
+            value: {
+              exitCode: 0,
+              stdout: e.argv[0] === 'uname' ? 'Darwin\n' : '',
+              stderr: '',
+              isStdoutTruncated: false,
+              isStderrTruncated: false,
+            },
+          }
+        })
+        on('ui.copy', ($, e) => {
+          copies.push(e.text)
+
+          return { value: { isCopied: true } }
+        })
+
+        await $.session.start(Fixtures.SESSION)
+        await clock.settle()
+
+        const ui = await $.ui.mount({ ...PANE, surface, props: WIDE })
+        const rows = async () => (await rowLinesOf(ui)).filter(line => /zod|vite|ky/.test(line))
+        const url = 'https://github.com/owner/zod/releases/tag/v4.6.5'
+
+        // The flagged package leads the All tab, so it is the selected row.
+        expect(await rows()).toEqual([
+          '› ⚠ zod 3.23.8 → 4.6.5 Sep 13',
+          '📦 vite 5.0.0 → 5.2.0 Sep 18',
+          '📦 ky 0.9.0 → 1.0.0 Sep 7',
+        ])
+        expect(
+          await ui.find({ type: 'Text', text: 'npm · major · breaking in 4.6.3 · 4 releases' }),
+        ).toBeDefined()
+        expect(await selectedRowOf(ui)).toBe(url)
+
+        await ui.press({ key: 'open' })
+        await ui.press({ key: 'copy' })
+
+        expect(runs.at(-1)).toEqual(['open', url])
+        expect(copies.at(-1)).toContain(`We use zod 3.23.8. zod 4.6.5 is out: ${url}`)
+
+        await ui.press({ key: 'tab-@stack' })
+
+        expect(await rows()).toEqual([
+          '› ⚠ zod 3.23.8 → 4.6.5 major breaking in 4.6.3 · 4 releases Sep 13',
+          '📦 ky 0.9.0 → 1.0.0 major Sep 7',
+          '📦 vite 5.0.0 → 5.2.0 minor 2 releases Sep 18',
+        ])
       },
     )
 

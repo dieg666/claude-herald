@@ -961,6 +961,98 @@ describe('band-view', () => {
       },
     )
 
+    for (const autoSummaries of [false, true]) {
+      test(
+        `on ${surface}: with automatic summaries ${autoSummaries ? 'on' : 'off'} a package is one row, current → its target, ⚠ for a breaking release among its others, and the note naming it`,
+        { timeoutMs: 20_000 },
+        async ($, on) => {
+          const clock = mock.clock(on)
+
+          Fixtures.bandOn(
+            on,
+            {
+              sources: [],
+              ...(autoSummaries ? { settings: Fixtures.SUMMARIES_ON } : {}),
+              ...Fixtures.stackStoreOf(Fixtures.STACK_MIDDLE, { showLevel: 'all' }),
+            },
+            Fixtures.stackTreeOf(Fixtures.STACK_MIDDLE),
+          )
+
+          await $.session.start(Fixtures.SESSION)
+          await clock.settle()
+
+          const ui = await $.ui.mount({
+            ...BAND,
+            surface,
+            props: { ...Fixtures.BAND_PROPS, bodyColumns: 120 },
+          })
+
+          expect(await rangeOf(ui)).toBe('1–3 of 3')
+          expect(await linksOf(ui)).toEqual([
+            ['https://github.com/owner/zod/releases/tag/v4.6.5', '3.23.8 → 4.6.5'],
+            ['https://github.com/owner/vite/releases/tag/v5.2.0', '5.0.0 → 5.2.0'],
+            ['https://github.com/owner/ky/releases/tag/v1.0.0', '0.9.0 → 1.0.0'],
+          ])
+          expect(
+            (await ui.findAll({ type: 'Text', text: /^(⚠|📦|zod|vite|ky)$/ })).map(
+              text => text.text,
+            ),
+          ).toEqual(['⚠', 'zod', '📦', 'vite', '📦', 'ky'])
+          expect(
+            await ui.find({ type: 'Text', text: 'npm · major · breaking in 4.6.3 · 4 releases' }),
+          ).toBeDefined()
+          expect(await ui.find({ type: 'Text', text: /^…$/ })).toBeUndefined()
+        },
+      )
+    }
+
+    test(
+      `on ${surface}: open and copy act on a package's target release`,
+      { timeoutMs: 20_000 },
+      async ($, on) => {
+        const clock = mock.clock(on)
+        const runs: (readonly string[])[] = []
+        const copies: string[] = []
+
+        Fixtures.bandOn(
+          on,
+          { sources: [], ...Fixtures.stackStoreOf(Fixtures.STACK_MIDDLE, { showLevel: 'all' }) },
+          Fixtures.stackTreeOf(Fixtures.STACK_MIDDLE),
+        )
+        on('env.get', () => ({ value: undefined }))
+        on('process.run', ($, e) => {
+          runs.push(e.argv)
+
+          return {
+            value: {
+              exitCode: 0,
+              stdout: e.argv[0] === 'uname' ? 'Darwin\n' : '',
+              stderr: '',
+              isStdoutTruncated: false,
+              isStderrTruncated: false,
+            },
+          }
+        })
+        on('ui.copy', ($, e) => {
+          copies.push(e.text)
+
+          return { value: { isCopied: true } }
+        })
+
+        await $.session.start(Fixtures.SESSION)
+        await clock.settle()
+
+        const ui = await $.ui.mount({ ...BAND, surface })
+        const url = 'https://github.com/owner/zod/releases/tag/v4.6.5'
+
+        await ui.press({ key: 'open' })
+        await ui.press({ key: 'copy' })
+
+        expect(runs.at(-1)).toEqual(['open', url])
+        expect(copies.at(-1)).toContain(`We use zod 3.23.8. zod 4.6.5 is out: ${url}`)
+      },
+    )
+
     test(
       `on ${surface}: the first page shows the breaking and security releases of the stack, older than every news item, then the newest news item`,
       { timeoutMs: 20_000 },

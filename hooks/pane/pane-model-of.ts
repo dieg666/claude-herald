@@ -10,7 +10,7 @@ import { sourceHeadOf } from '../band/source-head-of.js'
 import { SUMMARY_INDENT } from '../band/summary-indent.js'
 import { httpUrlOf } from '../commands/http-url-of.js'
 import { isStackItem } from '../deps/stack/is-stack-item.js'
-import { stackIconOf } from '../deps/stack/stack-icon-of.js'
+import { stackItemIconOf } from '../deps/stack/stack-item-icon-of.js'
 import { stackLineOf } from '../deps/stack/stack-line-of.js'
 import { stackNoteOf } from '../deps/stack/stack-note-of.js'
 import { ALL_TAB } from '../names/all-tab.js'
@@ -96,7 +96,12 @@ function rowOf(
   const stack = isStackItem(item) ? item : undefined
   const hasNoSummary =
     stack === undefined && (!autoSummaries || summary === '' || summaryTextOf(item) === '')
-  const note = stack !== undefined ? stackNoteOf(stack.release) : hasNoSummary ? undefined : summary
+  const note =
+    stack !== undefined
+      ? stackNoteOf(stack.release, stack.rollup)
+      : hasNoSummary
+        ? undefined
+        : summary
   const href = httpUrlOf(item.url)?.href
   const date = paneDateOf(item.publishedAt, now)
   const dated = date === undefined ? 0 : PANE_DATE_COLUMNS + 1
@@ -112,7 +117,7 @@ function rowOf(
       : stack === undefined
         ? newsLineOf(lineOf(item.title), sourceName, columns - MARK_COLUMNS - dated)
         : {
-            icon: fitColumns(stackIconOf(stack.release), ICON_COLUMNS),
+            icon: fitColumns(stackItemIconOf(stack), ICON_COLUMNS),
             title: fitColumns(stackLineOf(stack), columns - ICON_COLUMNS - 3 - dated),
           }
 

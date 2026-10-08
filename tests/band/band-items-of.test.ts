@@ -272,4 +272,45 @@ describe('band-items-of', () => {
 
     expect(Band.bandItemsOf(code, items, [], read).map(item => item.id)).toEqual(['code:v2.1.294'])
   })
+
+  test("a package's releases make one item, its target, and a flagged one among them makes the package lead", () => {
+    const { sources, items } = Fixtures.FLAGGED_BAND
+    const list = Band.bandItemsOf(sources, items, Fixtures.STACK_MIDDLE)
+    const stackItems = list.filter(Stack.isStackItem)
+    const [lead] = list
+
+    expect(
+      stackItems.map(item => [item.release.name, item.release.current, item.release.version]),
+    ).toEqual([
+      ['zod', '3.23.8', '4.6.5'],
+      ['vite', '5.0.0', '5.2.0'],
+      ['ky', '0.9.0', '1.0.0'],
+    ])
+    expect(Stack.isStackItem(lead!) && lead.release.version).toBe('4.6.5')
+    expect(Stack.isStackItem(lead!) && Stack.stackItemIconOf(lead)).toBe('⚠')
+    expect(list.map(item => item.id)).not.toContain(Fixtures.STACK_MIDDLE[3]?.id)
+    expect(Band.bandItemsOf(sources, items, [...Fixtures.STACK_MIDDLE].reverse())).toEqual(list)
+  })
+
+  test('only the newest two flagged packages lead, however many releases each has', () => {
+    const { sources, items } = Fixtures.FLAGGED_BAND
+    const [, , requests, jsdom] = Fixtures.FLAGGED_BAND.stack
+    const older = Fixtures.stackItemAt('jsdom', '30.1.0', { current: '25.0.1', level: 'major' })
+    const list = Band.bandItemsOf(sources, items, [
+      ...Fixtures.STACK_MIDDLE,
+      requests!,
+      jsdom!,
+      older,
+    ])
+
+    expect(list.filter(Stack.isStackItem).length).toBe(5)
+    expect(
+      list
+        .slice(0, 2)
+        .map(item => Stack.isStackItem(item) && [item.release.name, item.release.version]),
+    ).toEqual([
+      ['zod', '4.6.5'],
+      ['requests', '2.31.1'],
+    ])
+  })
 })

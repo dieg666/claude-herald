@@ -135,6 +135,55 @@ describe('compact-band-view', () => {
     )
 
     test(
+      `on ${surface}: a package is one compact row naming its target, with ⚠ for a breaking release among its others`,
+      { timeoutMs: 20_000 },
+      async ($, on) => {
+        const clock = mock.clock(on)
+
+        Fixtures.bandOn(
+          on,
+          { sources: [], ...Fixtures.stackStoreOf(Fixtures.STACK_MIDDLE, { showLevel: 'all' }) },
+          Fixtures.stackTreeOf(Fixtures.STACK_MIDDLE),
+        )
+
+        await $.session.start(Fixtures.SESSION)
+        await clock.settle()
+
+        const ui = await $.ui.mount(at(surface, 62))
+        const turns: unknown[] = []
+
+        for (let turn = 0; turn < 3; turn += 1) {
+          turns.push([
+            await positionOf(ui),
+            (await ui.findAll({ type: 'Text', text: /^(⚠|📦)$/ })).map(text => text.text),
+            await linksOf(ui),
+          ])
+          await ui.press({ key: 'next' })
+        }
+
+        expect(turns).toEqual([
+          [
+            '1/3',
+            ['⚠'],
+            [['https://github.com/owner/zod/releases/tag/v4.6.5', 'zod 3.23.8 → 4.6.5']],
+          ],
+          [
+            '2/3',
+            ['📦'],
+            [['https://github.com/owner/vite/releases/tag/v5.2.0', 'vite 5.0.0 → 5.2.0']],
+          ],
+          [
+            '3/3',
+            ['📦'],
+            [['https://github.com/owner/ky/releases/tag/v1.0.0', 'ky 0.9.0 → 1.0.0']],
+          ],
+        ])
+
+        await ui.unmount()
+      },
+    )
+
+    test(
       `on ${surface}: over a skewed store each turn shows another source, at the same positions and total`,
       { timeoutMs: 20_000 },
       async ($, on) => {

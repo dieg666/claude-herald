@@ -293,6 +293,20 @@ export type StackRelease = {
  */
 export type StackItem = Item & {
   release: StackRelease
+  /** Set only on a package's row in the band and the All tab (never stored), when more than one of its releases is shown. */
+  rollup?: StackRollup
+}
+
+/**
+ * What a package's single row in the band and the All tab says about the package's other releases shown.
+ */
+export type StackRollup = {
+  /** How many of the package's releases are shown, the row's own included. */
+  releases: number
+  /** The version of the oldest release shown that is breaking, absent when none is or when it is the row's own release. */
+  breakingIn?: string
+  /** The version of the oldest release shown that fixes a security issue, absent when none does or when it is the row's own release. */
+  securityIn?: string
 }
 
 /**

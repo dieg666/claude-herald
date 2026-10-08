@@ -48,4 +48,16 @@ describe('all-tab-items-of', () => {
     expect(Pane.allTabItemsOf(sources, items).some(item => item.sourceId === '@stack')).toBe(false)
     expect(Pane.allTabItemsOf([], items)).toEqual([])
   })
+
+  test("a package's releases are one row, its target, as in the band", () => {
+    const all = Pane.allTabItemsOf(sources, items, Fixtures.STACK_MIDDLE)
+    const stackRows = all.filter(Stack.isStackItem)
+
+    expect(all).toEqual(Band.bandItemsOf(sources, items, Fixtures.STACK_MIDDLE))
+    expect(stackRows.map(item => [item.release.name, item.release.version])).toEqual([
+      ['zod', '4.6.5'],
+      ['vite', '5.2.0'],
+      ['ky', '1.0.0'],
+    ])
+  })
 })

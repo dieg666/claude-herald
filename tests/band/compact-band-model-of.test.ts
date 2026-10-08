@@ -2,6 +2,7 @@ import { describe, expect, test } from 'claude-code/testing'
 
 import Band from '../../hooks/band'
 import Defaults from '../../hooks/defaults'
+import Stack from '../../hooks/deps/stack'
 import Fixtures from '../fixtures'
 
 describe('compact-band-model-of', () => {
@@ -236,5 +237,19 @@ describe('compact-band-model-of', () => {
     expect(
       Band.displayWidthOf(`${headline.icon}  ${headline.age}  ${headline.title}`),
     ).toBeLessThanOrEqual(120 - Band.compactControlsColumnsOf(1) - 2)
+  })
+
+  test("a package's compact row names its target with ⚠ when another of its releases is breaking", () => {
+    const [vite, zod] = Stack.stackPackageItemsOf(Fixtures.STACK_MIDDLE)
+    const of = (item: typeof zod) =>
+      Band.compactBandModelOf(
+        Band.bandPageOf({ offset: 0, selected: 0, isPaused: false }, [item!], 1),
+        SOURCES,
+        100,
+        EPOCH,
+      ).headline
+
+    expect(of(zod)).toMatchObject({ icon: '⚠', title: 'zod 3.23.8 → 4.6.5' })
+    expect(of(vite)).toMatchObject({ icon: '📦', title: 'vite 5.0.0 → 5.2.0' })
   })
 })

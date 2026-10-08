@@ -80,7 +80,7 @@ export function bandModelOf(
       const note =
         stack === undefined
           ? undefined
-          : inlineNoteOf(stackNoteOf(stack.release), headline.title, room)
+          : inlineNoteOf(stackNoteOf(stack.release, stack.rollup), headline.title, room)
 
       return note === undefined ? row : { ...row, note }
     }
@@ -88,7 +88,11 @@ export function bandModelOf(
     const cached = Object.hasOwn(summaries, item.id) ? summaries[item.id] : undefined
     const hasNoSummary = stack === undefined && (cached === '' || summaryTextOf(item) === '')
     const summary =
-      stack !== undefined ? stackNoteOf(stack.release) : hasNoSummary ? undefined : cached
+      stack !== undefined
+        ? stackNoteOf(stack.release, stack.rollup)
+        : hasNoSummary
+          ? undefined
+          : cached
 
     return {
       ...row,

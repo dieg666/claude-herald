@@ -2,7 +2,7 @@ import type { Source } from '../../types/index.js'
 import { httpUrlOf } from '../commands/http-url-of.js'
 import { sourceLabelOf } from '../defaults/source-label-of.js'
 import { isStackItem } from '../deps/stack/is-stack-item.js'
-import { stackIconOf } from '../deps/stack/stack-icon-of.js'
+import { stackItemIconOf } from '../deps/stack/stack-item-icon-of.js'
 import { stackLineOf } from '../deps/stack/stack-line-of.js'
 import { displayTitleOf } from '../items/display-title-of.js'
 import { collapsedTextOf } from '../page/collapsed-text-of.js'
@@ -87,7 +87,7 @@ export function compactBandModelOf(
   const headline =
     stack !== undefined
       ? {
-          icon: fitColumns(stackIconOf(stack.release), ICON_COLUMNS),
+          icon: fitColumns(stackItemIconOf(stack), ICON_COLUMNS),
           title: fitColumns(stackLineOf(stack), room - lead - ageCells),
         }
       : hasSourceRoom && label !== ''

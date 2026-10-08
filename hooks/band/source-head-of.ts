@@ -2,7 +2,7 @@ import type { Item, Source } from '../../types/index.js'
 import { sourceLabelOf } from '../defaults/source-label-of.js'
 import { isStackItem } from '../deps/stack/is-stack-item.js'
 import { stackHeadlineOf } from '../deps/stack/stack-headline-of.js'
-import { stackIconOf } from '../deps/stack/stack-icon-of.js'
+import { stackItemIconOf } from '../deps/stack/stack-item-icon-of.js'
 import { collapsedTextOf } from '../page/collapsed-text-of.js'
 import { fitColumns } from './fit-columns.js'
 import { ICON_COLUMNS } from './icon-columns.js'
@@ -43,7 +43,7 @@ export function sourceHeadOf(
 } {
   if (isStackItem(item)) {
     return {
-      icon: fitColumns(stackIconOf(item.release), ICON_COLUMNS),
+      icon: fitColumns(stackItemIconOf(item), ICON_COLUMNS),
       ...sourceColumnOf(stackLabelOf(lineOf(item.release.name), PACKAGE_COLUMNS), PACKAGE_COLUMNS),
       isRelease: true,
       title: fitColumns(stackHeadlineOf(item), room),
