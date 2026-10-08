@@ -210,6 +210,22 @@ export type DepResolution = {
  */
 export type NewsSettings = Settings
 
+/**
+ * Whether a release breaks code that uses the package, and whether it fixes a security issue.
+ */
+export type ReleaseFlags = {
+  breaking: boolean
+  security: boolean
+}
+
+/**
+ * The model's verdict on one release's notes, cached by release id; the cache is a list of these, oldest first.
+ */
+export type ReleaseFlagsEntry = ReleaseFlags & {
+  /** `<ecosystem>:<name>|<entry guid, link or title>`. */
+  releaseId: string
+}
+
 declare module 'claude-code' {
   /**
    * Every value the mod keeps in `$.state`, by key: what the band and pane draw.
