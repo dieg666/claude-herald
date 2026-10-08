@@ -43,7 +43,7 @@ describe('source-mix-of', () => {
     )
   })
 
-  test('the same items in any order give the same list', () => {
+  test('items with distinct times give the same list in any input order', () => {
     const reversed = [...skewed].reverse()
     const bySource = [...stack, ...items.willison, ...items.sdk, ...items.anthropic, ...items.hn]
 
