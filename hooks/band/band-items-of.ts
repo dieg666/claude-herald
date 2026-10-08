@@ -12,15 +12,23 @@ function timeOf(item: Item): number {
 }
 
 /**
- * What the band pages through: every enabled source's items in one list, newest first, undated items after the dated ones in source order.
+ * What the band pages through: every enabled source's items and the stack items shown in one list, newest first, undated items after the dated ones in source order, stack items last.
  *
  * @param sources every source, in order
  * @param items the kept items by source id, newest first
+ * @param stack the stack items shown, newest first
  */
-export function bandItemsOf(sources: readonly Source[], items: Readonly<ItemsBySource>): Item[] {
-  const all = sources
-    .filter(source => source.isEnabled)
-    .flatMap(source => (Object.hasOwn(items, source.id) ? (items[source.id] ?? []) : []))
+export function bandItemsOf(
+  sources: readonly Source[],
+  items: Readonly<ItemsBySource>,
+  stack: readonly Item[] = [],
+): Item[] {
+  const all = [
+    ...sources
+      .filter(source => source.isEnabled)
+      .flatMap(source => (Object.hasOwn(items, source.id) ? (items[source.id] ?? []) : [])),
+    ...stack,
+  ]
 
   return all
     .map((item, index) => ({ item, index, time: timeOf(item) }))

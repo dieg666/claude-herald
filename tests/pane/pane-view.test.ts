@@ -552,4 +552,134 @@ describe('pane-view', () => {
       },
     )
   }
+
+  const stackPaneOn = (
+    on: Parameters<typeof Fixtures.bandOn>[0],
+    settings: Parameters<typeof Fixtures.stackStoreOf>[1],
+  ) =>
+    Fixtures.bandOn(
+      on,
+      { ...STORE, ...Fixtures.stackStoreOf(Fixtures.STACK_SAMPLE, settings) },
+      Fixtures.stackTreeOf(Fixtures.STACK_SAMPLE),
+    )
+
+  // The packages of the release links drawn, in order.
+  const packagesOf = async (ui: Drawing) =>
+    (await linksOf(ui)).map(href => /github\.com\/owner\/([^/]+)\//.exec(String(href))?.[1])
+
+  // The ecosystem headings drawn above the stack rows.
+  const groupsOf = async (ui: Drawing) =>
+    (await ui.findAll({ type: 'Text' }))
+      .filter(text => text.props.bold === true && text.props.color === 'suggestion')
+      .map(text => text.text)
+
+  for (const surface of SURFACES) {
+    test(
+      `on ${surface}: the Your stack tab on y groups the releases by ecosystem, and its filter narrows them`,
+      { timeoutMs: 30_000 },
+      async ($, on) => {
+        const clock = mock.clock(on)
+
+        stackPaneOn(on, {})
+
+        await $.session.start(Fixtures.SESSION)
+        await clock.settle()
+
+        const ui = await $.ui.mount({ ...PANE, surface })
+
+        expect(await tabsOf(ui)).toEqual([
+          ['tab-a', 'Alpha', '1', false],
+          ['tab-b', 'Beta', '2', true],
+          ['tab-@stack', 'Your stack', 'y', true],
+          ['tab-saved', 'Saved', '0', true],
+        ])
+
+        await ui.press({ key: 'tab-@stack' })
+
+        expect(await headingOf(ui)).toBe('Your stack · 1-4 of 4')
+        expect(await groupsOf(ui)).toEqual(['npm', 'PyPI'])
+        expect(await packagesOf(ui)).toEqual(['react', 'vite', 'zod', 'requests'])
+        expect((await ui.find({ key: 'filter' }))?.type).toBe('Input')
+
+        await ui.input({ key: 'filter', text: 're', kind: 'change' })
+
+        expect(await packagesOf(ui)).toEqual(['react', 'requests'])
+        expect(await groupsOf(ui)).toEqual(['npm', 'PyPI'])
+
+        await ui.input({ key: 'filter', text: 'security' })
+
+        expect(await packagesOf(ui)).toEqual(['requests'])
+        expect(await groupsOf(ui)).toEqual(['PyPI'])
+
+        await ui.input({ key: 'filter', text: 'zzz' })
+
+        expect(await ui.find({ type: 'Text', text: 'No release matches "zzz".' })).toBeDefined()
+
+        const hotkeys = (await ui.findAll({ type: 'Button' })).map(button => button.props.hotkey)
+
+        expect(new Set(hotkeys).size).toBe(hotkeys.length)
+      },
+    )
+
+    test(
+      `on ${surface}: the stack tab shows the project's show level, and no tab while the stack is off`,
+      { timeoutMs: 30_000 },
+      async ($, on) => {
+        const clock = mock.clock(on)
+
+        stackPaneOn(on, { showLevel: 'breaking+security' })
+
+        await $.session.start(Fixtures.SESSION)
+        await clock.settle()
+
+        const ui = await $.ui.mount({ ...PANE, surface })
+
+        await ui.press({ key: 'tab-@stack' })
+
+        expect(await packagesOf(ui)).toEqual(['react', 'requests'])
+      },
+    )
+
+    test(
+      `on ${surface}: with the stack off the pane has no stack tab and its other tabs stay`,
+      { timeoutMs: 30_000 },
+      async ($, on) => {
+        const clock = mock.clock(on)
+
+        stackPaneOn(on, { isEnabled: false })
+
+        await $.session.start(Fixtures.SESSION)
+        await clock.settle()
+
+        const ui = await $.ui.mount({ ...PANE, surface })
+
+        expect((await tabsOf(ui)).map(([key]) => key)).toEqual(['tab-a', 'tab-b', 'tab-saved'])
+        expect(await linksOf(ui)).toEqual([
+          'https://example.com/a/1',
+          'https://example.com/a/2',
+          'https://example.com/a/3',
+        ])
+      },
+    )
+  }
+
+  test('on mobile, which draws no Input, the stack tab shows the filter in force as text', async ($, on) => {
+    const clock = mock.clock(on)
+
+    stackPaneOn(on, {})
+
+    await $.session.start(Fixtures.SESSION)
+    await clock.settle()
+
+    const terminal = await $.ui.mount({ ...PANE, surface: 'terminal' })
+
+    await terminal.press({ key: 'tab-@stack' })
+    await terminal.input({ key: 'filter', text: 'vite' })
+
+    const mobile = await $.ui.mount({ ...PANE, surface: 'mobile' })
+
+    expect(await mobile.find({ key: 'filter' })).toBeUndefined()
+    expect(await mobile.find({ type: 'Text', text: 'Filter: vite' })).toBeDefined()
+    expect(await packagesOf(mobile)).toEqual(['vite'])
+  })
 })

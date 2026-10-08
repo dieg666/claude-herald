@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
+import Names from '../../hooks/names'
 import Pane from '../../hooks/pane'
 import Fixtures from '../fixtures'
 
@@ -55,5 +56,20 @@ describe('pane-tabs-of', () => {
 
     expect(long?.label).toBe(`Very long ${'x'.repeat(13)}…`)
     expect(blank?.label).toBe('blank')
+  })
+
+  test('the stack tab, when there is one, comes before Saved on y, a hotkey no other pane Button takes', () => {
+    const tabs = Pane.paneTabsOf([Fixtures.sourceAt('a', { name: 'Alpha' })], true)
+
+    expect(tabs).toEqual([
+      { id: 'a', label: 'Alpha', hotkey: '1' },
+      { id: '@stack', label: 'Your stack', hotkey: 'y' },
+      { id: 'saved', label: 'Saved', hotkey: '0' },
+    ])
+
+    const others = [...Object.values(Names.PANE_HOTKEYS), ...Object.values(Names.ACTION_HOTKEYS)]
+
+    expect(others.filter(key => key === 'y').length).toBe(1)
+    expect(new Set(others).size).toBe(others.length)
   })
 })

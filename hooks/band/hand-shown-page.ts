@@ -1,4 +1,5 @@
 import type { Item } from '../../types/index.js'
+import { shownStackItemsOf } from '../deps/stack/shown-stack-items-of.js'
 import type { Host } from '../host/host.js'
 import { messageOf } from '../refresh/message-of.js'
 import { bandItemsOf } from './band-items-of.js'
@@ -20,7 +21,11 @@ export async function handShownPage(
   signal?: AbortSignal,
 ): Promise<readonly Item[]> {
   try {
-    const items = bandItemsOf(await host.state.sources.read(), await host.state.items.read())
+    const items = bandItemsOf(
+      await host.state.sources.read(),
+      await host.state.items.read(),
+      shownStackItemsOf(await host.state.stack.read()),
+    )
     const page = bandPageOf(await host.state.band.read(), items)
 
     handPage(host, rotation, page.items, signal)

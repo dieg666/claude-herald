@@ -905,6 +905,73 @@ describe('register', () => {
   }
   const STACK_BAND = { ...BAND, surface: 'terminal' } as const
 
+  test('the stack loads silently at the start; a release new on a later refresh is flagged and toasted', async ($, on) => {
+    const clock = mock.clock(on)
+    const toasts: string[] = []
+    const asked: string[] = []
+    const pages = new Map([[REACT_FEED, Feeds.releasesAtomOf('react', [['v18.3.0'], ['v18.2.0']])]])
+    const stored = Fixtures.storeOn(on, { sources: [], ...REACT_OVERRIDE })
+
+    Fixtures.fsOn(on, REACT_PROJECT)
+    Fixtures.registerOn(on)
+    webOn(on, pages)
+    on('ui.toast', ($, e) => {
+      toasts.push(e.text)
+
+      return { value: undefined }
+    })
+    on('ui.render', () => Fixtures.BELOW_BAND)
+    on('model.complete', ($, e) => {
+      asked.push(e.prompt)
+
+      return { value: Fixtures.answerOf('{"breaking": true, "security": false}') }
+    })
+    on('session.start', () => ({ cwd: '/repo' }))
+
+    await $.session.start(Fixtures.SESSION)
+    await clock.settle()
+
+    expect(Object.keys((stored.get('stack') as Record<string, unknown>) ?? {})).toEqual(['/repo'])
+    expect(toasts).toEqual([])
+    expect(asked).toEqual([])
+
+    pages.set(REACT_FEED, Feeds.releasesAtomOf('react', [['v19.0.0'], ['v18.3.0']]))
+    await clock.advance(60 * 60_000)
+
+    expect(toasts).toEqual(['1 release: react 18.2.0 → 19.0.0 ⚠'])
+    // The release the band showed since the start was checked once, the new one once.
+    expect(asked.map(prompt => /^Version: v?(.*)$/m.exec(prompt)?.[1])).toEqual([
+      '18.3.0',
+      '19.0.0',
+    ])
+
+    const ui = await $.ui.mount(STACK_BAND)
+
+    expect(await ui.find({ type: 'Link', text: 'react 18.2.0 → 19.0.0' })).toBeDefined()
+    expect(await ui.find({ type: 'Text', text: '⚠' })).toBeDefined()
+  })
+
+  test('release feeds are parsed with notes long enough that a late advisory id marks the band row ⚠', async ($, on) => {
+    const clock = mock.clock(on)
+    const notes = `${'Small fixes. '.repeat(60)}Fixes CVE-2026-0002.`
+
+    Fixtures.storeOn(on, { sources: [], ...REACT_OVERRIDE })
+    Fixtures.fsOn(on, REACT_PROJECT)
+    Fixtures.registerOn(on)
+    webOn(on, new Map([[REACT_FEED, Feeds.releasesAtomOf('react', [['v18.2.1', notes]])]]))
+    on('ui.render', () => Fixtures.BELOW_BAND)
+    on('session.start', () => ({ cwd: '/repo' }))
+
+    await $.session.start(Fixtures.SESSION)
+    await clock.settle()
+
+    const ui = await $.ui.mount(STACK_BAND)
+
+    expect(notes.length > 500).toBe(true)
+    expect(await ui.find({ type: 'Link', text: 'react 18.2.0 → 18.2.1' })).toBeDefined()
+    expect(await ui.find({ type: 'Text', text: 'npm · patch · security' })).toBeDefined()
+  })
+
   test('a project with its stack off makes no registry or feed request, however long the session', async ($, on) => {
     const clock = mock.clock(on)
 
@@ -951,5 +1018,39 @@ describe('register', () => {
     await clock.advance(10 * 60_000)
 
     expect(fetched).toEqual([REGISTRY, REGISTRY])
+  })
+
+  test("a session reads its own project's releases only, and keeps them after /clear", async ($, on) => {
+    const clock = mock.clock(on)
+    const own = Fixtures.stackStoreOf([
+      Fixtures.STACK_SAMPLE[0] ?? Fixtures.stackItemAt('a', '1.0.0'),
+    ])
+    const other = Fixtures.stackStoreOf([
+      Fixtures.STACK_SAMPLE[1] ?? Fixtures.stackItemAt('b', '1.0.0'),
+    ])
+
+    Fixtures.bandOn(
+      on,
+      {
+        sources: [],
+        deps: { ...own.deps, '/other': other.deps['/repo'] },
+        stack: { ...own.stack, '/other': other.stack['/repo'] },
+      },
+      REACT_PROJECT,
+    )
+
+    await $.session.start(Fixtures.SESSION)
+    await clock.settle()
+
+    const ui = await $.ui.mount(STACK_BAND)
+    const links = async () =>
+      (await ui.findAll({ type: 'Link' })).map(link => link.children.join(''))
+
+    expect(await links()).toEqual(['react 18.2.0 → 19.0.0 · React 19'])
+
+    await $.classic.SessionStart({ source: 'clear' })
+    await ui.redraw()
+
+    expect(await links()).toEqual(['react 18.2.0 → 19.0.0 · React 19'])
   })
 })

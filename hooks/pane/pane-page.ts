@@ -16,6 +16,6 @@ export type PanePage = {
   readonly shown: readonly Item[]
   /** The selected index in `items`, 0 for an empty tab. */
   readonly selected: number
-  /** How many items the window may show. */
+  /** How many items the window may show, as given (the stack tab shows fewer, for its filter and headings). */
   readonly size: number
 }

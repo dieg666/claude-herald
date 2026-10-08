@@ -1,5 +1,9 @@
 import type { SavedItem, Source } from '../../types/index.js'
 import { httpUrlOf } from '../commands/http-url-of.js'
+import { isStackItem } from '../deps/stack/is-stack-item.js'
+import { stackIconOf } from '../deps/stack/stack-icon-of.js'
+import { stackLineOf } from '../deps/stack/stack-line-of.js'
+import { stackNoteOf } from '../deps/stack/stack-note-of.js'
 import { collapsedTextOf } from '../page/collapsed-text-of.js'
 import type { BandModel } from './band-model.js'
 import type { BandPage } from './band-page.js'
@@ -18,7 +22,7 @@ function lineOf(text: string): string {
 }
 
 /**
- * What the band draws for a page, every line fitted to `columns` cells.
+ * What the band draws for a page, every line fitted to `columns` cells; a stack item shows 📦 (⚠ when breaking or security), `pkg current → new` and its ecosystem, level and flags.
  *
  * @param page the page shown
  * @param sources every source, for the glyphs
@@ -37,14 +41,24 @@ export function bandModelOf(
   const selected = page.items[page.span.selected]
 
   const rows = page.items.map((item, index) => {
-    const icon = fitColumns(icons.get(item.sourceId) || '*', 2)
+    const stack = isStackItem(item) ? item : undefined
+    const icon = fitColumns(
+      stack === undefined ? icons.get(item.sourceId) || '*' : stackIconOf(stack.release),
+      2,
+    )
     const href = httpUrlOf(item.url)?.href
-    const summary = Object.hasOwn(summaries, item.id) ? summaries[item.id] : undefined
+    const summary =
+      stack !== undefined
+        ? stackNoteOf(stack.release)
+        : Object.hasOwn(summaries, item.id)
+          ? summaries[item.id]
+          : undefined
+    const title = stack === undefined ? lineOf(item.title) : stackLineOf(stack)
 
     return {
       id: item.id,
       icon,
-      title: fitColumns(lineOf(item.title), columns - displayWidthOf(icon) - 3),
+      title: fitColumns(title, columns - displayWidthOf(icon) - 3),
       ...(href === undefined ? {} : { href }),
       ...(summary === undefined
         ? {}

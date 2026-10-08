@@ -5,6 +5,7 @@ import { handPaneItems } from './hand-pane-items.js'
 import { paneAfter } from './pane-after.js'
 import type { PaneMove } from './pane-move.js'
 import { panePageOf } from './pane-page-of.js'
+import { paneStackOf } from './pane-stack-of.js'
 import type { PaneShown } from './pane-shown.js'
 
 /**
@@ -35,8 +36,9 @@ export async function movePane(
     const sources = await host.state.sources.read()
     const items = await host.state.items.read()
     const saved = await host.state.saved.read()
+    const stack = paneStackOf(await host.state.stack.read())
     const stored = await host.state.pane.read()
-    const before = panePageOf(stored, sources, items, saved, size)
+    const before = panePageOf(stored, sources, items, saved, size, stack)
     const wanted = paneAfter(before, move)
 
     if (wanted.tab === stored.tab && wanted.selected === stored.selected) {
@@ -44,9 +46,9 @@ export async function movePane(
     }
 
     const written = await host.state.pane.update(pane =>
-      paneAfter(panePageOf(pane, sources, items, saved, size), move),
+      paneAfter(panePageOf(pane, sources, items, saved, size, stack), move),
     )
-    const after = panePageOf(written, sources, items, saved, size)
+    const after = panePageOf(written, sources, items, saved, size, stack)
 
     if (after.tab.id === before.tab.id && idsOf(after.shown) === idsOf(before.shown)) {
       return undefined

@@ -203,7 +203,7 @@ function summarizeShown(host: Host, items: readonly Item[]): Promise<unknown> {
 }
 
 /**
- * What the pane's Buttons run: tab and selection moves write the pane state and summarize what comes into view, mark-as-read drops the item drawn as selected from the saved list, the actions act on it.
+ * What the pane's Buttons run: tab and selection moves write the pane state and summarize what comes into view, mark-as-read drops the item drawn as selected from the saved list, the actions act on it; typing in the stack tab's filter writes the filter.
  *
  * @param $ the render hook's engine, used only when a Button is pressed
  * @param item the selected item as drawn
@@ -227,6 +227,7 @@ function paneHandlersOf(
     up: move('up'),
     down: move('down'),
     read: () => void (item === undefined ? undefined : markRead(hostOf($), item)),
+    filter: value => void Pane.filterPane(hostOf($), value, size, summarizeShown),
     ...itemActionsOf($, item),
   }
 }
@@ -316,7 +317,11 @@ export const register: Register = on => {
     }
 
     const sources = await read($, SOURCES)
-    const items = Band.bandItemsOf(sources, await read($, ITEMS))
+    const items = Band.bandItemsOf(
+      sources,
+      await read($, ITEMS),
+      Stack.shownStackItemsOf(await read($, STACK_STATE)),
+    )
 
     if (items.length === 0) {
       return next(e)
@@ -344,20 +349,37 @@ export const register: Register = on => {
   on('ui.render', { component: 'Pane', requestId: 'news' }, async ($, e) => {
     const sources = await read($, SOURCES)
     const saved = await read($, SAVED)
+    const stack = Pane.paneStackOf(await read($, STACK_STATE))
     const page = Pane.panePageOf(
       await read($, PANE),
       sources,
       await read($, ITEMS),
       saved,
-      Pane.paneWindowSizeOf(sources, e.props.bodyColumns, e.props.scroll.bodyRows),
+      Pane.paneWindowSizeOf(
+        sources,
+        e.props.bodyColumns,
+        e.props.scroll.bodyRows,
+        stack !== undefined,
+      ),
+      stack,
     )
-    const { Box, Text, Button, Link } = $.ui.resolve(e)
+    const table = $.ui.resolve(e)
+    const { Box, Text, Button, Link } = table
+    // A surface without Input (mobile) gets one that draws nothing, so the surface decides.
+    const Input = e.surface === 'mobile' || !('Input' in table) ? undefined : table.Input
 
     PANE_WINDOW.size = page.size
 
     return Pane.paneView(
-      { Box, Text, Button, Link },
-      Pane.paneModelOf(page, sources, await read($, SUMMARIES), saved, e.props.bodyColumns),
+      { Box, Text, Button, Link, ...(Input === undefined ? {} : { Input }) },
+      Pane.paneModelOf(
+        page,
+        sources,
+        await read($, SUMMARIES),
+        saved,
+        e.props.bodyColumns,
+        stack?.filter,
+      ),
       paneHandlersOf($, page.items[page.selected], page.size),
     )
   })

@@ -40,4 +40,14 @@ describe('band-items-of', () => {
     expect(Band.bandItemsOf([], { a: [Fixtures.itemAt('x')] })).toEqual([])
     expect(Band.bandItemsOf([Fixtures.sourceAt('toString')], {})).toEqual([])
   })
+
+  test('stack items join the list by date, after news items of the same time', () => {
+    const [react, vite] = Fixtures.STACK_SAMPLE
+    const items = { a: Fixtures.datedItemsOf('a', 2, 24 * 4 + 12) }
+
+    expect(
+      Band.bandItemsOf([Fixtures.sourceAt('a')], items, [react!, vite!]).map(item => item.id),
+    ).toEqual([react?.id, vite?.id, 'a:1', 'a:2'])
+    expect(Band.bandItemsOf([], {}, [vite!]).map(item => item.id)).toEqual([vite?.id])
+  })
 })

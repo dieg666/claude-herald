@@ -1,4 +1,5 @@
 import type { BandState, Item } from '../../types/index.js'
+import { shownStackItemsOf } from '../deps/stack/shown-stack-items-of.js'
 import type { Host } from '../host/host.js'
 import { messageOf } from '../refresh/message-of.js'
 import { bandAfter } from './band-after.js'
@@ -32,7 +33,11 @@ export async function turnBand(
   move: BandMove,
 ): Promise<readonly Item[] | undefined> {
   try {
-    const items = bandItemsOf(await host.state.sources.read(), await host.state.items.read())
+    const items = bandItemsOf(
+      await host.state.sources.read(),
+      await host.state.items.read(),
+      shownStackItemsOf(await host.state.stack.read()),
+    )
     const before = await host.state.band.read()
 
     if (isSame(before, bandAfter(before, move, items.length))) {

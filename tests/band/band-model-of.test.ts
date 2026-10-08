@@ -72,4 +72,27 @@ describe('band-model-of', () => {
     expect(Band.bandModelOf(pageAt(0, 1), SOURCES, {}, saved, 80).isSelectedSaved).toBe(true)
     expect(Band.bandModelOf(pageAt(0, 0), SOURCES, {}, saved, 80).isSelectedSaved).toBe(false)
   })
+
+  test('a stack item shows 📦 or ⚠, pkg current → new with the title when there is room, and its level as the summary', () => {
+    const [react, vite] = Fixtures.STACK_SAMPLE
+    const page = Band.bandPageOf({ offset: 0, selected: 0, isPaused: false }, [react!, vite!])
+    const wide = Band.bandModelOf(page, SOURCES, { [react?.id ?? '']: 'Ignored.' }, [], 80)
+    const narrow = Band.bandModelOf(page, SOURCES, {}, [], 30)
+
+    expect(wide.rows.map(row => [row.icon, row.title, row.summary, row.href])).toEqual([
+      [
+        '⚠',
+        'react 18.2.0 → 19.0.0 · React 19',
+        'npm · major · breaking',
+        'https://github.com/owner/react/releases/tag/v19.0.0',
+      ],
+      [
+        '📦',
+        'vite 5.0.0 → 5.1.0',
+        'npm · minor',
+        'https://github.com/owner/vite/releases/tag/v5.1.0',
+      ],
+    ])
+    expect(narrow.rows[0]?.title).toBe('react 18.2.0 → 19.0.0 · R…')
+  })
 })

@@ -11,6 +11,7 @@ import { PANE_HOTKEYS } from '../names/pane-hotkeys.js'
 import type { PaneHandlers } from './pane-handlers.js'
 import type { PaneModel } from './pane-model.js'
 import type { PaneRow } from './pane-row.js'
+import type { PaneUi } from './pane-ui.js'
 
 /**
  * One item: the selection mark, the source glyph, the headline and its date, then the summary dim beneath.
@@ -41,13 +42,40 @@ function rowView(ui: BandUi, row: PaneRow): RenderElement {
 }
 
 /**
- * The pane: the tab row (the active tab undimmed), the heading with the selection Buttons, the window of items or what an empty tab says, then the selected item's actions, with mark-as-read on the saved tab.
+ * The stack tab's filter: a text field where the surface has one, else the filter in force as dim text (nothing when there is none).
  *
  * @param ui the elements
- * @param model what to draw
- * @param handlers what each Button runs
+ * @param filter the filter in force
+ * @param handlers what typing runs
  */
-export function paneView(ui: BandUi, model: PaneModel, handlers: PaneHandlers): RenderElement {
+function filterView(ui: PaneUi, filter: string, handlers: PaneHandlers): RenderElement[] {
+  const { Input, Text } = ui
+
+  if (Input === undefined) {
+    return filter === '' ? [] : [<Text dimColor>{`Filter: ${filter}`}</Text>]
+  }
+
+  return [
+    <Input
+      key="filter"
+      label="Filter"
+      placeholder="package, ecosystem, level or flag"
+      value={filter}
+      submitLabel="filter"
+      onInput={value => handlers.filter(value)}
+      onSubmit={value => handlers.filter(value)}
+    />,
+  ]
+}
+
+/**
+ * The pane: the tab row (the active tab undimmed), the heading with the selection Buttons, the stack tab's filter, the window of items (the stack tab's under ecosystem headings) or what an empty tab says, then the selected item's actions, with mark-as-read on the saved tab.
+ *
+ * @param ui the elements, `Input` among them where the surface has one
+ * @param model what to draw
+ * @param handlers what each Button and the filter run
+ */
+export function paneView(ui: PaneUi, model: PaneModel, handlers: PaneHandlers): RenderElement {
   const { Box, Text, Button } = ui
 
   const read = model.isSavedTab
@@ -66,7 +94,16 @@ export function paneView(ui: BandUi, model: PaneModel, handlers: PaneHandlers): 
     model.rows.length === 0
       ? [<Text dimColor>{model.empty}</Text>]
       : [
-          ...model.rows.map(row => rowView(ui, row)),
+          ...model.rows.flatMap(row => [
+            ...(row.heading === undefined
+              ? []
+              : [
+                  <Text color="suggestion" bold>
+                    {row.heading}
+                  </Text>,
+                ]),
+            rowView(ui, row),
+          ]),
           actionRowView(ui, model.isSelectedSaved, handlers, read),
         ]
 
@@ -98,6 +135,7 @@ export function paneView(ui: BandUi, model: PaneModel, handlers: PaneHandlers): 
           onPress={handlers.down}
         />
       </Box>
+      {model.filter === undefined ? [] : filterView(ui, model.filter, handlers)}
       {body}
     </Box>
   )

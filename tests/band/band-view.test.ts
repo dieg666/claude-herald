@@ -396,4 +396,131 @@ describe('band-view', () => {
       ])
     })
   }
+
+  const stackBandOn = (
+    on: Parameters<typeof Fixtures.bandOn>[0],
+    settings: Parameters<typeof Fixtures.stackStoreOf>[1],
+    entries: Readonly<Record<string, unknown>> = {},
+  ) =>
+    Fixtures.bandOn(
+      on,
+      { sources: [], ...Fixtures.stackStoreOf(Fixtures.STACK_SAMPLE, settings), ...entries },
+      Fixtures.stackTreeOf(Fixtures.STACK_SAMPLE),
+    )
+
+  // Every package the band pages through, page after page, from the release links.
+  const packagesOf = async (
+    ui: Drawing & { press: (target: { key: string }) => Promise<unknown> },
+  ) => {
+    const total = Number(/of (\d+)$/.exec((await rangeOf(ui)) ?? '')?.[1] ?? 0)
+    const names: string[] = []
+
+    for (let page = 0; page < Math.ceil(total / 3); page += 1) {
+      for (const [href] of await linksOf(ui)) {
+        names.push(/github\.com\/owner\/([^/]+)\//.exec(String(href))?.[1] ?? String(href))
+      }
+
+      await ui.press({ key: 'next' })
+    }
+
+    return names
+  }
+
+  const SHOWN = {
+    all: ['react', 'vite', 'lodash', 'requests', 'next', 'zod'],
+    'minor+': ['react', 'vite', 'requests', 'zod'],
+    'major+breaking+security': ['react', 'requests', 'zod'],
+    'breaking+security': ['react', 'requests'],
+  } as const
+
+  for (const surface of SURFACES) {
+    for (const [showLevel, names] of Object.entries(SHOWN)) {
+      test(
+        `on ${surface}: show level ${showLevel} pages through ${names.join(', ')}`,
+        { timeoutMs: 20_000 },
+        async ($, on) => {
+          const clock = mock.clock(on)
+
+          stackBandOn(on, { showLevel: showLevel as keyof typeof SHOWN })
+
+          await $.session.start(Fixtures.SESSION)
+          await clock.settle()
+
+          const ui = await $.ui.mount({ ...BAND, surface })
+
+          expect(await packagesOf(ui)).toEqual([...names])
+        },
+      )
+    }
+
+    test(
+      `on ${surface}: a stack row shows ⚠ or 📦, links "pkg current → new" to the release and shows its level beneath`,
+      { timeoutMs: 20_000 },
+      async ($, on) => {
+        const clock = mock.clock(on)
+
+        stackBandOn(on, { showLevel: 'all' })
+
+        await $.session.start(Fixtures.SESSION)
+        await clock.settle()
+
+        const ui = await $.ui.mount({ ...BAND, surface })
+
+        expect(await linksOf(ui)).toEqual([
+          [
+            'https://github.com/owner/react/releases/tag/v19.0.0',
+            'react 18.2.0 → 19.0.0 · React 19',
+          ],
+          ['https://github.com/owner/vite/releases/tag/v5.1.0', 'vite 5.0.0 → 5.1.0'],
+          ['https://github.com/owner/lodash/releases/tag/v4.17.21', 'lodash 4.17.20 → 4.17.21'],
+        ])
+        expect(
+          (await ui.findAll({ type: 'Text', text: /^(⚠|📦)$/ })).map(icon => icon.text),
+        ).toEqual(['⚠', '📦', '📦'])
+        expect(await ui.find({ type: 'Text', text: 'npm · major · breaking' })).toBeDefined()
+        expect(await ui.find({ type: 'Text', text: /^…$/ })).toBeUndefined()
+      },
+    )
+
+    test(
+      `on ${surface}: turning the stack off for the project hides only its releases`,
+      { timeoutMs: 20_000 },
+      async ($, on) => {
+        const clock = mock.clock(on)
+        const news = { sources: [SOURCE], items: { src: Fixtures.datedItemsOf('src', 2) } }
+
+        stackBandOn(on, { isEnabled: false, showLevel: 'all' }, news)
+
+        await $.session.start(Fixtures.SESSION)
+        await clock.settle()
+
+        const ui = await $.ui.mount({ ...BAND, surface })
+
+        expect(await rangeOf(ui)).toBe('1-2 of 2')
+        expect(await ui.find({ type: 'Text', text: /^(⚠|📦)$/ })).toBeUndefined()
+        expect(await linksOf(ui)).toEqual([
+          ['https://example.com/src/1', 'src 1'],
+          ['https://example.com/src/2', 'src 2'],
+        ])
+      },
+    )
+
+    test(
+      `on ${surface}: with the stack on, its releases join the news items`,
+      { timeoutMs: 20_000 },
+      async ($, on) => {
+        const clock = mock.clock(on)
+        const news = { sources: [SOURCE], items: { src: Fixtures.datedItemsOf('src', 2) } }
+
+        stackBandOn(on, { showLevel: 'all' }, news)
+
+        await $.session.start(Fixtures.SESSION)
+        await clock.settle()
+
+        const ui = await $.ui.mount({ ...BAND, surface })
+
+        expect(await rangeOf(ui)).toBe('1-3 of 8')
+      },
+    )
+  }
 })

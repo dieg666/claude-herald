@@ -45,18 +45,20 @@ function linesOf(labels: readonly string[], columns: number): number {
  * @param sources every source, for the tab row
  * @param columns the cells across the body
  * @param bodyRows the rows the body has
+ * @param hasStack whether the tab row holds the stack tab
  */
 export function paneWindowSizeOf(
   sources: readonly Source[],
   columns: number,
   bodyRows: number,
+  hasStack = false,
 ): number {
   if (!Number.isFinite(bodyRows)) {
     return PANE_FIRST_WINDOW
   }
 
   const width = Number.isFinite(columns) ? columns : 80
-  const tabs = paneTabsOf(sources).map(tab =>
+  const tabs = paneTabsOf(sources, hasStack).map(tab =>
     tab.hotkey === undefined ? tab.label : `${tab.hotkey}: ${tab.label}`,
   )
   const chrome = linesOf(tabs, width) + 1 + linesOf(ACTION_LABELS, width)

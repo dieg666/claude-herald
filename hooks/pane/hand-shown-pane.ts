@@ -3,6 +3,7 @@ import type { Host } from '../host/host.js'
 import { messageOf } from '../refresh/message-of.js'
 import { handPaneItems } from './hand-pane-items.js'
 import { panePageOf } from './pane-page-of.js'
+import { paneStackOf } from './pane-stack-of.js'
 import type { PaneShown } from './pane-shown.js'
 
 /**
@@ -25,6 +26,7 @@ export async function handShownPane(
       await host.state.items.read(),
       await host.state.saved.read(),
       size,
+      paneStackOf(await host.state.stack.read()),
     )
 
     handPaneItems(host, onShown, page.shown)

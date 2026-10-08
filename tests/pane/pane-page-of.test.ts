@@ -71,4 +71,35 @@ describe('pane-page-of', () => {
   test('a size that is not a number gives the first window, never NaN', () => {
     expect(pageOf('a', 0, Number.NaN).size).toBe(Pane.PANE_FIRST_WINDOW)
   })
+
+  const STACK = { items: Fixtures.STACK_SAMPLE, filter: '' }
+
+  test('the stack tab lists the shown stack items grouped by ecosystem, filtered; without a stack there is no such tab', () => {
+    const page = Pane.panePageOf({ tab: '@stack', selected: 0 }, SOURCES, ITEMS, SAVED, 20, STACK)
+
+    expect(page.tabs.map(tab => tab.id)).toEqual(['a', 'b', '@stack', 'saved'])
+    expect(page.items.map(item => item.title)).toEqual([
+      'React 19',
+      'v5.1.0',
+      'v4.17.21',
+      'v16.0.0-rc.1',
+      'v0.4.0',
+      'v2.31.1',
+    ])
+
+    const filtered = Pane.panePageOf({ tab: '@stack', selected: 3 }, SOURCES, ITEMS, SAVED, 20, {
+      ...STACK,
+      filter: 'security',
+    })
+
+    expect([filtered.items.map(item => item.title), filtered.selected]).toEqual([['v2.31.1'], 0])
+    expect(pageOf('@stack', 0).tab.id).toBe('a')
+  })
+
+  test("the stack tab's window leaves room for the filter and one heading per ecosystem", () => {
+    const page = Pane.panePageOf({ tab: '@stack', selected: 0 }, SOURCES, ITEMS, SAVED, 4, STACK)
+
+    // Two ecosystems and the filter take three lines, two rows' worth.
+    expect([page.shown.length, page.size]).toEqual([2, 4])
+  })
 })

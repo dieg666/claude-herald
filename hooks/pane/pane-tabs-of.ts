@@ -2,16 +2,18 @@ import type { Source } from '../../types/index.js'
 import { fitColumns } from '../band/fit-columns.js'
 import { PANE_HOTKEYS } from '../names/pane-hotkeys.js'
 import { SAVED_TAB } from '../names/saved-tab.js'
+import { STACK_TAB } from '../names/stack-tab.js'
 import { collapsedTextOf } from '../page/collapsed-text-of.js'
 import { PANE_TAB_COLUMNS } from './pane-tab-columns.js'
 import type { PaneTab } from './pane-tab.js'
 
 /**
- * The pane's tabs: one per enabled source in order (the first nine with the digits 1 to 9), then the saved tab on 0; a source whose id is the saved tab's never gets a tab.
+ * The pane's tabs: one per enabled source in order (the first nine with the digits 1 to 9), then the stack tab on y when there is one, then the saved tab on 0; a source whose id is the saved tab's never gets a tab.
  *
  * @param sources every source, in order
+ * @param hasStack whether the stack tab is drawn
  */
-export function paneTabsOf(sources: readonly Source[]): PaneTab[] {
+export function paneTabsOf(sources: readonly Source[], hasStack = false): PaneTab[] {
   const tabs = sources
     .filter(source => source.isEnabled && source.id !== SAVED_TAB)
     .map((source, index) => ({
@@ -20,5 +22,7 @@ export function paneTabsOf(sources: readonly Source[]): PaneTab[] {
       ...(index < 9 ? { hotkey: String(index + 1) } : {}),
     }))
 
-  return [...tabs, { id: SAVED_TAB, label: 'Saved', hotkey: PANE_HOTKEYS.saved }]
+  const stack = hasStack ? [{ id: STACK_TAB, label: 'Your stack', hotkey: PANE_HOTKEYS.stack }] : []
+
+  return [...tabs, ...stack, { id: SAVED_TAB, label: 'Saved', hotkey: PANE_HOTKEYS.saved }]
 }
