@@ -2,11 +2,12 @@ import type { PaneRow } from './pane-row.js'
 import type { PaneTabView } from './pane-tab-view.js'
 
 /**
- * Everything the pane draws, worked out from state: the tabs, the heading (the active tab's name and the window's position), the rows or what an empty tab says, whether the saved tab is active, the stack tab's summary, filter and whether its selected package is expanded, and whether the selected item is saved.
+ * Everything the pane draws, worked out from state: the tabs, the window's position, the rows or what an empty tab says, whether the saved tab is active, the stack tab's summary, filter and whether its selected package is expanded, and whether the selected item is saved.
  */
 export type PaneModel = {
   readonly tabs: readonly PaneTabView[]
-  readonly heading: string
+  /** Where the window is in the active tab, `1–14 of 14`, drawn at the right end of the title line; absent on an empty tab. */
+  readonly position?: string
   readonly rows: readonly PaneRow[]
   /** What an empty tab shows in place of rows. */
   readonly empty: string

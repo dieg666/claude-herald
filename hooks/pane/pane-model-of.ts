@@ -3,7 +3,6 @@ import { fitColumns } from '../band/fit-columns.js'
 import { ICON_COLUMNS } from '../band/icon-columns.js'
 import { MARK_COLUMNS } from '../band/mark-columns.js'
 import { newsHeadlineOf } from '../band/news-headline-of.js'
-import { rangeLabelOf } from '../band/range-label-of.js'
 import { SUMMARY_INDENT } from '../band/summary-indent.js'
 import { httpUrlOf } from '../commands/http-url-of.js'
 import { isStackItem } from '../deps/stack/is-stack-item.js'
@@ -18,6 +17,7 @@ import { PANE_DATE_COLUMNS } from './pane-date-columns.js'
 import { PANE_HEADING_RESERVE } from './pane-heading-reserve.js'
 import type { PaneModel } from './pane-model.js'
 import type { PanePage } from './pane-page.js'
+import { paneRangeOf } from './pane-range-of.js'
 import type { PaneRow } from './pane-row.js'
 import { paneStackRowsOf } from './pane-stack-rows-of.js'
 import { PANE_SUMMARY_LINES } from './pane-summary-lines.js'
@@ -152,12 +152,16 @@ export function paneModelOf(
       : paneStackRowsOf(page.stack, page.span.selected, columns)
   const selectedRow = page.stack?.rows[page.selected]
 
-  const heading =
-    page.items.length === 0 ? name : `${name} · ${rangeLabelOf(page.span, page.items.length)}`
-
   return {
     tabs: page.tabs.map(tab => ({ ...tab, isActive: tab.id === page.tab.id })),
-    heading: fitColumns(heading, columns - PANE_HEADING_RESERVE),
+    ...(page.items.length === 0
+      ? {}
+      : {
+          position: fitColumns(
+            paneRangeOf(page.span, page.items.length),
+            columns - PANE_HEADING_RESERVE,
+          ),
+        }),
     rows,
     empty: fitColumns(emptyOf(page.tab.id, name, filter), columns),
     isSavedTab,

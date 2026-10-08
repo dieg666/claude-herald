@@ -375,12 +375,7 @@ export const register: Register = on => {
       sources,
       await read($, ITEMS),
       saved,
-      Pane.paneWindowSizeOf(
-        sources,
-        e.props.bodyColumns,
-        e.props.scroll.bodyRows,
-        stack !== undefined,
-      ),
+      Pane.paneWindowSizeOf(sources, e.props.bodyColumns, e.props.scroll.bodyRows, stack, saved),
       stack,
     )
     const table = $.ui.resolve(e)

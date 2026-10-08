@@ -8,7 +8,7 @@ describe('pane-model-of', () => {
   const SOURCES = [Fixtures.sourceAt('a', { name: 'Alpha' })]
   const ITEMS = { a: Fixtures.datedItemsOf('a', 2) }
 
-  test('tabs marked, heading, rows with link and date and no source mark; the selected one marked, with its summary', () => {
+  test('tabs marked, the position, rows with link and date and no source mark; the selected one marked, with its summary', () => {
     const page = Pane.panePageOf({ tab: 'a', selected: 1 }, SOURCES, ITEMS, [], 10)
     const model = Pane.paneModelOf(page, SOURCES, { 'a:2': 'Short.' }, [], 80)
 
@@ -16,7 +16,7 @@ describe('pane-model-of', () => {
       ['a', true],
       ['saved', false],
     ])
-    expect(model.heading).toBe('Alpha · 1-2 of 2')
+    expect(model.position).toBe('1–2 of 2')
     expect(model.rows).toEqual([
       {
         id: 'a:1',
@@ -42,7 +42,7 @@ describe('pane-model-of', () => {
     const page = Pane.panePageOf({ tab: 'saved', selected: 0 }, SOURCES, ITEMS, [kept], 10)
     const model = Pane.paneModelOf(page, SOURCES, {}, [kept], 80)
 
-    expect(model.heading).toBe('Saved · 1 of 1')
+    expect(model.position).toBe('1 of 1')
     expect(model.rows).toEqual([
       {
         id: 'src:kept',
@@ -172,7 +172,7 @@ describe('pane-model-of', () => {
     expect(rowAt('a', 120)).toMatchObject({ title, date: 'Jan 2' })
   })
 
-  test('an empty tab names itself and says so', () => {
+  test('an empty tab draws no position and says what it lacks', () => {
     const empty = Pane.paneModelOf(
       Pane.panePageOf({ tab: 'a', selected: 0 }, SOURCES, {}, [], 10),
       SOURCES,
@@ -188,14 +188,35 @@ describe('pane-model-of', () => {
       80,
     )
 
-    expect([empty.heading, empty.rows, empty.empty]).toEqual([
-      'Alpha',
+    expect([empty.position, empty.rows, empty.empty]).toEqual([
+      undefined,
       [],
       'Nothing from Alpha yet.',
     ])
-    expect([saved.heading, saved.empty]).toEqual([
-      'Saved',
+    expect([saved.position, saved.empty]).toEqual([
+      undefined,
       'Nothing saved yet: press v on an item to keep it here.',
+    ])
+  })
+
+  test("the position never repeats the tab's name and fits beside the selection Buttons", () => {
+    const page = Pane.panePageOf({ tab: 'a', selected: 0 }, SOURCES, ITEMS, [], 10)
+
+    expect(Pane.paneModelOf(page, SOURCES, {}, [], 80).position).toBe('1–2 of 2')
+    // Twenty cells less the fourteen the Buttons take leave six.
+    expect(Pane.paneModelOf(page, SOURCES, {}, [], 20).position).toBe('1–2 o…')
+  })
+
+  test('the stack and saved tabs carry their counts, the active one marked', () => {
+    const stack = { items: Fixtures.STACK_RELEASES, filter: '', expanded: [] }
+    const saved = [{ ...Fixtures.itemAt('kept'), savedAt: 1 }]
+    const page = Pane.panePageOf({ tab: 'saved', selected: 0 }, SOURCES, ITEMS, saved, 10, stack)
+    const model = Pane.paneModelOf(page, SOURCES, {}, saved, 80)
+
+    expect(model.tabs.map(tab => [tab.id, tab.count, tab.isActive])).toEqual([
+      ['a', undefined, false],
+      ['@stack', 7, false],
+      ['saved', 1, true],
     ])
   })
 
@@ -205,7 +226,7 @@ describe('pane-model-of', () => {
     const page = Pane.panePageOf({ tab: 'a', selected: 0 }, sources, items, [], 10)
     const model = Pane.paneModelOf(page, sources, { 'a:1': `x${'y'.repeat(30)}` }, [], 30)
 
-    expect(model.heading).toBe('A name · 1 of 1')
+    expect(model.position).toBe('1 of 1')
     expect(model.rows[0]?.icon).toBeUndefined()
     expect(model.rows[0]?.title).toBe('one two')
     expect(model.rows[0]?.summaryLines).toEqual([`x${'y'.repeat(25)}`, 'yyyyy'])
@@ -217,7 +238,7 @@ describe('pane-model-of', () => {
       Pane.panePageOf({ tab: '@stack', selected }, SOURCES, ITEMS, [], 20, stack)
     const model = Pane.paneModelOf(pageAt(2), SOURCES, {}, [], 80, '')
 
-    expect(model.heading).toBe('Your stack · 1-10 of 10')
+    expect(model.position).toBe('1–10 of 10')
     expect(model.summary).toBe('7 packages behind · 2 security · 1 breaking')
     expect(model.filter).toBe('')
     expect(model.isExpanded).toBe(true)

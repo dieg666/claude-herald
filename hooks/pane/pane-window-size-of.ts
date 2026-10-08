@@ -1,7 +1,9 @@
-import type { Source } from '../../types/index.js'
+import type { SavedItem, Source } from '../../types/index.js'
 import { displayWidthOf } from '../band/display-width-of.js'
 import { PANE_FIRST_WINDOW } from './pane-first-window.js'
+import type { PaneStack } from './pane-stack.js'
 import { PANE_SUMMARY_LINES } from './pane-summary-lines.js'
+import { paneTabSpellingOf } from './pane-tab-spelling-of.js'
 import { paneTabsOf } from './pane-tabs-of.js'
 
 /**
@@ -37,27 +39,27 @@ function linesOf(labels: readonly string[], columns: number): number {
 }
 
 /**
- * How many one-line items fit in the pane's body of `columns` by `bodyRows` once the tab row, the heading, the action row and the selected item's summary lines are drawn; at least one, `PANE_FIRST_WINDOW` when `bodyRows` is not a number, 80 columns taken when `columns` is not.
+ * How many one-line items fit in the pane's body of `columns` by `bodyRows` once the tab row (every tab spelled as the terminal draws it, the active one included), the title line, the action row and the selected item's summary lines are drawn; at least one, `PANE_FIRST_WINDOW` when `bodyRows` is not a number, 80 columns taken when `columns` is not.
  *
  * @param sources every source, for the tab row
  * @param columns the cells across the body
  * @param bodyRows the rows the body has
- * @param hasStack whether the tab row holds the stack tab
+ * @param stack the stack tab's items, for its tab and count; no stack tab when absent
+ * @param saved the saved items, for the saved tab's count
  */
 export function paneWindowSizeOf(
   sources: readonly Source[],
   columns: number,
   bodyRows: number,
-  hasStack = false,
+  stack?: PaneStack,
+  saved: readonly SavedItem[] = [],
 ): number {
   if (!Number.isFinite(bodyRows)) {
     return PANE_FIRST_WINDOW
   }
 
   const width = Number.isFinite(columns) ? columns : 80
-  const tabs = paneTabsOf(sources, hasStack).map(tab =>
-    tab.hotkey === undefined ? tab.label : `${tab.hotkey}: ${tab.label}`,
-  )
+  const tabs = paneTabsOf(sources, stack, saved).map(paneTabSpellingOf)
   const chrome =
     linesOf(tabs, width) + 1 + Math.max(...ACTION_ROWS.map(labels => linesOf(labels, width)))
 

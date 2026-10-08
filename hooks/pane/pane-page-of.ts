@@ -49,7 +49,7 @@ export function panePageOf(
   size: number,
   stack?: PaneStack,
 ): PanePage {
-  const tabs = paneTabsOf(sources, stack !== undefined)
+  const tabs = paneTabsOf(sources, stack, saved)
   const tab = tabs.find(entry => entry.id === pane.tab) ?? tabs[0] ?? { id: SAVED_TAB, label: '' }
   const isStack = tab.id === STACK_TAB && stack !== undefined
   const packages = isStack ? stackTabPackagesOf(stack.items, stack.filter) : []

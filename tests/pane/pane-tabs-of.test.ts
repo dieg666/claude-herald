@@ -48,18 +48,42 @@ describe('pane-tabs-of', () => {
     ).toEqual(['a', 'saved'])
   })
 
-  test('names become one line cut to a tab width; a blank name shows the id', () => {
-    const [long, blank] = Pane.paneTabsOf([
-      Fixtures.sourceAt('long', { name: `Very\nlong ${'x'.repeat(40)}` }),
+  test('names become one line cut to sixteen cells, wide characters counting two; a blank name shows the id', () => {
+    const [long, edge, wide, blank] = Pane.paneTabsOf([
+      Fixtures.sourceAt('long', { name: 'Claude Code\nreleases' }),
+      Fixtures.sourceAt('edge', { name: 'AINews (smol.ai)' }),
+      Fixtures.sourceAt('wide', { name: '日本語のニュースサイト' }),
       Fixtures.sourceAt('blank', { name: ' \u0007 ' }),
     ])
 
-    expect(long?.label).toBe(`Very long ${'x'.repeat(13)}…`)
+    expect(Pane.PANE_TAB_COLUMNS).toBe(16)
+    expect(long?.label).toBe('Claude Code rel…')
+    expect(edge?.label).toBe('AINews (smol.ai)')
+    expect(wide?.label).toBe('日本語のニュー…')
     expect(blank?.label).toBe('blank')
   })
 
+  test('the stack tab counts its packages behind and Saved its items; no count for none', () => {
+    const sources = [Fixtures.sourceAt('a', { name: 'Alpha' })]
+    const stack = { items: Fixtures.STACK_RELEASES, filter: 'nothing matches', expanded: [] }
+    const saved = [1, 2].map(n => ({ ...Fixtures.itemAt(`k${n}`), savedAt: n }))
+
+    expect(Pane.paneTabsOf(sources, stack, saved).map(tab => [tab.id, tab.count])).toEqual([
+      ['a', undefined],
+      ['@stack', 7],
+      ['saved', 2],
+    ])
+    expect(
+      Pane.paneTabsOf(sources, { ...stack, items: [] }, []).map(tab => Object.hasOwn(tab, 'count')),
+    ).toEqual([false, false, false])
+  })
+
   test('the stack tab, when there is one, comes before Saved on y, a hotkey no other pane Button takes', () => {
-    const tabs = Pane.paneTabsOf([Fixtures.sourceAt('a', { name: 'Alpha' })], true)
+    const tabs = Pane.paneTabsOf([Fixtures.sourceAt('a', { name: 'Alpha' })], {
+      items: [],
+      filter: '',
+      expanded: [],
+    })
 
     expect(tabs).toEqual([
       { id: 'a', label: 'Alpha', hotkey: '1' },

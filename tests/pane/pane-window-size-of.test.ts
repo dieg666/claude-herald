@@ -26,6 +26,20 @@ describe('pane-window-size-of', () => {
     expect(Pane.paneWindowSizeOf(ONE, 35, 12)).toBe(4)
   })
 
+  test('the tab row is spelled as drawn, the counts included: one line where it fits, two where it wraps', () => {
+    const sources = [...ONE, Fixtures.sourceAt('long', { name: 'Claude Code releases' })]
+    const saved = [1, 2].map(n => ({ ...Fixtures.itemAt(`k${n}`), savedAt: n }))
+    const stack = { items: Fixtures.STACK_RELEASES, filter: '', expanded: [] }
+
+    // `1: Alpha  2: Claude Code rel…  0: Saved 2` is forty-one cells; the actions take two lines from forty on.
+    expect(Pane.paneWindowSizeOf(sources, 41, 20, undefined, saved)).toBe(13)
+    expect(Pane.paneWindowSizeOf(sources, 40, 20, undefined, saved)).toBe(12)
+    expect(Pane.paneWindowSizeOf(sources, 40, 20)).toBe(13)
+    // `y: Your stack 7` adds seventeen cells with its gap.
+    expect(Pane.paneWindowSizeOf(sources, 58, 20, stack, saved)).toBe(13)
+    expect(Pane.paneWindowSizeOf(sources, 57, 20, stack, saved)).toBe(12)
+  })
+
   test('at least one item, however little room', () => {
     expect(Pane.paneWindowSizeOf(ONE, 80, 0)).toBe(1)
   })
