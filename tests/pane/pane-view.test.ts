@@ -1509,5 +1509,33 @@ describe('pane-view', () => {
         (await ui.findAll({ type: 'Text' })).filter(text => text.props.color === 'error'),
       ).not.toEqual([])
     })
+
+    test(`on ${surface}: a selected Your stack package row and a selected release row draw no summary line`, async ($, on) => {
+      const clock = mock.clock(on)
+
+      releasesPaneOn(on)
+
+      await $.session.start(Fixtures.SESSION)
+      await clock.settle()
+
+      const ui = await $.ui.mount({ ...PANE, surface, props: WIDE })
+
+      // A summary sits in a Box indented under its row; its placeholder is a dim "…".
+      const summaryOf = async () => [
+        await ui.findAll({ type: 'Text', text: /^…$/ }),
+        (await ui.findAll({ type: 'Box' })).filter(box => box.props.paddingLeft === 4),
+      ]
+
+      await ui.press({ key: 'tab-@stack' })
+
+      expect(await summaryOf()).toEqual([[], []])
+
+      await ui.press({ key: 'down' })
+      await ui.press({ key: 'releases' })
+      await ui.press({ key: 'down' })
+
+      expect((await filledRowsOf(ui))[0]).toMatch(/^› 📦 30\.1\.2/)
+      expect(await summaryOf()).toEqual([[], []])
+    })
   }
 })

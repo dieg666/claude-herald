@@ -107,7 +107,7 @@ function rowView(ui: BandUi, row: PaneRow): RenderElement {
       </Box>
     )
 
-  if (!row.isSelected || row.hasNoSummary === true) {
+  if (row.cells !== undefined || !row.isSelected || row.hasNoSummary === true) {
     return line
   }
 
