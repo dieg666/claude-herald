@@ -1,4 +1,5 @@
-import { describe, expect, test } from 'claude-code/testing'
+import type { RenderSurface } from 'claude-code'
+import { describe, expect, mock, test } from 'claude-code/testing'
 
 import Fixtures from '../fixtures'
 
@@ -35,6 +36,31 @@ describe('show-news', () => {
       expect(opened).toEqual([{ id: 'news', title: 'News', focus: true, closeOnEscape: true }])
     })
   }
+
+  test(
+    'opening the pane summarizes the items its first tab shows; the digest asks for none',
+    { timeoutMs: 20_000 },
+    async ($, on) => {
+      const clock = mock.clock(on)
+      const { asked } = Fixtures.bandOn(on, STORE)
+      const surfaces: RenderSurface[] = []
+
+      on('session.surfaces', () => ({ value: [...surfaces] }))
+      on('ui.open', () => ({ value: { isPlaced: true } }))
+
+      await $.classic.SessionStart({ source: 'clear' })
+      await $.command.run(Fixtures.newsOf(''))
+      await clock.settle()
+
+      expect(asked).toEqual([])
+
+      surfaces.push('terminal')
+      await $.command.run(Fixtures.newsOf(''))
+      await clock.settle()
+
+      expect([...asked].sort()).toEqual(['a', 'b', 'c', 'd'])
+    },
+  )
 
   test('with no surface attached, answers the latest items of every enabled source', async ($, on) => {
     Fixtures.storeOn(on, STORE)

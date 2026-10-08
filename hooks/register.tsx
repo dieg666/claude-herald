@@ -8,6 +8,7 @@ import Commands from './commands'
 import Detect from './deps/detect'
 import type { Host } from './host'
 import Names from './names'
+import Pane from './pane'
 import Refresh from './refresh'
 import State from './state'
 import Store from './store'
@@ -110,6 +111,26 @@ function resyncSummaries($: EngineInterface): void {
 }
 
 /**
+ * What the per-item action Buttons run, on the item drawn as selected; the band and the pane share them.
+ *
+ * @param $ the render hook's engine, used only when a Button is pressed
+ * @param item the selected item as drawn
+ */
+function itemActionsOf($: EngineInterface, item: Item | undefined): Actions.ItemActionHandlers {
+  const act =
+    (action: (host: Host, selected: Item, press: UiPressArgument) => Promise<boolean>) =>
+    (press: UiPressArgument) =>
+      void (item === undefined ? undefined : action(hostOf($), item, press))
+
+  return {
+    open: act((host, selected) => Actions.openItem(host, selected)),
+    summarize: act((host, selected) => Actions.summarizeItem(host, SUMMARY_JOBS, selected)),
+    save: act((host, selected) => Actions.saveItem(host, selected)),
+    copy: act((host, selected, press) => Actions.copyItem(host, selected, press.surface)),
+  }
+}
+
+/**
  * What the band's Buttons run: page and selection moves write the band state, the actions act on the item drawn as selected.
  *
  * @param $ the render hook's engine, used only when a Button is pressed
@@ -117,10 +138,6 @@ function resyncSummaries($: EngineInterface): void {
  */
 function bandHandlersOf($: EngineInterface, item: Item | undefined): Band.BandHandlers {
   const turn = (move: Band.BandMove) => () => void Band.turnBand(hostOf($), ROTATION, move)
-  const act =
-    (action: (host: Host, selected: Item, press: UiPressArgument) => Promise<boolean>) =>
-    (press: UiPressArgument) =>
-      void (item === undefined ? undefined : action(hostOf($), item, press))
 
   return {
     prev: turn('prev'),
@@ -128,10 +145,46 @@ function bandHandlersOf($: EngineInterface, item: Item | undefined): Band.BandHa
     auto: turn('auto'),
     up: turn('up'),
     down: turn('down'),
-    open: act((host, selected) => Actions.openItem(host, selected)),
-    summarize: act((host, selected) => Actions.summarizeItem(host, SUMMARY_JOBS, selected)),
-    save: act((host, selected) => Actions.saveItem(host, selected)),
-    copy: act((host, selected, press) => Actions.copyItem(host, selected, press.surface)),
+    ...itemActionsOf($, item),
+  }
+}
+
+/**
+ * One-line summaries for the items the pane shows after its tab or window changed.
+ *
+ * @param host the engine
+ * @param items the items shown
+ */
+function summarizeShown(host: Host, items: readonly Item[]): Promise<unknown> {
+  return Summaries.ensureVisibleSummaries(host, SUMMARY_JOBS, items)
+}
+
+/**
+ * What the pane's Buttons run: tab and selection moves write the pane state and summarize what comes into view, mark-as-read drops the item drawn as selected from the saved list, the actions act on it.
+ *
+ * @param $ the render hook's engine, used only when a Button is pressed
+ * @param item the selected item as drawn
+ * @param size how many items the pane's window shows
+ */
+function paneHandlersOf(
+  $: EngineInterface,
+  item: Item | undefined,
+  size: number,
+): Pane.PaneHandlers {
+  const move = (to: Pane.PaneMove) => () => void Pane.movePane(hostOf($), to, size, summarizeShown)
+
+  const markRead = async (host: Host, selected: Item) => {
+    if (await Actions.markRead(host, selected)) {
+      await Pane.handShownPane(host, size, summarizeShown)
+    }
+  }
+
+  return {
+    tab: id => move({ tab: id }),
+    up: move('up'),
+    down: move('down'),
+    read: () => void (item === undefined ? undefined : markRead(hostOf($), item)),
+    ...itemActionsOf($, item),
   }
 }
 
@@ -202,6 +255,10 @@ export const register: Register = on => {
       resyncSummaries($)
     }
 
+    if (reply.summarizePane === true) {
+      void Pane.handShownPane(hostOf($), Pane.PANE_FIRST_WINDOW, summarizeShown)
+    }
+
     return { text: reply.text }
   })
 
@@ -232,6 +289,26 @@ export const register: Register = on => {
       ),
       bandHandlersOf($, page.items[page.span.selected]),
       await next(e),
+    )
+  })
+
+  // The pane reads state only; its Buttons write through the Host when pressed.
+  on('ui.render', { component: 'Pane', requestId: Names.PANE_ID }, async ($, e) => {
+    const sources = await read($, SOURCES)
+    const saved = await read($, SAVED)
+    const page = Pane.panePageOf(
+      await read($, PANE),
+      sources,
+      await read($, ITEMS),
+      saved,
+      Pane.paneWindowSizeOf(sources, e.props.bodyColumns, e.props.scroll.bodyRows),
+    )
+    const { Box, Text, Button, Link } = $.ui.resolve(e)
+
+    return Pane.paneView(
+      { Box, Text, Button, Link },
+      Pane.paneModelOf(page, sources, await read($, SUMMARIES), saved, e.props.bodyColumns),
+      paneHandlersOf($, page.items[page.selected], page.size),
     )
   })
 

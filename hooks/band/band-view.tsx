@@ -3,8 +3,8 @@
 /* @jsxFrag Fragment */
 import type { RenderElement, RenderNode } from 'claude-code'
 
-import { ACTION_HOTKEYS } from '../names/action-hotkeys.js'
 import { BAND_HOTKEYS } from '../names/band-hotkeys.js'
+import { actionRowView } from './action-row-view.js'
 import type { BandHandlers } from './band-handlers.js'
 import type { BandModel } from './band-model.js'
 import type { BandRow } from './band-row.js'
@@ -79,37 +79,7 @@ export function bandView(
         />
       </Box>
       {model.rows.map(row => rowView(ui, row))}
-      <Box flexDirection="row" flexWrap="wrap" columnGap={2}>
-        <Button
-          key="open"
-          label="Open"
-          hotkey={ACTION_HOTKEYS.open}
-          plain
-          onPress={handlers.open}
-        />
-        <Button
-          key="summarize"
-          label="Summarize"
-          hotkey={ACTION_HOTKEYS.summarize}
-          plain
-          onPress={handlers.summarize}
-        />
-        <Button
-          key="save"
-          label={model.isSelectedSaved ? 'Saved' : 'Save'}
-          hotkey={ACTION_HOTKEYS.save}
-          plain
-          dimColor={model.isSelectedSaved}
-          onPress={handlers.save}
-        />
-        <Button
-          key="copy"
-          label="Copy for Claude"
-          hotkey={ACTION_HOTKEYS.copy}
-          plain
-          onPress={handlers.copy}
-        />
-      </Box>
+      {actionRowView(ui, model.isSelectedSaved, handlers)}
       {below}
     </Box>
   )

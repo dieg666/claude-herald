@@ -1,0 +1,78 @@
+import { describe, expect, test } from 'claude-code/testing'
+
+import type { Item } from '../../types/index.js'
+import Pane from '../../hooks/pane'
+import Fixtures from '../fixtures'
+
+describe('move-pane', () => {
+  const paneWith = async () => {
+    const fake = Fixtures.fakeHostOf()
+    const shown: string[][] = []
+    const onShown = async (host: unknown, items: readonly Item[]) => {
+      shown.push(items.map(item => item.id))
+    }
+
+    await fake.host.state.sources.update(() => [Fixtures.sourceAt('a'), Fixtures.sourceAt('b')])
+    await fake.host.state.items.update(() => ({
+      a: Fixtures.datedItemsOf('a', 6),
+      b: Fixtures.datedItemsOf('b', 1),
+    }))
+
+    return { ...fake, shown, onShown }
+  }
+
+  test('a tab switch writes the pane and hands the new tab over once', async () => {
+    const { host, state, shown, onShown } = await paneWith()
+
+    expect(await Pane.movePane(host, { tab: 'b' }, 4, onShown)).toEqual(
+      Fixtures.datedItemsOf('b', 1),
+    )
+    expect(state.pane).toEqual({ tab: 'b', selected: 0 })
+    expect(shown).toEqual([['b:1']])
+
+    expect(await Pane.movePane(host, { tab: 'b' }, 4, onShown)).toBeUndefined()
+    expect(shown.length).toBe(1)
+  })
+
+  test('a move inside the window writes the selection and hands nothing; one that moves it hands the new window', async () => {
+    const { host, state, shown, onShown } = await paneWith()
+
+    expect(await Pane.movePane(host, 'down', 4, onShown)).toBeUndefined()
+    expect(await Pane.movePane(host, 'down', 4, onShown)).toBeUndefined()
+    expect(state.pane).toEqual({ tab: 'a', selected: 2 })
+    expect(shown).toEqual([])
+
+    await Pane.movePane(host, 'down', 4, onShown)
+
+    expect(shown).toEqual([['a:2', 'a:3', 'a:4', 'a:5']])
+  })
+
+  test('a move that changes nothing writes nothing', async () => {
+    const { host, state, shown, onShown } = await paneWith()
+
+    await host.state.pane.update(() => ({ tab: 'a', selected: 0 }))
+
+    const before = state.pane
+
+    expect(await Pane.movePane(host, 'up', 4, onShown)).toBeUndefined()
+    expect(state.pane).toBe(before)
+    expect(shown).toEqual([])
+  })
+
+  test('a failing state read or summary is logged, never thrown', async () => {
+    const { host, logs } = await paneWith()
+
+    expect(
+      await Pane.movePane(host, { tab: 'b' }, 4, async () => {
+        throw new Error('model down')
+      }),
+    ).toEqual(Fixtures.datedItemsOf('b', 1))
+
+    host.state.pane.read = async () => {
+      throw new Error('no state')
+    }
+
+    expect(await Pane.movePane(host, 'down', 4, async () => undefined)).toBeUndefined()
+    expect(logs).toEqual(['news: pane: model down', 'news: pane: could not move: no state'])
+  })
+})

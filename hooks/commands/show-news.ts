@@ -9,7 +9,7 @@ import { digestTextOf } from './digest-text-of.js'
 import { hasDrawingSurface } from './has-drawing-surface.js'
 
 /**
- * `/news`: opens the pane where a surface draws one; elsewhere, or when it cannot open, answers the latest items as text.
+ * `/news`: opens the pane where a surface draws one, asking for the summaries of the items it opens on; elsewhere, or when it cannot open, answers the latest items as text.
  *
  * @param host the engine
  */
@@ -29,6 +29,7 @@ export async function showNews(host: Host): Promise<CommandReply> {
         text: opened.isPlaced
           ? 'Opened the news pane.'
           : `The news pane is open and shows once there is room: ${opened.reason}`,
+        summarizePane: true,
       }
     } catch (error) {
       host.debug(`news: could not open the pane: ${messageOf(error)}`)

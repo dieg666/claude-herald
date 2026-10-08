@@ -1,3 +1,4 @@
+export * from './action-row-view.js'
 export * from './band-after.js'
 export type * from './band-handlers.js'
 export * from './band-items-of.js'
