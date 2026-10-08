@@ -54,7 +54,7 @@ export const DEPS_SUBCOMMANDS: Readonly<Record<keyof typeof DEPS_USAGES, Subcomm
   },
   map: {
     usage: DEPS_USAGES.map,
-    summary: "read a package's releases from that repository or feed",
+    summary: "read a package's releases from that repository or feed, or off to undo it",
     needsArgument: true,
     run: mapDep,
   },

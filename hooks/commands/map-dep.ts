@@ -13,10 +13,11 @@ import { depKeyPartsOf } from './dep-key-parts-of.js'
 import { depsRefusalOf } from './deps-refusal-of.js'
 import { depsRootOf } from './deps-root-of.js'
 import { projectPackageOf } from './project-package-of.js'
+import { unmapDep } from './unmap-dep.js'
 import { wordsOf } from './words-of.js'
 
 /**
- * `/news deps map <package> <owner/repo|feed-url>`: sets where a package's releases are read (every project's, as overrides are kept by package), drops the releases this project kept from its old feed so the new one is read silently on the next refresh, and asks for that refresh while the package is followed.
+ * `/news deps map <package> <owner/repo|feed-url|off>`: sets where a package's releases are read (every project's, as overrides are kept by package), drops the releases this project kept from its old feed so the new one is read silently on the next refresh, and asks for that refresh while the package is followed; `off` as the target undoes the mapping instead.
  *
  * @param host the engine
  * @param rest what follows `map`
@@ -33,7 +34,9 @@ export async function mapDep(host: Host, rest: string, stack: StackLoop): Promis
     )
   }
 
-  if (overrideTargetOf(target) === undefined) {
+  const isOff = target.toLowerCase() === 'off'
+
+  if (!isOff && overrideTargetOf(target) === undefined) {
     return depsRefusalOf(
       'map',
       `"${target}" is neither a GitHub repository (owner/repo or its URL) nor a feed URL.`,
@@ -55,6 +58,10 @@ export async function mapDep(host: Host, rest: string, stack: StackLoop): Promis
 
   if ('error' in found) {
     return depsRefusalOf('map', found.error)
+  }
+
+  if (isOff) {
+    return unmapDep(host, at.root, project, found.pkg, stack)
   }
 
   const key = depFeedKeyOf(found.pkg)

@@ -8,7 +8,7 @@ export const DEPS_USAGES = {
   ignore: 'ignore <package>',
   unignore: 'unignore <package>',
   add: 'add <ecosystem:package|owner/repo>',
-  map: 'map <package> <owner/repo|feed-url>',
+  map: 'map <package> <owner/repo|feed-url|off>',
   dev: 'dev <on|off>',
   level: 'level <level>',
   toast: 'toast <level|off>',

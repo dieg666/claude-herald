@@ -203,7 +203,7 @@ describe('map-dep', () => {
 
     for (const args of ['"npm:zod extra" colinhacks/zod', 'npm:zod "a/b c"', 'npm:zod a/b extra']) {
       expect((await $.command.run(Fixtures.newsOf(`deps map ${args}`))).text).toBe(
-        'Name the package, then where its releases are, each without spaces.\nUsage: /news deps map <package> <owner/repo|feed-url>',
+        'Name the package, then where its releases are, each without spaces.\nUsage: /news deps map <package> <owner/repo|feed-url|off>',
       )
     }
 
@@ -220,7 +220,7 @@ describe('map-dep', () => {
 
     Fixtures.fsOn(on, { '.git': { isDir: true } })
 
-    const usage = '\nUsage: /news deps map <package> <owner/repo|feed-url>'
+    const usage = '\nUsage: /news deps map <package> <owner/repo|feed-url|off>'
 
     expect((await $.command.run(Fixtures.newsOf('deps map zod nowhere'))).text).toBe(
       `"nowhere" is neither a GitHub repository (owner/repo or its URL) nor a feed URL.${usage}`,
