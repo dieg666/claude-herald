@@ -14,6 +14,6 @@ export function datedItemsOf(sourceId: string, count: number, startHour = 0): It
     title: `${sourceId} ${index + 1}`,
     url: `https://example.com/${sourceId}/${index + 1}`,
     publishedAt: new Date(Date.UTC(2026, 0, 2) - (startHour + index) * 3_600_000).toISOString(),
-    text: `About ${sourceId} ${index + 1}`,
+    text: `The full story about ${sourceId} ${index + 1}, with enough detail to summarize`,
   }))
 }

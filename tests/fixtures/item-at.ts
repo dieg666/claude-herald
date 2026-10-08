@@ -13,6 +13,6 @@ export function itemAt(key: string, publishedAt?: string): Item {
     title: key,
     url: `https://example.com/${key}`,
     ...(publishedAt === undefined ? {} : { publishedAt }),
-    text: `About ${key}`,
+    text: `The full story about ${key}, with enough detail to summarize`,
   }
 }
