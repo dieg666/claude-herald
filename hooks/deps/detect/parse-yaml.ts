@@ -410,7 +410,7 @@ function linesOf(text: string): Line[] {
  */
 export function parseYaml(text: string): unknown[] {
   const documents = text
-    .replace(/^﻿/, '')
+    .replace(/^\ufeff/, '')
     .split(/^(?:---|\.\.\.)[ \t]*(?:#.*)?$/m)
     .map(linesOf)
     .filter(lines => lines.length > 0)

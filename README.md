@@ -27,15 +27,15 @@ To try Herald for one session without installing it, or to update or uninstall i
 
 The band shows three items a page and turns the page every 20 seconds. It mixes every enabled source so that a busy one cannot fill a page, and it puts the newest flagged releases of your stack first. Each row shows the source, the item's age and a headline that links to the item. Items you have opened or copied leave the band.
 
-| Key | What it does |
-|-----|--------------|
-| `p`, `n` | Shows the previous or next page. |
-| `a` | Pauses or resumes the rotation. |
-| `k`, `j` | Selects the item above or below. |
-| `o` | Opens the item in your browser. |
-| `s` | Writes a 3 to 5 line Haiku summary under the item in the transcript. |
-| `v` | Saves the item for later. |
-| `c` | Copies the item for Claude, as a prompt to paste. |
+| Key      | What it does                                                         |
+| -------- | -------------------------------------------------------------------- |
+| `p`, `n` | Shows the previous or next page.                                     |
+| `a`      | Pauses or resumes the rotation.                                      |
+| `k`, `j` | Selects the item above or below.                                     |
+| `o`      | Opens the item in your browser.                                      |
+| `s`      | Writes a 3 to 5 line Haiku summary under the item in the transcript. |
+| `v`      | Saves the item for later.                                            |
+| `c`      | Copies the item for Claude, as a prompt to paste.                    |
 
 Hotkeys work while the band or the pane has the keyboard: press ctrl+x tab or click it (see [Keyboard focus](docs/band-and-pane.md#keyboard-focus)). On a narrow terminal the band turns compact and shows one headline a page.
 
@@ -74,21 +74,44 @@ Herald asks Claude Code only for what its features need:
 
 For the exact calls, hosts, files and accepted risks, see [Security and privacy details](docs/security.md).
 
+## What Herald sends, runs and hooks
+
+**What it sends and where.** Fetch requests go to the news sources you have on: `www.anthropic.com`, `github.com` (Claude Code, Claude Agent SDK, Anthropic Python SDK and MCP spec releases), `hnrss.org` (with `news.ycombinator.com` as a fallback), `simonwillison.net`, `news.smol.ai` and `github.blog`, plus `status.claude.com` if you turn Claude status on, and any feed or page address you add. While Your stack is on, package names go in the URL path to the registries of the ecosystems your project uses (`registry.npmjs.org`, `pypi.org`, `crates.io`, `proxy.golang.org` and a few Go import hosts, `rubygems.org`, `repo.packagist.org`, `api.nuget.org`, `repo1.maven.org`), and repository paths go to `github.com` for their `releases.atom` or `tags.atom` feed. Item and release text goes to Haiku through your own Claude Code session. Nothing else leaves your machine. [Network hosts](docs/security.md#network-hosts) has every host and when it is contacted.
+
+**What it runs and why.** It runs only fixed programs, each with an argument vector and no shell of its own, to open a link in your browser and to copy text for Claude:
+
+- `uname -s`, to tell macOS from other systems.
+- `open` (macOS), `rundll32 url.dll,FileProtocolHandler` (Windows) or `xdg-open` (elsewhere, started through `sh -c` with the address as `$1`), to open an http or https link.
+- `pbcopy` (macOS), `powershell` and `clip.exe` (Windows), or `wl-copy` and `xclip` (elsewhere), to put text on the clipboard. The text goes to the program's standard input.
+
+[Commands the mod runs](docs/security.md#commands-the-mod-runs) has each exact command.
+
+**What it reads from your machine.** Package manifests and lockfiles in your project, the environment values `HOME` and `USERPROFILE` (to stop the project search at your home directory) and `OS` (to tell Windows apart), and Claude Code's `language` setting (for the language of summaries). It asks for no secrets.
+
+**What each hook does.** It has no hook on prompts, tool calls or the transcript.
+
+- `session.start` loads its stored data, starts the refresh and rotation timers and registers `/herald`.
+- `command.run` for `herald` answers `/herald` and its subcommands.
+- `ui.render` above the prompt draws the band; it adds the band to what other mods draw there and changes nothing else.
+- `ui.render` for the `herald` pane draws the pane.
+- `ui.open` and `ui.close` for the `herald` pane redraw the band, which steps aside while the pane shows; they change nothing in the pane itself.
+- `SessionStart` on clear, resume or fork reloads the stored data and registers `/herald` again, because those reset the mod's state.
+
 ## First commands
 
-| Command | What it does |
-|---------|--------------|
-| `/herald` | Opens the pane. |
-| `/herald deps` | Shows which packages Herald follows for this project and where each one's releases come from. |
-| `/herald deps ignore <package>` | Stops following one package, such as `npm:left-pad`. |
-| `/herald deps toast off` | Stops release toasts. |
-| `/herald deps off` | Stops following this project's dependencies and leaves the other sources alone. |
-| `/herald disable Hacker News` | Turns a source off. `/herald list` shows the names. |
-| `/herald add <url> [name]` | Follows an RSS or Atom feed. `/herald add-page` follows a web page. |
-| `/herald interval <minutes>` | Sets the minutes between refreshes, 5 by default. |
-| `/herald rotate <seconds>` | Sets the seconds between band pages, 20 by default. |
-| `/herald lang <feed\|user\|code>` | Sets the language of summaries, such as `es`. |
-| `/herald summaries on` | Writes a one-line Haiku summary under each headline. Off by default; `s` summarizes one item on demand either way. |
+| Command                           | What it does                                                                                                       |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `/herald`                         | Opens the pane.                                                                                                    |
+| `/herald deps`                    | Shows which packages Herald follows for this project and where each one's releases come from.                      |
+| `/herald deps ignore <package>`   | Stops following one package, such as `npm:left-pad`.                                                               |
+| `/herald deps toast off`          | Stops release toasts.                                                                                              |
+| `/herald deps off`                | Stops following this project's dependencies and leaves the other sources alone.                                    |
+| `/herald disable Hacker News`     | Turns a source off. `/herald list` shows the names.                                                                |
+| `/herald add <url> [name]`        | Follows an RSS or Atom feed. `/herald add-page` follows a web page.                                                |
+| `/herald interval <minutes>`      | Sets the minutes between refreshes, 5 by default.                                                                  |
+| `/herald rotate <seconds>`        | Sets the seconds between band pages, 20 by default.                                                                |
+| `/herald lang <feed\|user\|code>` | Sets the language of summaries, such as `es`.                                                                      |
+| `/herald summaries on`            | Writes a one-line Haiku summary under each headline. Off by default; `s` summarizes one item on demand either way. |
 
 For every command and setting, see the [Reference](docs/reference.md#commands).
 

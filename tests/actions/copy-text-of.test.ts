@@ -25,7 +25,7 @@ describe('copy-text-of', () => {
   })
 
   test('feed text becomes one line: line breaks and control characters gone', () => {
-    const item = { ...Fixtures.itemAt('a'), title: 'Big\nnews\u0007 ‮again\r\n' }
+    const item = { ...Fixtures.itemAt('a'), title: 'Big\nnews\u0007 \u202eagain\r\n' }
 
     expect(Actions.copyTextOf('Read: {title}', item, 'Feed\nName')).toBe('Read: Big news again')
     expect(Actions.copyTextOf('{source}', item, 'Feed\nName')).toBe('Feed Name')

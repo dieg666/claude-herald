@@ -459,7 +459,7 @@ function assign(reader: Reader, table: Table, key: readonly string[], value: unk
  * @param text the document
  */
 export function parseToml(text: string): Record<string, unknown> {
-  const reader = new Reader(text.replace(/^﻿/, ''))
+  const reader = new Reader(text.replace(/^\ufeff/, ''))
   const root: Table = {}
   let current = root
 

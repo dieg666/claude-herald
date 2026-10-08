@@ -6,7 +6,7 @@ import { isRecord } from '../../store/is-record.js'
  * @param text the file's text
  */
 export function jsonRecordOf(text: string): Record<string, unknown> {
-  const value: unknown = JSON.parse(text.replace(/^﻿/, ''))
+  const value: unknown = JSON.parse(text.replace(/^\ufeff/, ''))
 
   if (!isRecord(value)) {
     throw new Error('not a JSON object')

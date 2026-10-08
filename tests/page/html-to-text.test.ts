@@ -212,7 +212,7 @@ describe('html-to-text', () => {
   })
 
   test('invisible and control characters are removed', () => {
-    expect(textOf('a​b\u0000c\u0007d﻿e')).toBe('abcde')
+    expect(textOf('a\u200bb\u0000c\u0007d\ufeffe')).toBe('abcde')
   })
 
   test('text never exceeds the cap, and a cut falls on a line boundary', () => {

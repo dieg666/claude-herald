@@ -111,7 +111,7 @@ describe('parse-extracted', () => {
         { title: 42, url: 'https://example.com/4' },
         { title: null, url: 'https://example.com/5' },
         { title: ['x'], url: 'https://example.com/6' },
-        { title: '​\u0000', url: 'https://example.com/7' },
+        { title: '\u200b\u0000', url: 'https://example.com/7' },
         { title: 'ok', url: 'https://example.com/8' },
       ]),
     )
