@@ -4,7 +4,7 @@ import { messageOf } from '../refresh/message-of.js'
 import type { Rotation } from './rotation.js'
 
 /**
- * Hands a page's items to the rotation's `onPage` without waiting, a failure logged to debug.
+ * Hands a page's items to the rotation's `onPage` without waiting, unless the Herald pane is shown and the band with it hidden; a failure logged to debug.
  *
  * @param host the engine
  * @param rotation the rotation
@@ -21,7 +21,10 @@ export function handPage(
     return
   }
 
-  rotation.onPage(host, items, signal).catch((error: unknown) => {
-    host.debug(`herald: band: ${messageOf(error)}`)
-  })
+  host
+    .isPaneShown()
+    .then(isHidden => (isHidden ? undefined : rotation.onPage(host, items, signal)))
+    .catch((error: unknown) => {
+      host.debug(`herald: band: ${messageOf(error)}`)
+    })
 }

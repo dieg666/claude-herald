@@ -108,6 +108,7 @@ function hostOf($: EngineInterface): Host {
     readText: path => $.fs.read(path),
     surfaces: () => $.session.surfaces(),
     openPane: pane => $.ui.open(pane),
+    isPaneShown: () => isPaneShown($),
     processRun: (argv, init) => $.process.run(argv, init),
     osVariable: () => $.env.get('OS'),
     copy: (text, surface) => $.ui.copy({ text, surface }),
@@ -400,6 +401,8 @@ export const register: Register = on => {
     const closed = await next(e)
 
     $.ui.invalidate('ui.render')
+    // The page the band shows again gets its summaries now, not at the next turn.
+    resyncSummaries($)
 
     return closed
   }).catch(($, e, next) => next(e))

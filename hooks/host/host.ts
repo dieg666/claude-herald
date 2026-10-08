@@ -112,6 +112,11 @@ export type Host = {
   openPane: (pane: PaneOpenArgs) => Promise<UiOpenResult>
 
   /**
+   * Whether the Herald pane is open, drawn and the pane shown, by `$.ui.panes()`; false when the engine cannot say. Never rejects.
+   */
+  isPaneShown: () => Promise<boolean>
+
+  /**
    * `$.process.run(argv, init)`: runs a program with no shell; rejects when it cannot start or times out.
    */
   processRun: (argv: readonly string[], init?: ProcessRunInit) => Promise<ProcessRunResult>

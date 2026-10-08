@@ -97,7 +97,10 @@ describe('turn-band', () => {
 
     expect((await Band.turnBand(host, rotation, 'next'))?.length).toBe(1)
 
-    await Promise.resolve()
+    // The hand-over first asks whether the pane is shown, then runs, then logs.
+    for (let tick = 0; tick < 10; tick += 1) {
+      await Promise.resolve()
+    }
 
     expect(logs).toEqual(['herald: band: model down'])
   })

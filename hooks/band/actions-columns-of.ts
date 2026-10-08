@@ -4,7 +4,7 @@ import { buttonColumnsOf } from './button-columns-of.js'
 import { GROUP_GAP_COLUMNS } from './group-gap-columns.js'
 
 /**
- * The cells the actions line takes on one row at its widest: the four actions (Saved, the longer save label) then the up and down Buttons set apart by a margin. Narrower, it takes two rows.
+ * The cells the actions line takes on one row at its widest: the four actions (Saved, the longer save label) then the up and down Buttons set apart by a margin. Narrower than this, or than the header, the band is drawn compact.
  */
 export function actionsColumnsOf(): number {
   const actions =

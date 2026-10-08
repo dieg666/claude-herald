@@ -1540,4 +1540,55 @@ describe('register', () => {
       await ui.unmount()
     })
   }
+  test(
+    'while the Herald pane is shown the rotation asks Haiku nothing for band pages; closing it asks for the page shown again',
+    { plugins: [Fixtures.PANE_CLOSER], timeoutMs: 30_000 },
+    async ($, on) => {
+      const clock = mock.clock(on)
+      // The pane opens on the older source's tab; the band pages through the newer one first.
+      const { asked } = Fixtures.bandOn(on, {
+        sources: [Fixtures.sourceAt('a'), Fixtures.sourceAt('b')],
+        items: { a: Fixtures.datedItemsOf('a', 2, 100), b: Fixtures.datedItemsOf('b', 12) },
+        settings: { rotateSeconds: 20 },
+      })
+
+      Fixtures.panesOn(on, ['terminal'])
+
+      await $.session.start(Fixtures.SESSION)
+      await clock.settle()
+
+      const ui = await $.ui.mount({
+        plugin: 'herald',
+        component: 'AbovePrompt',
+        surface: 'terminal',
+        props: Fixtures.BAND_PROPS,
+      })
+
+      expect([...asked].sort()).toEqual(['b 1', 'b 2', 'b 3'])
+
+      await $.command.run(Fixtures.heraldOf(''))
+      await clock.settle()
+
+      const opened = asked.length
+
+      expect(asked.slice(3).sort()).toEqual(['a 1', 'a 2'])
+
+      await clock.advance(3 * 20_000)
+      await clock.settle()
+
+      expect(asked.slice(opened)).toEqual([])
+
+      await $.command.run(Fixtures.CLOSE_PANE)
+      await clock.settle()
+
+      expect(asked.slice(opened).sort()).toEqual(['b 10', 'b 11', 'b 12'])
+      expect((await ui.findAll({ type: 'Link' })).map(link => link.children.join(''))).toEqual([
+        'b 10',
+        'b 11',
+        'b 12',
+      ])
+
+      await ui.unmount()
+    },
+  )
 })
