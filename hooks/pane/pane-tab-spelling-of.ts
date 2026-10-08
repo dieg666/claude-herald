@@ -1,13 +1,10 @@
 import type { PaneTab } from './pane-tab.js'
-import { paneTabTextOf } from './pane-tab-text-of.js'
 
 /**
- * A tab as the terminal spells it, the way a plain Button reads: `<hotkey>: <text>`, the text alone without a hotkey.
+ * A tab's name as the terminal spells it, the way a plain Button reads: `<hotkey>: <name>`, the name alone without a hotkey; the count token is not part of it.
  *
  * @param tab the tab
  */
 export function paneTabSpellingOf(tab: PaneTab): string {
-  const text = paneTabTextOf(tab)
-
-  return tab.hotkey === undefined ? text : `${tab.hotkey}: ${text}`
+  return tab.hotkey === undefined ? tab.label : `${tab.hotkey}: ${tab.label}`
 }

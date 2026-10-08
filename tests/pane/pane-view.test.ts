@@ -54,20 +54,39 @@ describe('pane-view', () => {
     )
   }
 
-  // Each tab in order: its key, its text, its hotkey, and `dim` for a dim Button or `active` for the highlighted text the active tab is drawn as.
-  const tabsOf = async (ui: Drawing) =>
-    (await ui.findAll({}))
+  // Each tab in order: its key, its text with its count token after it when it has one, its hotkey, and `dim` for a dim Button or `active` for the highlighted text the active tab is drawn as.
+  const tabsOf = async (ui: Drawing) => {
+    const all = await ui.findAll({})
+    // The count token is the second child of the Box that holds the tab's name.
+    const tokenOf = (key: string | undefined) => {
+      const box = all.find(
+        found =>
+          found.type === 'Box' &&
+          childKeyOf(found, 0) === key &&
+          childOf(found, 1)?.type === 'Text',
+      )
+
+      return box === undefined ? '' : ` ${lineOf(childOf(box, 1))}`
+    }
+
+    return all
       .filter(found => found.key?.startsWith('tab-') === true)
       .map(found =>
         found.type === 'Button'
           ? [
               found.key,
-              found.props.label,
+              `${found.props.label}${tokenOf(found.key)}`,
               found.props.hotkey,
               found.props.dimColor === true ? 'dim' : 'lit',
             ]
-          : [found.key, lineOf(found), undefined, isHighlighted(found) ? 'active' : found.type],
+          : [
+              found.key,
+              `${lineOf(found)}${tokenOf(found.key)}`,
+              undefined,
+              isHighlighted(found) ? 'active' : found.type,
+            ],
       )
+  }
 
   const keysOf = async (ui: Drawing) =>
     (await ui.findAll({ type: 'Button' })).map(button => button.key)
@@ -106,6 +125,10 @@ describe('pane-view', () => {
 
   const childOf = (box: FoundElement, index: number) =>
     box.children[index] as FoundElement | undefined
+
+  // A child as drawn carries its key among its props.
+  const childKeyOf = (box: FoundElement, index: number) =>
+    childOf(box, index)?.key ?? childOf(box, index)?.props.key
 
   // Each news row as drawn: the line's parts (the headline, then the date when it has one), and the summary lines under it.
   const newsRowsOf = async (ui: Drawing) =>
@@ -368,7 +391,7 @@ describe('pane-view', () => {
       expect(await tabsOf(ui)).toEqual([
         ['tab-a', activeOf(surface, '1', 'Alpha'), undefined, 'active'],
         ['tab-long', 'Claude Code releases', '2', 'dim'],
-        ['tab-saved', 'Saved 2', '0', 'dim'],
+        ['tab-saved', 'Saved (2)', '0', 'dim'],
       ])
       expect((await ui.find({ key: 'tab-a' }))?.type).toBe('Box')
       expect(lineOf(await ui.find({ key: 'tab-a' }))).toBe(
@@ -381,14 +404,14 @@ describe('pane-view', () => {
       expect(await tabsOf(ui)).toEqual([
         ['tab-a', 'Alpha', '1', 'dim'],
         ['tab-long', activeOf(surface, '2', 'Claude Code releases'), undefined, 'active'],
-        ['tab-saved', 'Saved 2', '0', 'dim'],
+        ['tab-saved', 'Saved (2)', '0', 'dim'],
       ])
 
       await ui.press({ key: 'tab-saved' })
 
       expect((await tabsOf(ui)).at(-1)).toEqual([
         'tab-saved',
-        activeOf(surface, '0', 'Saved 2'),
+        activeOf(surface, '0', 'Saved (2)'),
         undefined,
         'active',
       ])
@@ -397,7 +420,7 @@ describe('pane-view', () => {
 
       expect((await tabsOf(ui)).at(-1)).toEqual([
         'tab-saved',
-        activeOf(surface, '0', 'Saved 1'),
+        activeOf(surface, '0', 'Saved (1)'),
         undefined,
         'active',
       ])
@@ -503,17 +526,17 @@ describe('pane-view', () => {
           props: { ...Fixtures.PANE_PROPS, bodyColumns, scroll: { offset: 0, bodyRows: 16 } },
         })
 
-      // Cut, `1: Alpha`, `2: Beta`, `3: Claude Code rel…` and `0: Saved 2` with three two-cell gaps take fifty cells; full, fifty-four.
-      const wide = await mountAt(50)
+      // Cut, `1: Alpha`, `2: Beta`, `3: Claude Code rel…` and `0: Saved (2)` with three two-cell gaps take fifty-two cells; full, fifty-six.
+      const wide = await mountAt(52)
 
       expect(await tabsOf(wide)).toEqual([
         ['tab-a', activeOf(surface, '1', 'Alpha'), undefined, 'active'],
         ['tab-b', 'Beta', '2', 'dim'],
         ['tab-long', 'Claude Code rel…', '3', 'dim'],
-        ['tab-saved', 'Saved 2', '0', 'dim'],
+        ['tab-saved', 'Saved (2)', '0', 'dim'],
       ])
-      // Sixteen rows less one tab line, the title line, three footer lines and three summary lines leave eight.
-      expect([(await linksOf(wide)).length, await positionOf(wide)]).toEqual([8, '1–8 of 20'])
+      // Sixteen rows less one tab line, the title line, two footer lines (from fifty-two cells) and three summary lines leave nine.
+      expect([(await linksOf(wide)).length, await positionOf(wide)]).toEqual([9, '1–9 of 20'])
 
       // The active tab is spelled as wide as its Button, so switching keeps the cut names.
       await wide.press({ key: 'tab-long' })
@@ -522,24 +545,24 @@ describe('pane-view', () => {
         ['tab-a', 'Alpha'],
         ['tab-b', 'Beta'],
         ['tab-long', activeOf(surface, '3', 'Claude Code rel…')],
-        ['tab-saved', 'Saved 2'],
+        ['tab-saved', 'Saved (2)'],
       ])
 
       await wide.press({ key: 'tab-a' })
       await wide.unmount()
 
       // One cell less, cut names take two lines as full ones do, so the full names come back and the window loses a row.
-      const narrow = await mountAt(49)
+      const narrow = await mountAt(51)
 
       expect(await tabsOf(narrow)).toEqual([
         ['tab-a', activeOf(surface, '1', 'Alpha'), undefined, 'active'],
         ['tab-b', 'Beta', '2', 'dim'],
         ['tab-long', 'Claude Code releases', '3', 'dim'],
-        ['tab-saved', 'Saved 2', '0', 'dim'],
+        ['tab-saved', 'Saved (2)', '0', 'dim'],
       ])
       expect([(await linksOf(narrow)).length, await positionOf(narrow)]).toEqual([7, '1–7 of 20'])
-      // Without the count, `0: Saved` is two cells shorter and the cut row fits forty-nine.
-      expect(Pane.paneWindowSizeOf([ALPHA, BETA, long], 49, 16)).toBe(8)
+      // Without the count, `0: Saved` is four cells shorter and the cut row fits forty-eight.
+      expect(Pane.paneWindowSizeOf([ALPHA, BETA, long], 48, 16)).toBe(8)
     })
 
     test(`on ${surface}: a source's own tab draws no source mark; Saved draws the name dim, then the date`, async ($, on) => {
@@ -1209,7 +1232,7 @@ describe('pane-view', () => {
 
         expect(await tabsOf(ui)).toEqual([
           ['tab-a', activeOf(surface, '1', 'Alpha'), undefined, 'active'],
-          ['tab-b', 'Beta 1', '2', 'dim'],
+          ['tab-b', 'Beta •1', '2', 'dim'],
           ['tab-saved', 'Saved', '0', 'dim'],
         ])
 
@@ -1225,6 +1248,59 @@ describe('pane-view', () => {
         await ui.press({ key: 'tab-a' })
 
         expect((await tabsOf(ui))[1]).toEqual(['tab-b', 'Beta', '2', 'dim'])
+      },
+    )
+
+    test(
+      `on ${surface}: a count is a token of its own after the tab's name: new items a bullet in the accent color, a total in parentheses, dim`,
+      { timeoutMs: 20_000 },
+      async ($, on) => {
+        mock.clock(on)
+        Fixtures.bandOn(on, {
+          ...STORE,
+          viewed: { a: ['a:1', 'a:2', 'a:3'], b: ['b:2'] },
+          saved: Fixtures.datedItemsOf('a', 2).map((item, index) => ({ ...item, savedAt: index })),
+        })
+
+        await $.classic.SessionStart({ source: 'clear' })
+
+        const ui = await $.ui.mount({ ...PANE, surface })
+        // Each count token with the key of the tab it follows, its color and whether it is dim.
+        const tokensOf = async () =>
+          (await ui.findAll({ type: 'Box' }))
+            .filter(
+              box =>
+                childOf(box, 1)?.type === 'Text' && String(childKeyOf(box, 0)).startsWith('tab-'),
+            )
+            .map(box => {
+              const token = childOf(box, 1)
+
+              return [
+                childKeyOf(box, 0),
+                lineOf(token),
+                token?.props.color,
+                token?.props.dimColor,
+                box.props.columnGap,
+              ]
+            })
+
+        expect(await tokensOf()).toEqual([
+          ['tab-b', '•1', 'claude', undefined, 1],
+          ['tab-saved', '(2)', undefined, true, 1],
+        ])
+        // The Button's label is the name alone: the token is beside it, not in it.
+        expect((await ui.find({ type: 'Button', key: 'tab-b' }))?.props.label).toBe('Beta')
+
+        // The active tab keeps its token outside the fill.
+        await ui.press({ key: 'tab-saved' })
+
+        const active = (await ui.findAll({ type: 'Box' })).find(
+          box => childKeyOf(box, 0) === 'tab-saved',
+        )
+
+        expect(isHighlighted(childOf(active as FoundElement, 0) as FoundElement)).toBe(true)
+        expect(lineOf(childOf(active as FoundElement, 0))).toBe(activeOf(surface, '0', 'Saved'))
+        expect(lineOf(childOf(active as FoundElement, 1))).toBe('(2)')
       },
     )
 
@@ -1249,7 +1325,7 @@ describe('pane-view', () => {
         const sizeOf = (counts: Record<string, number>) =>
           Pane.paneWindowSizeOf([ALPHA, BETA], 30, 30, undefined, [], counts)
 
-        // `1: Alpha 20  2: Beta 2  0: Saved` takes thirty-two cells and wraps; without the counts it takes twenty-seven.
+        // `1: Alpha •20  2: Beta •2  0: Saved` takes thirty-four cells and wraps; without the counts it takes twenty-seven.
         expect(sizeOf({ a: 20, b: 2 })).toBe(sizeOf({}) - 1)
         expect(sizeOf({})).toBeLessThan(30)
         expect((await linksOf(ui)).length).toBe(sizeOf({ a: 20, b: 2 }))
@@ -1284,8 +1360,8 @@ describe('pane-view', () => {
 
           expect(await dimLinksOf(ui)).toEqual(['https://example.com/a/2'])
           expect(await tabsOf(ui)).toEqual([
-            ['tab-a', activeOf(surface, '1', 'Alpha 1'), undefined, 'active'],
-            ['tab-b', 'Beta 2', '2', 'dim'],
+            ['tab-a', activeOf(surface, '1', 'Alpha •1'), undefined, 'active'],
+            ['tab-b', 'Beta •2', '2', 'dim'],
             ['tab-saved', 'Saved', '0', 'dim'],
           ])
         },
@@ -1330,7 +1406,7 @@ describe('pane-view', () => {
         expect(await tabsOf(ui)).toEqual([
           ['tab-a', activeOf(surface, '1', 'Alpha'), undefined, 'active'],
           ['tab-b', 'Beta', '2', 'dim'],
-          ['tab-@stack', 'Your stack 4', 'y', 'dim'],
+          ['tab-@stack', 'Your stack (4)', 'y', 'dim'],
           ['tab-saved', 'Saved', '0', 'dim'],
         ])
 

@@ -118,8 +118,8 @@ describe('pane-tabs-of', () => {
       ['c', undefined],
       ['saved', undefined],
     ])
-    expect(Pane.paneTabTextOf(Pane.paneTabsOf(sources, undefined, [], { a: 14 })[0]!)).toBe(
-      'Alpha 14',
+    expect(Pane.paneTabCountTextOf(Pane.paneTabsOf(sources, undefined, [], { a: 14 })[0]!)).toBe(
+      '•14',
     )
   })
 

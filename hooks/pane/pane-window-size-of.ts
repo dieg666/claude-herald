@@ -11,7 +11,7 @@ import type { PaneKey } from './pane-key.js'
 import type { PaneStack } from './pane-stack.js'
 import { PANE_SUMMARY_LINES } from './pane-summary-lines.js'
 import { PANE_TAB_KEYS } from './pane-tab-keys.js'
-import { paneTabSpellingOf } from './pane-tab-spelling-of.js'
+import { paneTabRowTextOf } from './pane-tab-row-text-of.js'
 import { paneTabsOf } from './pane-tabs-of.js'
 import { wrappedLinesOf } from './wrapped-lines-of.js'
 
@@ -28,7 +28,7 @@ const KEY_SPELLINGS: Readonly<Record<PaneKey, string>> = {
 }
 
 /**
- * How many one-line items fit in the pane's body of `columns` by `bodyRows` once the tab row (every tab spelled as the terminal draws it, full or cut names as the row chooses, the active one included), the title line, the footer (the widest any tab draws, focus hint included, so giving the pane the keyboard never moves the window) and the selected item's summary lines are drawn; at least one, `PANE_FIRST_WINDOW` when `bodyRows` is not a number, 80 columns taken when `columns` is not.
+ * How many one-line items fit in the pane's body of `columns` by `bodyRows` once the tab row (every tab spelled as the terminal draws it, its count token included, full or cut names as the row chooses, the active one included), the title line, the footer (the widest any tab draws, focus hint included, so giving the pane the keyboard never moves the window) and the selected item's summary lines are drawn; at least one, `PANE_FIRST_WINDOW` when `bodyRows` is not a number, 80 columns taken when `columns` is not.
  *
  * @param sources every source, for the tab row
  * @param columns the cells across the body
@@ -51,7 +51,7 @@ export function paneWindowSizeOf(
 
   const width = Number.isFinite(columns) ? columns : 80
   const tabs = paneFittedTabsOf(paneTabsOf(sources, stack, saved, newCounts), width).map(
-    paneTabSpellingOf,
+    paneTabRowTextOf,
   )
   const hint = fitColumns(PANE_FOCUS_HINT, width)
   const footer = Math.max(

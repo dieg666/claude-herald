@@ -19,8 +19,9 @@ import type { PaneHandlers } from './pane-handlers.js'
 import type { PaneKey } from './pane-key.js'
 import type { PaneModel } from './pane-model.js'
 import type { PaneRow } from './pane-row.js'
+import { PANE_TAB_COUNT_GAP } from './pane-tab-count-gap.js'
+import { paneTabCountTextOf } from './pane-tab-count-text-of.js'
 import { paneTabSpellingOf } from './pane-tab-spelling-of.js'
-import { paneTabTextOf } from './pane-tab-text-of.js'
 import type { PaneTabView } from './pane-tab-view.js'
 import type { PaneUi } from './pane-ui.js'
 
@@ -136,7 +137,7 @@ function rowView(ui: BandUi, row: PaneRow): RenderElement {
 }
 
 /**
- * One tab of the tab row: the active one as plain text filled like the selected row, bold and underlined too, spelled on the terminal as a plain Button there reads so the row keeps its layout, and as its text alone elsewhere, as a native button reads; any other a dim Button with its hotkey.
+ * One tab of the tab row: the active one as plain text filled like the selected row, bold and underlined too, spelled on the terminal as a plain Button there reads so the row keeps its layout, and as its name alone elsewhere, as a native button reads; any other a dim Button with its hotkey; then its count as a token of its own after the name, outside the fill: new items in the accent color, a total dim.
  *
  * @param ui the elements
  * @param tab the tab
@@ -151,25 +152,38 @@ function tabView(
 ): RenderElement {
   const { Box, Text, Button } = ui
 
-  if (tab.isActive) {
-    return (
-      <Box key={`tab-${tab.id}`} flexShrink={0} {...selectedFillOf(true)}>
-        <Text bold underline {...selectedStyleOf(true)}>
-          {surface === 'terminal' ? paneTabSpellingOf(tab) : paneTabTextOf(tab)}
-        </Text>
-      </Box>
-    )
-  }
-
-  return (
+  const name = tab.isActive ? (
+    <Box key={`tab-${tab.id}`} flexShrink={0} {...selectedFillOf(true)}>
+      <Text bold underline {...selectedStyleOf(true)}>
+        {surface === 'terminal' ? paneTabSpellingOf(tab) : tab.label}
+      </Text>
+    </Box>
+  ) : (
     <Button
       key={`tab-${tab.id}`}
-      label={paneTabTextOf(tab)}
+      label={tab.label}
       {...(tab.hotkey === undefined ? {} : { hotkey: tab.hotkey })}
       plain
       dimColor
       onPress={handlers.tab(tab.id)}
     />
+  )
+  const count = paneTabCountTextOf(tab)
+
+  if (count === '') {
+    return name
+  }
+
+  return (
+    <Box flexDirection="row" flexShrink={0} columnGap={PANE_TAB_COUNT_GAP}>
+      {name}
+      <Text
+        key={`count-${tab.id}`}
+        {...(count.startsWith('•') ? { color: 'claude' } : { dimColor: true })}
+      >
+        {count}
+      </Text>
+    </Box>
   )
 }
 
