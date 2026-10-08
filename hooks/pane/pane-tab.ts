@@ -4,7 +4,7 @@
 export type PaneTab = {
   /** A source id, `@stack` or `saved`. */
   readonly id: string
-  /** The name drawn on the tab, one line. */
+  /** The name drawn on the tab, one line: a source's short label or own name. */
   readonly label: string
   /** The name cut to `PANE_TAB_COLUMNS` cells, drawn instead when that takes fewer lines of tabs. */
   readonly short: string

@@ -7,7 +7,7 @@ import Fixtures from '../fixtures'
 describe('source-label-of', () => {
   test('every factory source keeps a band label of at most twelve cells, the short label where it has one', () => {
     expect(
-      Defaults.FACTORY_SOURCES.map(source => [source.name, Band.sourceLabelOf(source)]),
+      Defaults.FACTORY_SOURCES.map(source => [source.name, Defaults.sourceLabelOf(source)]),
     ).toEqual([
       ['Anthropic news', 'Anthropic'],
       ['Claude Code releases', 'Claude Code'],
@@ -22,21 +22,21 @@ describe('source-label-of', () => {
     ])
     expect(
       Defaults.FACTORY_SOURCES.filter(
-        source => Band.displayWidthOf(Band.sourceLabelOf(source)) > Band.SOURCE_COLUMNS,
+        source => Band.displayWidthOf(Defaults.sourceLabelOf(source)) > Band.SOURCE_COLUMNS,
       ),
     ).toEqual([])
   })
 
   test('a renamed factory source keeps the name it was given', () => {
-    expect(Band.sourceLabelOf({ id: 'claude-code-releases', name: 'CC releases' })).toBe(
+    expect(Defaults.sourceLabelOf({ id: 'claude-code-releases', name: 'CC releases' })).toBe(
       'CC releases',
     )
   })
 
   test('a user source keeps its name, even with a factory id-like name; a gone source has none', () => {
-    expect(Band.sourceLabelOf(Fixtures.sourceAt('mine', { name: 'Claude Code releases' }))).toBe(
-      'Claude Code releases',
-    )
-    expect(Band.sourceLabelOf(undefined)).toBe('')
+    expect(
+      Defaults.sourceLabelOf(Fixtures.sourceAt('mine', { name: 'Claude Code releases' })),
+    ).toBe('Claude Code releases')
+    expect(Defaults.sourceLabelOf(undefined)).toBe('')
   })
 })

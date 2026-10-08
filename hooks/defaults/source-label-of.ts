@@ -1,9 +1,9 @@
 import type { Source } from '../../types/index.js'
-import { FACTORY_SOURCE_LABELS } from '../defaults/factory-source-labels.js'
-import { FACTORY_SOURCES } from '../defaults/factory-sources.js'
+import { FACTORY_SOURCE_LABELS } from './factory-source-labels.js'
+import { FACTORY_SOURCES } from './factory-sources.js'
 
 /**
- * The name a band row shows for its source: a factory source's short label while it keeps its factory name, else the source's own name.
+ * The short name the band and the pane's tabs show for a source: a factory source's short label while it keeps its factory name, else the source's own name.
  *
  * @param source the source, undefined when gone
  */

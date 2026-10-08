@@ -1,5 +1,6 @@
 import type { SavedItem, Source } from '../../types/index.js'
 import { httpUrlOf } from '../commands/http-url-of.js'
+import { sourceLabelOf } from '../defaults/source-label-of.js'
 import { isStackItem } from '../deps/stack/is-stack-item.js'
 import { stackHeadlineOf } from '../deps/stack/stack-headline-of.js'
 import { stackIconOf } from '../deps/stack/stack-icon-of.js'
@@ -19,7 +20,6 @@ import { LEAD_COLUMNS } from './lead-columns.js'
 import { rangeLabelOf } from './range-label-of.js'
 import { sourceColumnOf } from './source-column-of.js'
 import { SOURCE_COLUMNS } from './source-columns.js'
-import { sourceLabelOf } from './source-label-of.js'
 import { stackLabelOf } from './stack-label-of.js'
 
 /** The cells a stack row's package takes: the source column less the glyph and its gap. */

@@ -1,5 +1,6 @@
 import type { SavedItem, Source } from '../../types/index.js'
 import { fitColumns } from '../band/fit-columns.js'
+import { sourceLabelOf } from '../defaults/source-label-of.js'
 import { stackPackagesOf } from '../deps/stack/stack-packages-of.js'
 import { PANE_HOTKEYS } from '../names/pane-hotkeys.js'
 import { SAVED_TAB } from '../names/saved-tab.js'
@@ -19,7 +20,7 @@ function countOf(count: number): { readonly count?: number } {
 }
 
 /**
- * The pane's tabs, each with its full name and the name cut to `PANE_TAB_COLUMNS` cells: one per enabled source in order (the first nine with the digits 1 to 9) with its new items, then the stack tab on y with its packages behind when there is a stack, then the saved tab on 0 with its items; a source whose id is the saved tab's never gets a tab.
+ * The pane's tabs, each with its name (a factory source's short label while it keeps its factory name, else the source's own) and that name cut to `PANE_TAB_COLUMNS` cells: one per enabled source in order (the first nine with the digits 1 to 9) with its new items, then the stack tab on y with its packages behind when there is a stack, then the saved tab on 0 with its items; a source whose id is the saved tab's never gets a tab.
  *
  * @param sources every source, in order
  * @param stack the stack tab's items; no stack tab when absent
@@ -35,7 +36,7 @@ export function paneTabsOf(
   const tabs = sources
     .filter(source => source.isEnabled && source.id !== SAVED_TAB)
     .map((source, index) => {
-      const label = collapsedTextOf(source.name).trim() || source.id
+      const label = collapsedTextOf(sourceLabelOf(source)).trim() || source.id
 
       return {
         id: source.id,

@@ -2,6 +2,7 @@ import type { ElementQuery, FoundElement } from 'claude-code/testing'
 import { describe, expect, mock, test } from 'claude-code/testing'
 
 import Actions from '../../hooks/actions'
+import Defaults from '../../hooks/defaults'
 import Names from '../../hooks/names'
 import Pane from '../../hooks/pane'
 import Summaries from '../../hooks/summaries'
@@ -444,6 +445,42 @@ describe('pane-view', () => {
 
       expect(lineOf(await titleOf())).not.toContain('Beta')
       expect(await positionOf(ui)).toBe('1–2 of 2')
+    })
+
+    test(`on ${surface}: a factory source's tab uses its short label until it is renamed, a user source's its own name`, async ($, on) => {
+      mock.clock(on)
+
+      const [anthropic, code, sdk] = Defaults.FACTORY_SOURCES
+
+      Fixtures.bandOn(on, {
+        sources: [anthropic!, { ...code!, name: 'CC releases' }, sdk!, ALPHA],
+        items: { 'anthropic-news': Fixtures.datedItemsOf('anthropic-news', 2) },
+      })
+
+      await $.classic.SessionStart({ source: 'clear' })
+
+      const ui = await $.ui.mount({
+        ...PANE,
+        surface,
+        props: { ...Fixtures.PANE_PROPS, bodyColumns: 100 },
+      })
+
+      expect(await tabsOf(ui)).toEqual([
+        ['tab-anthropic-news', activeOf(surface, '1', 'Anthropic'), undefined, 'active'],
+        ['tab-claude-code-releases', 'CC releases', '2', 'dim'],
+        ['tab-claude-agent-sdk-ts', 'Agent SDK', '3', 'dim'],
+        ['tab-a', 'Alpha', '4', 'dim'],
+        ['tab-saved', 'Saved', '0', 'dim'],
+      ])
+
+      await ui.press({ key: 'tab-claude-agent-sdk-ts' })
+
+      expect((await tabsOf(ui))[2]).toEqual([
+        'tab-claude-agent-sdk-ts',
+        activeOf(surface, '3', 'Agent SDK'),
+        undefined,
+        'active',
+      ])
     })
 
     test(`on ${surface}: names are cut only where that saves a line of tabs, and the window counts the tab row's lines as drawn`, async ($, on) => {

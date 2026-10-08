@@ -1,5 +1,6 @@
 import type { Source } from '../../types/index.js'
 import { httpUrlOf } from '../commands/http-url-of.js'
+import { sourceLabelOf } from '../defaults/source-label-of.js'
 import { isStackItem } from '../deps/stack/is-stack-item.js'
 import { stackIconOf } from '../deps/stack/stack-icon-of.js'
 import { stackLineOf } from '../deps/stack/stack-line-of.js'
@@ -19,7 +20,6 @@ import { ICON_COLUMNS } from './icon-columns.js'
 import { isReleaseNews } from './is-release-news.js'
 import { SOURCE_COLUMNS } from './source-columns.js'
 import { SOURCE_GAP_COLUMNS } from './source-gap-columns.js'
-import { sourceLabelOf } from './source-label-of.js'
 
 /**
  * Feed text as one line, invisible characters and line breaks gone.

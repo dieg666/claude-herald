@@ -1,5 +1,5 @@
 /**
- * The short names the band's source column shows for factory sources, by source id, so none is cut; the pane and the commands keep the full names.
+ * The short names the band's source column and the pane's tabs show for factory sources, by source id, so none is cut; the commands and prose keep the full names.
  */
 export const FACTORY_SOURCE_LABELS: Readonly<Record<string, string>> = {
   'anthropic-news': 'Anthropic',

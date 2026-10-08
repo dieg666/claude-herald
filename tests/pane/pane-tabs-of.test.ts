@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
+import Defaults from '../../hooks/defaults'
 import Names from '../../hooks/names'
 import Pane from '../../hooks/pane'
 import Fixtures from '../fixtures'
@@ -63,6 +64,23 @@ describe('pane-tabs-of', () => {
     expect([edge?.label, edge?.short]).toEqual(['AINews (smol.ai)', 'AINews (smol.ai)'])
     expect([wide?.label, wide?.short]).toEqual(['日本語のニュースサイト', '日本語のニュー…'])
     expect([blank?.label, blank?.short]).toEqual(['blank', 'blank'])
+  })
+
+  test('a factory source keeps its short label while it has its factory name; a renamed one and a user source show their own names', () => {
+    const [code] = Defaults.FACTORY_SOURCES.filter(source => source.id === 'claude-code-releases')
+    const tabs = Pane.paneTabsOf([
+      code!,
+      { ...code!, id: 'claude-agent-sdk-ts', name: 'Claude Agent SDK (TS)' },
+      { ...code!, id: 'anthropic-sdk-python', name: 'My Python SDK' },
+      Fixtures.sourceAt('mine', { name: 'Claude Code releases' }),
+    ])
+
+    expect(tabs.slice(0, 4).map(tab => [tab.id, tab.label, tab.short])).toEqual([
+      ['claude-code-releases', 'Claude Code', 'Claude Code'],
+      ['claude-agent-sdk-ts', 'Agent SDK', 'Agent SDK'],
+      ['anthropic-sdk-python', 'My Python SDK', 'My Python SDK'],
+      ['mine', 'Claude Code releases', 'Claude Code rel…'],
+    ])
   })
 
   test('the stack tab counts its packages behind and Saved its items; no count for none', () => {
