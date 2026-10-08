@@ -8,7 +8,7 @@ import type { StackPackage } from './stack-package.js'
 import { stackPackagesOf } from './stack-packages-of.js'
 
 /**
- * What the pane's stack tab lists: one entry per package matching the filter, grouped by ecosystem in a fixed order; inside each group flagged packages first, then by level (major, minor, patch, unknown), then by the newest release's date, newest first.
+ * What the pane's stack tab lists: one entry per package matching the filter, grouped by ecosystem in a fixed order; inside each group flagged packages first, then by level (major, minor, patch, unknown), then by the date of the release the row targets, newest first.
  *
  * @param items the stack items shown, newest first
  * @param filter the text typed
@@ -22,7 +22,7 @@ export function stackTabPackagesOf(items: readonly StackItem[], filter: string):
       group: ECOSYSTEMS.indexOf(pkg.ecosystem),
       flagged: isFlaggedPackage(pkg) ? 0 : 1,
       level: LEVEL_RANKS[pkg.level],
-      time: timeOf(pkg.newest.publishedAt),
+      time: timeOf(pkg.target.publishedAt),
     }))
     .sort(
       (a, b) =>

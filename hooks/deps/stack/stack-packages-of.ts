@@ -2,9 +2,10 @@ import type { StackItem } from '../../../types/index.js'
 import { depFeedKeyOf } from '../resolve/dep-feed-key-of.js'
 import { LEVEL_RANKS } from './level-ranks.js'
 import type { StackPackage } from './stack-package.js'
+import { targetReleaseOf } from './target-release-of.js'
 
 /**
- * Stack items gathered per package, in the order each package first appears, each package's releases in the order given.
+ * Stack items gathered per package, in the order each package first appears, each package's releases in the order given, with the release its row targets.
  *
  * @param items the stack items, newest first
  */
@@ -18,7 +19,7 @@ export function stackPackagesOf(items: readonly StackItem[]): StackPackage[] {
   }
 
   return [...groups].flatMap(([key, releases]) => {
-    const [newest] = releases
+    const [newest, ...older] = releases
 
     if (newest === undefined) {
       return []
@@ -33,7 +34,7 @@ export function stackPackagesOf(items: readonly StackItem[]): StackPackage[] {
         key,
         ecosystem: newest.release.ecosystem,
         name: newest.release.name,
-        newest,
+        target: targetReleaseOf([newest, ...older]),
         releases,
         level,
       },

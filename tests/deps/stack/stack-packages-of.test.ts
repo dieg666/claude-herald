@@ -17,7 +17,7 @@ describe('stack-packages-of', () => {
       'npm:lodash',
       'pypi:requests',
     ])
-    expect(jsdom?.newest.release.version).toBe('30.1.2')
+    expect(jsdom?.target.release.version).toBe('30.1.2')
     expect(jsdom?.releases.map(item => item.release.version)).toEqual([
       '30.1.2',
       '30.1.1',

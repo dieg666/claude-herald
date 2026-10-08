@@ -12,7 +12,7 @@ describe('stack-package-note-of', () => {
       ]),
     )
 
-  test('flags name the release that brought them unless it is the newest; more than one release is counted', () => {
+  test('flags name the release that brought them unless it is the one the row targets; more than one release is counted', () => {
     expect(notes()).toEqual({
       'left-pad': '',
       astro: '',
@@ -39,5 +39,19 @@ describe('stack-package-note-of', () => {
     expect(Stack.stackPackageNoteOf(pkg!)).toBe(
       'security in Big one · breaking in Big one · 2 releases',
     )
+  })
+
+  test('pre-release only when the row targets one: a pre-release after the last stable release is not the target', () => {
+    const [mixed] = Stack.stackPackagesOf([
+      Fixtures.stackItemAt('a', '3.0.0-rc.1', { isPrerelease: true, breaking: true }),
+      Fixtures.stackItemAt('a', '2.1.0'),
+    ])
+    const [only] = Stack.stackPackagesOf([
+      Fixtures.stackItemAt('b', '3.0.0-rc.2', { isPrerelease: true }),
+      Fixtures.stackItemAt('b', '3.0.0-rc.1', { isPrerelease: true }),
+    ])
+
+    expect(Stack.stackPackageNoteOf(mixed!)).toBe('breaking in 3.0.0-rc.1 · 2 releases')
+    expect(Stack.stackPackageNoteOf(only!)).toBe('pre-release · 2 releases')
   })
 })

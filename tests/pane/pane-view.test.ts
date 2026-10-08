@@ -927,6 +927,61 @@ describe('pane-view', () => {
     )
   }
 
+  for (const surface of SURFACES) {
+    test(
+      `on ${surface}: a package row with a later-dated backport shows and acts on its highest release`,
+      { timeoutMs: 30_000 },
+      async ($, on) => {
+        const clock = mock.clock(on)
+        const copies: string[] = []
+        const items = [
+          Fixtures.stackItemAt('pkg', '7.0.3', {
+            current: '7.0.0',
+            level: 'patch',
+            publishedAt: '2026-10-01T00:00:00Z',
+          }),
+          Fixtures.stackItemAt('pkg', '8.0.0', {
+            current: '7.0.0',
+            level: 'major',
+            publishedAt: '2026-09-01T00:00:00Z',
+          }),
+        ]
+        const { stored } = Fixtures.bandOn(
+          on,
+          { ...STORE, ...Fixtures.stackStoreOf(items, { showLevel: 'all' }) },
+          Fixtures.stackTreeOf(items),
+        )
+
+        on('ui.copy', ($, e) => {
+          copies.push(e.text)
+
+          return { value: { isCopied: true } }
+        })
+
+        await $.session.start(Fixtures.SESSION)
+        await clock.settle()
+
+        const ui = await $.ui.mount({ ...PANE, surface, props: WIDE })
+        const url = 'https://github.com/owner/pkg/releases/tag/v8.0.0'
+
+        await ui.press({ key: 'tab-@stack' })
+
+        expect(await rowLinesOf(ui)).toEqual(['› 📦 pkg 7.0.0 → 8.0.0 major 2 releases Sep 1'])
+        expect(await selectedRowOf(ui)).toBe(url)
+
+        await ui.press({ key: 'copy' })
+        await ui.press({ key: 'save' })
+
+        expect(copies).toEqual([
+          `We use pkg 7.0.0. pkg 8.0.0 is out: ${url}\nCheck whether it affects this project and what we'd need to change.`,
+        ])
+        expect((stored.get('saved') as { id: string }[]).map(item => item.id)).toEqual([
+          items[1]?.id,
+        ])
+      },
+    )
+  }
+
   test('on mobile the stack tab draws the same package rows, summary and releases toggle, without a filter field', async ($, on) => {
     const clock = mock.clock(on)
 

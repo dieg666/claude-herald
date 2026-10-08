@@ -14,9 +14,17 @@ describe('version-change-of', () => {
     })
   })
 
-  test('all of it changed without a version in use; nothing when it is the same or a prefix', () => {
+  test('all of it changed without a version in use or when the new one is a shorter prefix; nothing when it is the same', () => {
     expect(Stack.versionChangeOf(undefined, '2.0.0')).toEqual({ same: '', changed: '2.0.0' })
     expect(Stack.versionChangeOf('2.0.0', '2.0.0')).toEqual({ same: '2.0.0', changed: '' })
-    expect(Stack.versionChangeOf('1.2.0', '1.2')).toEqual({ same: '1.2', changed: '' })
+    expect(Stack.versionChangeOf('1.2.0', '1.2')).toEqual({ same: '', changed: '1.2' })
+    expect(Stack.versionChangeOf('1.2', '1.2.1')).toEqual({ same: '1.2.', changed: '1' })
+  })
+
+  test('a leading v on one side only is ignored, kept in the part drawn unchanged', () => {
+    expect(Stack.versionChangeOf('1.0.0', 'v1.0.1')).toEqual({ same: 'v1.0.', changed: '1' })
+    expect(Stack.versionChangeOf('v1.0.0', '1.0.1')).toEqual({ same: '1.0.', changed: '1' })
+    expect(Stack.versionChangeOf('1.0.0', 'v2.0.0')).toEqual({ same: 'v', changed: '2.0.0' })
+    expect(Stack.versionChangeOf('v1.2.0', 'v1.2.0')).toEqual({ same: 'v1.2.0', changed: '' })
   })
 })

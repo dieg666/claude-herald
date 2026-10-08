@@ -112,4 +112,57 @@ describe('pane-stack-rows-of', () => {
     ])
     expect(releases.every(row => row.cells?.every(cell => cell.color === undefined))).toBe(true)
   })
+
+  test("a package's row targets its highest stable release, dated by it, the change colored by that release's level while the level column keeps the package's highest", () => {
+    const items = [
+      Fixtures.stackItemAt('lib', '2.0.0-rc.1', {
+        current: '1.2.0',
+        level: 'major',
+        isPrerelease: true,
+        publishedAt: '2026-10-02T00:00:00Z',
+      }),
+      Fixtures.stackItemAt('pkg', '7.0.3', {
+        current: '7.0.0',
+        level: 'patch',
+        publishedAt: '2026-10-01T00:00:00Z',
+      }),
+      Fixtures.stackItemAt('pkg', '8.0.0', {
+        current: '7.0.0',
+        level: 'major',
+        publishedAt: '2026-09-01T00:00:00Z',
+      }),
+      Fixtures.stackItemAt('lib', '1.3.0', {
+        current: '1.2.0',
+        level: 'minor',
+        publishedAt: '2026-08-01T00:00:00Z',
+      }),
+    ]
+    const page = Pane.panePageOf({ tab: '@stack', selected: 0 }, [], {}, [], 20, {
+      items,
+      filter: '',
+      expanded: [],
+    })
+    const rows = Pane.paneStackRowsOf(page.stack!, page.span.selected, 80)
+
+    expect(rows.map(row => [lineOf(row).replace(/\s+/g, ' ').trim(), row.date, row.href])).toEqual([
+      [
+        '› 📦 pkg 7.0.0 → 8.0.0 major 2 releases',
+        'Sep 1',
+        'https://github.com/owner/pkg/releases/tag/v8.0.0',
+      ],
+      [
+        '📦 lib 1.2.0 → 1.3.0 major 2 releases',
+        'Aug 1',
+        'https://github.com/owner/lib/releases/tag/v1.3.0',
+      ],
+    ])
+    expect(rows.map(row => (row.cells ?? []).filter(cell => cell.color !== undefined))).toEqual([
+      [{ text: '8.0.0', color: 'error' }],
+      [{ text: '3.0', color: 'warning' }],
+    ])
+    expect((page.items as typeof items).map(item => item.release.version)).toEqual([
+      '8.0.0',
+      '1.3.0',
+    ])
+  })
 })

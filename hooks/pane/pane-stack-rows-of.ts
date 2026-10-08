@@ -108,24 +108,24 @@ function releaseNoteOf(item: StackItem): string {
 }
 
 /**
- * The cells of the version a package's row moves to, the changed part in its level's color.
+ * The cells of the version a package's row moves to, the changed part colored by that release's own level (the level column shows the package's highest).
  *
  * @param pkg the package
  * @param version the new version, fitted
  */
 function versionCellsOf(pkg: StackPackage, version: string): PaneCell[] {
-  const current = pkg.newest.release.current
+  const current = pkg.target.release.current
   const { same, changed } = versionChangeOf(
     current === undefined ? undefined : lineOf(current),
     version,
   )
-  const color = levelColorOf(pkg.level)
+  const color = levelColorOf(pkg.target.release.level)
 
   return [{ text: same }, color === undefined ? { text: changed } : { text: changed, color }]
 }
 
 /**
- * The stack tab's rows in the window, every line fitted to `columns` cells in aligned columns: a package as its glyph (⚠ when any release shown is flagged, else 📦), name, `current → newest` with the changed part colored by level, its highest level, flags naming their release, the release count and the newest date; a release of an expanded package indented beneath with its line, level, flags and date.
+ * The stack tab's rows in the window, every line fitted to `columns` cells in aligned columns: a package as its glyph (⚠ when any release shown is flagged, else 📦), name, `current → target` (the highest stable release shown) with the changed part colored by the target's level, the package's highest level, flags naming their release, the release count and the target's date; a release of an expanded package indented beneath with its line, level, flags and date.
  *
  * @param stack the stack tab's page
  * @param selected the selected row within the window
@@ -138,8 +138,8 @@ export function paneStackRowsOf(
 ): PaneRow[] {
   const fit = (text: string, width: number) => fitColumns(lineOf(text), width)
   const releases = stack.rows.flatMap(row => (row.kind === 'release' ? [row.item] : []))
-  const currents = stack.packages.map(pkg => fit(pkg.newest.release.current ?? '', VERSION_COLUMNS))
-  const versions = stack.packages.map(pkg => fit(stackVersionOf(pkg.newest), VERSION_COLUMNS))
+  const currents = stack.packages.map(pkg => fit(pkg.target.release.current ?? '', VERSION_COLUMNS))
+  const versions = stack.packages.map(pkg => fit(stackVersionOf(pkg.target), VERSION_COLUMNS))
   const currentWidth = widestOf(currents)
   const versionWidth = widestOf(versions)
   const levelWidth = widestOf([
@@ -152,7 +152,7 @@ export function paneStackRowsOf(
   ])
   const dateWidth = widestOf(
     stack.rows
-      .map(row => shortDateOf((row.kind === 'package' ? row.pkg.newest : row.item).publishedAt))
+      .map(row => shortDateOf((row.kind === 'package' ? row.pkg.target : row.item).publishedAt))
       .flatMap(date => (date === undefined ? [] : [date])),
   )
   const nameWidth = widestOf(stack.packages.map(pkg => lineOf(pkg.name)))
@@ -186,7 +186,7 @@ export function paneStackRowsOf(
     ].join('')
 
   const rowOf = (row: StackRow, index: number): PaneRow => {
-    const item = row.kind === 'package' ? row.pkg.newest : row.item
+    const item = row.kind === 'package' ? row.pkg.target : row.item
     const href = httpUrlOf(item.url)?.href
     const date = shortDateOf(item.publishedAt)
     const dated = date === undefined ? {} : { date }
@@ -215,8 +215,8 @@ export function paneStackRowsOf(
     const title = lineOf(pkg.name).includes('/')
       ? fitStartColumns(lineOf(pkg.name), nameColumns)
       : fit(pkg.name, nameColumns)
-    const current = fit(pkg.newest.release.current ?? '', VERSION_COLUMNS)
-    const version = fit(stackVersionOf(pkg.newest), VERSION_COLUMNS)
+    const current = fit(pkg.target.release.current ?? '', VERSION_COLUMNS)
+    const version = fit(stackVersionOf(pkg.target), VERSION_COLUMNS)
     const cells: PaneCell[] = [
       { text: `${padOf(title, nameColumns)} ${padOf(current, currentWidth)}${current} → ` },
       ...versionCellsOf(pkg, version),
@@ -226,7 +226,7 @@ export function paneStackRowsOf(
     ]
 
     return {
-      id: `${pkg.newest.sourceId}:${pkg.key}`,
+      id: `${pkg.target.sourceId}:${pkg.key}`,
       icon: fitColumns(
         stackIconOf({
           breaking: flags.breaking !== undefined,
