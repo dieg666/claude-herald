@@ -511,26 +511,55 @@ describe('register', () => {
     expect(stored.get('deps')).toBeUndefined()
   })
 
-  test('after the start detection, time passing alone never detects again', async ($, on) => {
+  const NESTED = { ...PROJECT, 'tools/go.mod': 'module example.com/tools\n\ngo 1.22\n' }
+  const REFRESH_PERIOD = 5 * 60_000
+
+  test('after the start detection, an unchanged project is re-hashed on the refresh timer but never walked or rewritten', async ($, on) => {
     const clock = mock.clock(on)
-
-    Fixtures.storeOn(on, { sources: [] })
-
-    const fs = Fixtures.fsOn(on, PROJECT)
+    const stored = Fixtures.storeOn(on, { sources: [] })
+    const fs = Fixtures.fsOn(on, NESTED)
 
     on('session.start', () => ({ cwd: '/repo' }))
 
     await $.session.start(Fixtures.SESSION)
     await clock.settle()
 
-    const lists = fs.lists.length
+    const detection = JSON.stringify(stored.get('deps'))
     const reads = fs.reads.length
 
-    await clock.advance(60 * 60 * 1000)
+    expect(fs.lists).toContain('/repo/tools')
 
-    expect(lists > 0).toBe(true)
-    expect(fs.lists.length).toBe(lists)
-    expect(fs.reads.length).toBe(reads)
+    await clock.advance(3 * REFRESH_PERIOD)
+
+    expect(fs.lists.filter(path => path === '/repo/tools').length).toBe(1)
+    expect(JSON.stringify(stored.get('deps'))).toBe(detection)
+    // Each tick reads the recorded manifests again to compare their hashes.
+    expect(fs.reads.length > reads).toBe(true)
+  })
+
+  test('a manifest changed after the start detection is detected again on the next refresh tick', async ($, on) => {
+    const clock = mock.clock(on)
+    const stored = Fixtures.storeOn(on, { sources: [] })
+    const fs = Fixtures.fsOn(on, NESTED)
+
+    on('session.start', () => ({ cwd: '/repo' }))
+
+    await $.session.start(Fixtures.SESSION)
+    await clock.settle()
+
+    fs.write('go.mod', Go.K8S_GO_MOD.replace('cobra v1.10.2', 'cobra v1.11.0'))
+    await clock.advance(REFRESH_PERIOD - 1)
+
+    expect(
+      Fixtures.depNamed(Fixtures.depsAt(stored, '/repo'), 'github.com/spf13/cobra')?.versionInUse,
+    ).toBe('v1.10.2')
+
+    await clock.advance(1)
+
+    expect(
+      Fixtures.depNamed(Fixtures.depsAt(stored, '/repo'), 'github.com/spf13/cobra')?.versionInUse,
+    ).toBe('v1.11.0')
+    expect(fs.lists.filter(path => path === '/repo/tools').length).toBe(2)
   })
 
   test('a project the engine cannot list still starts the session, with debug lines only', async ($, on) => {
@@ -865,5 +894,62 @@ describe('register', () => {
 
     expect(asked.length).toBe(3)
     expect(await ui.find({ type: 'Text', text: 'Cached src:2.' })).toBeDefined()
+  })
+
+  const REACT_FEED = 'https://github.com/owner/react/releases.atom'
+  const REACT_PROJECT = Fixtures.stackTreeOf([
+    Fixtures.stackItemAt('react', '19.0.0', { current: '18.2.0' }),
+  ])
+  const REACT_OVERRIDE = {
+    depFeeds: { 'npm:react': { feed: REACT_FEED, resolvedAt: 0, isOverride: true } },
+  }
+  const STACK_BAND = { ...BAND, surface: 'terminal' } as const
+
+  test('a project with its stack off makes no registry or feed request, however long the session', async ($, on) => {
+    const clock = mock.clock(on)
+
+    Fixtures.storeOn(on, {
+      sources: [],
+      deps: { '/repo': { settings: { isEnabled: false } } },
+    })
+    Fixtures.fsOn(on, REACT_PROJECT)
+    Fixtures.registerOn(on)
+
+    const fetched = webOn(on, new Map())
+
+    on('session.start', () => ({ cwd: '/repo' }))
+
+    await $.session.start(Fixtures.SESSION)
+    await clock.settle()
+    await clock.advance(2 * 60 * 60_000)
+
+    expect(fetched).toEqual([])
+  })
+
+  test('a failing registry is asked once, then left alone for the hour across refresh ticks', async ($, on) => {
+    const clock = mock.clock(on)
+    const REGISTRY = 'https://registry.npmjs.org/react/latest'
+
+    Fixtures.storeOn(on, { sources: [] })
+    Fixtures.fsOn(on, REACT_PROJECT)
+    Fixtures.registerOn(on)
+
+    const fetched = webOn(on, new Map())
+
+    on('ui.log', () => ({ value: undefined }))
+    on('session.start', () => ({ cwd: '/repo' }))
+
+    await $.session.start(Fixtures.SESSION)
+    await clock.settle()
+
+    expect(fetched).toEqual([REGISTRY])
+
+    await clock.advance(55 * 60_000)
+
+    expect(fetched).toEqual([REGISTRY])
+
+    await clock.advance(10 * 60_000)
+
+    expect(fetched).toEqual([REGISTRY, REGISTRY])
   })
 })

@@ -4,15 +4,21 @@ import { answerOf } from './answer-of.js'
 import { BELOW_BAND } from './below-band.js'
 import { fsOn } from './fs-on.js'
 import { registerOn } from './register-on.js'
+import type { FakeFile } from './fake-file.js'
 import { storeOn } from './store-on.js'
 
 /**
- * Answers what drawing the band and pressing its Buttons reach, recording it: the store from those entries, a mod below drawing `BELOW_BAND`, toasts, log lines (`<to>: <text>`), summaries (one line `Summary of <title>.`, three lines `<title> one.` to `<title> three.`; the asked titles kept), prompt submissions (kept, never expected), an offline web, an empty project and both session events.
+ * Answers what drawing the band and pressing its Buttons reach, recording it: the store from those entries, a mod below drawing `BELOW_BAND`, toasts, log lines (`<to>: <text>`), summaries (one line `Summary of <title>.`, three lines `<title> one.` to `<title> three.`; the asked titles kept), prompt submissions (kept, never expected), an offline web, the project at `/repo` (empty unless given) and both session events.
  *
  * @param on the test's registrar
  * @param entries what the store holds at the start
+ * @param tree the project's files by relative path
  */
-export function bandOn(on: On, entries: Readonly<Record<string, unknown>>) {
+export function bandOn(
+  on: On,
+  entries: Readonly<Record<string, unknown>>,
+  tree: Readonly<Record<string, FakeFile>> = {},
+) {
   const stored = storeOn(on, entries)
   const toasts: string[] = []
   const logs: string[] = []
@@ -20,7 +26,7 @@ export function bandOn(on: On, entries: Readonly<Record<string, unknown>>) {
   const submitted: string[] = []
 
   registerOn(on)
-  fsOn(on, {})
+  fsOn(on, tree)
   on('ui.render', () => BELOW_BAND)
   on('ui.toast', ($, e) => {
     toasts.push(e.text)

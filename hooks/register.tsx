@@ -5,7 +5,7 @@ import type { Item } from '../types/index.js'
 import Actions from './actions'
 import Band from './band'
 import Commands from './commands'
-import Detect from './deps/detect'
+import Stack from './deps/stack'
 import type { Host } from './host'
 import Names from './names'
 import Pane from './pane'
@@ -30,15 +30,36 @@ const MODEL_LIMITER = Summaries.limiterOf(Summaries.SUMMARY_LIMITS.concurrentReq
 // The summary requests in flight and the queue ordering their writes, for this load of the module.
 const SUMMARY_JOBS = Summaries.summaryJobsOf(MODEL_LIMITER)
 
-// The band's rotation timer, for this load of the module; each page the band turns to gets one-line summaries.
-const ROTATION = Band.rotationOf((host, items, signal) =>
-  Summaries.ensureVisibleSummaries(host, SUMMARY_JOBS, items, signal),
-)
+// Following the stack's releases for this load of the module: the start detection, the refresh in flight, recent failures.
+const STACK = Stack.stackLoopOf()
 
-// The refresh timer and the run in flight, for this load of the module; new items and the page the band shows get one-line summaries.
+/**
+ * What the band and the pane run for the items they show: one-line summaries for news items, the model's flag check for stack items.
+ *
+ * @param host the engine
+ * @param items the items shown
+ * @param signal aborts the model calls
+ */
+function showItems(host: Host, items: readonly Item[], signal?: AbortSignal): Promise<unknown> {
+  return Promise.all([
+    Summaries.ensureVisibleSummaries(
+      host,
+      SUMMARY_JOBS,
+      items.filter(item => !Stack.isStackItem(item)),
+      signal,
+    ),
+    Stack.flagShown(host, STACK, SUMMARY_JOBS, items, signal),
+  ])
+}
+
+// The band's rotation timer, for this load of the module; each page the band turns to gets one-line summaries, its stack items the flag check.
+const ROTATION = Band.rotationOf(showItems)
+
+// The refresh timer and the run in flight, for this load of the module; new items and the page the band shows get one-line summaries, then the stack's releases are refreshed.
 const REFRESH = Refresh.refreshLoopOf(async (host, run, signal) => {
   await Summaries.summarizeNew(host, SUMMARY_JOBS, run.newItems, signal)
   await Band.handShownPage(host, ROTATION, signal)
+  await Stack.refreshStack(host, STACK, SUMMARY_JOBS, signal, { redetect: true })
 })
 
 // How many items the pane last drew, for this load of the module; the render hook records it, the summaries read it.
@@ -172,13 +193,13 @@ function bandHandlersOf($: EngineInterface, item: Item | undefined): Band.BandHa
 }
 
 /**
- * One-line summaries for the items the pane shows after its tab or window changed.
+ * One-line summaries (stack items: the flag check) for the items the pane shows after its tab, window or filter changed.
  *
  * @param host the engine
  * @param items the items shown
  */
 function summarizeShown(host: Host, items: readonly Item[]): Promise<unknown> {
-  return Summaries.ensureVisibleSummaries(host, SUMMARY_JOBS, items)
+  return showItems(host, items)
 }
 
 /**
@@ -211,13 +232,13 @@ function paneHandlersOf(
 }
 
 /**
- * Detects the project's stack on the next clock tick, so the session start never waits for the walk.
+ * Starts the stack on the next clock tick (its kept releases into state, the detection, the first refresh), so the session start never waits for the walk.
  *
  * @param $ the hook's engine
  */
 function detectSoon($: EngineInterface): void {
   try {
-    $.clock.after(0, () => Detect.detectDeps(hostOf($)))
+    $.clock.after(0, () => void Stack.startStack(hostOf($), STACK, SUMMARY_JOBS))
   } catch (error) {
     $.ui.log(
       `news: deps: could not schedule detection: ${error instanceof Error ? error.message : String(error)}`,
@@ -344,6 +365,7 @@ export const register: Register = on => {
   // /clear, /resume and /branch reset $.state without a session.start.
   on('classic.SessionStart', { source: ['clear', 'resume', 'fork'] }, async ($, e, next) => {
     await State.hydrate(hostOf($)).catch(() => undefined)
+    await Stack.hydrateStack(hostOf($), STACK)
     await registerNews($)
 
     return next(e)

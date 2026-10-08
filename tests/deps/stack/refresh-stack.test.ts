@@ -1,0 +1,358 @@
+import { describe, expect, test } from 'claude-code/testing'
+
+import type { DepsSettings, DepsToastLevel, StackProject } from '../../../types/index.js'
+import type { Dependency } from '../../../types/index.js'
+import Stack from '../../../hooks/deps/stack'
+import Store from '../../../hooks/store'
+import Summaries from '../../../hooks/summaries'
+import Fixtures from '../../fixtures'
+import Feeds from '../../fixtures/feeds'
+
+describe('refresh-stack', () => {
+  const NOW = 1_000_000_000
+  const HOUR = 60 * 60_000
+  const feedOf = (name: string) => `https://github.com/owner/${name}/releases.atom`
+  const REACT = Fixtures.depAt('react', { versionInUse: '18.2.0' })
+
+  /** A started stack over a project at /repo following those packages, each mapped to its feed, on a clock at NOW. */
+  const stackAt = (
+    dependencies: readonly Dependency[] = [REACT],
+    settings: Partial<DepsSettings> = {},
+    entries: Readonly<Record<string, unknown>> = {},
+  ) => {
+    const depFeeds = Object.fromEntries(
+      dependencies.map(dependency => [
+        `${dependency.ecosystem}:${dependency.name}`,
+        { repo: `owner/${dependency.name}`, feed: feedOf(dependency.name), resolvedAt: NOW },
+      ]),
+    )
+    const clocked = Fixtures.clockedHostOf(
+      {
+        deps: {
+          '/repo': {
+            settings,
+            dependencies,
+            detectedCount: dependencies.length,
+            manifestHashes: {},
+            detectedAt: 1,
+          },
+        },
+        depFeeds,
+        ...entries,
+      },
+      NOW,
+    )
+    const loop = Stack.stackLoopOf()
+    const fs = Fixtures.fakeFsOf('/repo', { '.git': { isDir: true } })
+
+    Object.assign(clocked.host, fs)
+    loop.isStarted = true
+
+    const refresh = () => Stack.refreshStack(clocked.host, loop, Summaries.summaryJobsOf())
+
+    return { ...clocked, fs, loop, refresh }
+  }
+
+  const keptOf = (stored: ReadonlyMap<string, unknown>, key = 'npm:react') =>
+    Store.stackProjectOf((stored.get('stack') as Record<string, unknown>)['/repo']).deps[key]
+
+  test('before the start detection a refresh does nothing', async () => {
+    const { host, fetched } = stackAt()
+
+    const run = await Stack.refreshStack(host, Stack.stackLoopOf(), Summaries.summaryJobsOf())
+
+    expect(run.isSkipped).toBe(true)
+    expect(fetched).toEqual([])
+  })
+
+  test('a first read keeps the releases above the version in use, mirrors them to state, toasts and asks nothing', async () => {
+    const { web, fetched, stored, state, toasts, asked, refresh } = stackAt()
+
+    web.set(feedOf('react'), {
+      status: 200,
+      text: Feeds.releasesAtomOf('react', [['v18.3.0'], ['v18.2.0'], ['v18.1.0']]),
+    })
+
+    const run = await refresh()
+
+    expect(fetched).toEqual([feedOf('react')])
+    expect(run).toEqual({ isSkipped: false, checked: ['npm:react'], newReleases: [] })
+    expect(keptOf(stored)).toMatchObject({ checkedAt: NOW, current: '18.2.0' })
+    expect(keptOf(stored)?.items.map(item => item.release.version)).toEqual(['18.3.0'])
+    expect(keptOf(stored)?.seen).toEqual(['npm:react|tag:github.com,2008:Repository/1/v18.3.0'])
+    expect(state.stack).toMatchObject({ root: '/repo', filter: '' })
+    expect((state.stack as { items: unknown[] }).items).toEqual(keptOf(stored)?.items)
+    expect(toasts).toEqual([])
+    expect(asked).toEqual([])
+  })
+
+  test('a release new since the last read is flagged by the model and toasted; one already seen is not', async () => {
+    const { web, stored, toasts, asked, replies, clock, refresh } = stackAt()
+
+    web.set(feedOf('react'), {
+      status: 200,
+      text: Feeds.releasesAtomOf('react', [['v18.3.0'], ['v18.2.0']]),
+    })
+    await refresh()
+
+    web.set(feedOf('react'), {
+      status: 200,
+      text: Feeds.releasesAtomOf('react', [['v19.0.0', 'Drops the legacy root API.'], ['v18.3.0']]),
+    })
+    replies.push(Fixtures.answerOf('{"breaking": true, "security": false}'))
+    await clock.advance(HOUR)
+
+    const run = await refresh()
+
+    expect(asked.length).toBe(1)
+    expect(asked[0]?.request.prompt).toMatch(/Version: v19\.0\.0/)
+    expect(run.newReleases.map(item => item.release.version)).toEqual(['19.0.0'])
+    expect(toasts).toEqual(['1 release: react 18.2.0 → 19.0.0 ⚠'])
+    expect(
+      keptOf(stored)?.items.map(item => [item.release.version, item.release.breaking]),
+    ).toEqual([
+      ['19.0.0', true],
+      ['18.3.0', false],
+    ])
+
+    await clock.advance(HOUR)
+    await refresh()
+
+    expect(toasts.length).toBe(1)
+    expect(asked.length).toBe(1)
+  })
+
+  const TOASTS: Record<DepsToastLevel, string[]> = {
+    all: ['3 releases: react 18.2.0 → 19.0.0 …'],
+    'minor+': ['2 releases: react 18.2.0 → 19.0.0, react 18.2.0 → 18.4.0'],
+    'major+breaking+security': ['1 release: react 18.2.0 → 19.0.0'],
+    'breaking+security': [],
+    off: [],
+  }
+
+  for (const [toastLevel, expected] of Object.entries(TOASTS) as [DepsToastLevel, string[]][]) {
+    test(`toast level ${toastLevel} toasts ${expected.length === 0 ? 'nothing' : expected[0]}`, async () => {
+      const { web, toasts, clock, refresh } = stackAt([REACT], { toastLevel })
+
+      web.set(feedOf('react'), {
+        status: 200,
+        text: Feeds.releasesAtomOf('react', [['v18.2.0']]),
+      })
+      await refresh()
+
+      web.set(feedOf('react'), {
+        status: 200,
+        text: Feeds.releasesAtomOf('react', [['v19.0.0'], ['v18.4.0'], ['v18.2.1'], ['v18.2.0']]),
+      })
+      await clock.advance(HOUR)
+      await refresh()
+
+      expect(toasts).toEqual(expected)
+    })
+  }
+
+  test('a breaking or security release is toasted first', async () => {
+    const vite = Fixtures.depAt('vite', { versionInUse: '5.0.0' })
+    const { web, toasts, clock, refresh } = stackAt([REACT, vite], { toastLevel: 'all' })
+
+    web.set(feedOf('react'), { status: 200, text: Feeds.releasesAtomOf('react', []) })
+    web.set(feedOf('vite'), { status: 200, text: Feeds.releasesAtomOf('vite', []) })
+    await refresh()
+
+    web.set(feedOf('react'), {
+      status: 200,
+      text: Feeds.releasesAtomOf('react', [['v18.3.0']]),
+    })
+    web.set(feedOf('vite'), {
+      status: 200,
+      text: Feeds.releasesAtomOf('vite', [['v5.0.1', 'Fixes CVE-2026-0001.']]),
+    })
+    await clock.advance(HOUR)
+    await refresh()
+
+    expect(toasts).toEqual(['2 releases: vite 5.0.0 → 5.0.1 ⚠, react 18.2.0 → 18.3.0'])
+  })
+
+  test('release notes are read past the feed summary cap, so a late advisory id still flags security', async () => {
+    const { web, stored, refresh } = stackAt()
+    const notes = `${'Many small fixes and improvements. '.repeat(30)}Fixes CVE-2026-1234.`
+
+    expect(notes.length > 500).toBe(true)
+
+    web.set(feedOf('react'), {
+      status: 200,
+      text: Feeds.releasesAtomOf('react', [['v18.2.1', notes]]),
+    })
+    await refresh()
+
+    expect(keptOf(stored)?.items[0]?.release).toMatchObject({ version: '18.2.1', security: true })
+  })
+
+  test('a project with its stack off makes no request and mirrors the setting to state', async () => {
+    const { web, fetched, state, refresh } = stackAt([REACT], { isEnabled: false })
+
+    web.set(feedOf('react'), { status: 200, text: Feeds.releasesAtomOf('react', [['v19.0.0']]) })
+
+    await refresh()
+
+    expect(fetched).toEqual([])
+    expect(state.stack).toMatchObject({ root: '/repo', settings: { isEnabled: false } })
+  })
+
+  test('a feed read within the hour is not read again, unless the version in use changed', async () => {
+    const { web, fetched, stored, clock, refresh } = stackAt()
+
+    web.set(feedOf('react'), {
+      status: 200,
+      text: Feeds.releasesAtomOf('react', [['v18.3.0'], ['v18.2.0']]),
+    })
+    await refresh()
+    await clock.advance(HOUR - 1)
+    await refresh()
+
+    expect(fetched.length).toBe(1)
+
+    const deps = stored.get('deps') as { '/repo': { dependencies: Dependency[] } }
+
+    deps['/repo'].dependencies = [{ ...REACT, versionInUse: '18.3.0' }]
+    await refresh()
+
+    expect(fetched.length).toBe(2)
+    expect(keptOf(stored)?.items).toEqual([])
+
+    await clock.advance(1)
+    await refresh()
+
+    expect(fetched.length).toBe(2)
+  })
+
+  test('a failing release feed waits out the hour before it is read again, with one debug line', async () => {
+    const { fetched, logs, clock, refresh } = stackAt()
+
+    await refresh()
+    await clock.advance(Stack.STACK_LIMITS.failureWindowMs - 1)
+    await refresh()
+
+    expect(fetched).toEqual([feedOf('react')])
+    expect(logs).toEqual([expect.stringMatching(/^news: deps: npm:react: release feed: /)])
+
+    await clock.advance(1)
+    await refresh()
+
+    expect(fetched).toEqual([feedOf('react'), feedOf('react')])
+  })
+
+  test('a failing registry lookup waits out the hour; a definite answer does not', async () => {
+    const { fetched, web, clock, refresh } = stackAt(
+      [REACT, Fixtures.depAt('gone')],
+      {},
+      { depFeeds: {} },
+    )
+    const REGISTRY = 'https://registry.npmjs.org/react/latest'
+    const GONE = 'https://registry.npmjs.org/gone/latest'
+
+    web.set(GONE, { status: 404, text: '' })
+
+    await refresh()
+
+    expect(fetched).toEqual([REGISTRY, GONE])
+
+    await clock.advance(Stack.STACK_LIMITS.failureWindowMs - 1)
+    await refresh()
+
+    expect(fetched).toEqual([REGISTRY, GONE])
+
+    await clock.advance(1)
+    await refresh()
+
+    expect(fetched).toEqual([REGISTRY, GONE, REGISTRY])
+  })
+
+  test('one run reads at most a few feeds and looks up at most a few packages, the rest in later runs', async () => {
+    const many = Array.from({ length: 12 }, (_, index) =>
+      Fixtures.depAt(`p${index}`, { versionInUse: '1.0.0' }),
+    )
+    const unknown = Array.from({ length: 12 }, (_, index) => Fixtures.depAt(`u${index}`))
+    const { fetched, stored, web, refresh } = stackAt(many)
+
+    for (const dependency of many) {
+      web.set(feedOf(dependency.name), {
+        status: 200,
+        text: Feeds.releasesAtomOf(dependency.name, []),
+      })
+    }
+
+    await refresh()
+
+    expect(fetched.length).toBe(Stack.STACK_LIMITS.feedsPerRun)
+
+    await refresh()
+
+    expect(fetched.length).toBe(12)
+
+    const deps = stored.get('deps') as { '/repo': { dependencies: Dependency[] } }
+
+    deps['/repo'].dependencies = [...many, ...unknown]
+    fetched.length = 0
+    await refresh()
+
+    expect(fetched.filter(url => url.includes('registry.npmjs.org')).length).toBe(
+      Stack.STACK_LIMITS.lookupsPerRun,
+    )
+  })
+
+  test('the store keeps a few releases per package, the newest, and drops packages no longer followed', async () => {
+    const vite = Fixtures.depAt('vite', { versionInUse: '1.0.0' })
+    const { web, stored, refresh } = stackAt([REACT, vite])
+    const tags = Array.from({ length: 10 }, (_, index) => [`v18.${12 - index}.0`] as const)
+
+    web.set(feedOf('react'), { status: 200, text: Feeds.releasesAtomOf('react', tags) })
+    web.set(feedOf('vite'), { status: 200, text: Feeds.releasesAtomOf('vite', [['v2.0.0']]) })
+    await refresh()
+
+    expect(keptOf(stored)?.items.map(item => item.release.version)).toEqual([
+      '18.12.0',
+      '18.11.0',
+      '18.10.0',
+      '18.9.0',
+      '18.8.0',
+    ])
+    expect(keptOf(stored)?.seen.length).toBe(Stack.STACK_LIMITS.seenPerDep)
+    expect(keptOf(stored, 'npm:vite')?.items.length).toBe(1)
+
+    const deps = stored.get('deps') as { '/repo': { dependencies: Dependency[] } }
+
+    deps['/repo'].dependencies = [REACT]
+    await refresh()
+
+    const project = (stored.get('stack') as Record<string, StackProject>)['/repo']
+
+    expect(Object.keys(project?.deps ?? {})).toEqual(['npm:react'])
+  })
+
+  test('a refresh asked while one runs runs once more after it, never alongside', async () => {
+    const { web, fetched, fs, clock, refresh, loop } = stackAt()
+    let release = () => {}
+
+    web.set(feedOf('react'), { status: 200, text: Feeds.releasesAtomOf('react', []) })
+
+    const held = new Promise<void>(resolve => {
+      release = resolve
+    })
+    const first = loop.serially(() => held)
+    const running = refresh()
+    const second = await refresh()
+
+    expect(second.isSkipped).toBe(true)
+
+    release()
+    await first
+    await running
+    await clock.settle()
+
+    expect(loop.running).toBeUndefined()
+    expect(fetched.length).toBe(1)
+    // Each run looks the project up once: the first, then the one asked meanwhile.
+    expect(fs.lists.filter(path => path === '/repo').length).toBe(2)
+  })
+})
