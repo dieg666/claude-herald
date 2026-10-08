@@ -42,6 +42,44 @@ describe('pane-model-of', () => {
     ])
   })
 
+  test('with the clock, an item less than a day old shows its age on a source tab, All and Saved, older ones their date', () => {
+    const now = Date.UTC(2026, 0, 2, 0, 30)
+    const itemAt = (key: string, ageMs: number) => ({
+      ...Fixtures.datedItemsOf('a', 1)[0]!,
+      id: `a:${key}`,
+      title: key,
+      publishedAt: new Date(now - ageMs).toISOString(),
+    })
+    const items = {
+      a: [
+        itemAt('new', 30 * 60_000),
+        itemAt('hour', 3_600_000),
+        itemAt('edge', 86_400_000 - 1),
+        itemAt('day', 86_400_000),
+      ],
+    }
+    const saved = items.a.map((item, index) => ({ ...item, savedAt: index }))
+    const datesOf = (tab: string, now?: number) =>
+      Pane.paneModelOf(
+        Pane.panePageOf({ tab, selected: 0 }, SOURCES, items, saved, 10),
+        SOURCES,
+        {},
+        saved,
+        80,
+        true,
+        '',
+        true,
+        {},
+        now,
+      ).rows.map(row => row.date)
+
+    for (const tab of ['a', '@all', 'saved']) {
+      expect(datesOf(tab, now)).toEqual(['30m', '1h', '23h', 'Jan 1'])
+      // Without the clock every row keeps its date.
+      expect(datesOf(tab)).toEqual(['Jan 2', 'Jan 1', 'Jan 1', 'Jan 1'])
+    }
+  })
+
   test('a news item read is marked, on its tab and on the saved tab', () => {
     const read = { a: ['a:2'], src: ['src:kept'] }
     const page = Pane.panePageOf({ tab: 'a', selected: 0 }, SOURCES, ITEMS, [], 10)

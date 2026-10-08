@@ -472,6 +472,7 @@ export const register: Register = on => {
         // A phone taps the Buttons, so it never needs the focus chord.
         e.props.isFocused || e.surface === 'mobile',
         await read($, READ),
+        health.now,
       ),
       paneHandlersOf($, page.items[page.selected], page.size),
       e.surface,

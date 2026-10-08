@@ -1589,16 +1589,9 @@ describe('pane-view', () => {
       ? node
       : ((node as { children?: unknown[] }).children ?? []).map(textOf).join('')
 
-  // The stack tab's rows as one line each, runs of spaces made one.
+  // The stack tab's rows as one line each: the row's text, then its date column, runs of spaces made one.
   const rowLinesOf = async (ui: Drawing) =>
-    (await ui.findAll({ type: 'Text' }))
-      .filter(
-        text =>
-          text.props.wrap === 'truncate-end' &&
-          (text.props.color === undefined || text.props.color === 'inverseText') &&
-          text.props.dimColor !== true,
-      )
-      .map(text => textOf(text).replace(/\s+/g, ' ').trim())
+    (await newsRowsOf(ui)).map(parts => parts.join(' ').replace(/\s+/g, ' ').trim())
 
   const WIDE = { ...Fixtures.PANE_PROPS, bodyColumns: 120 }
 
@@ -1671,6 +1664,120 @@ describe('pane-view', () => {
         await ui.press({ key: 'tab-a' })
 
         expect(await ui.find({ key: 'releases' })).toBeUndefined()
+      },
+    )
+
+    test(
+      `on ${surface}: a date less than a day old shows as an age on All, a source tab and Saved, an older one as its date, in the one date column`,
+      { timeoutMs: 20_000 },
+      async ($, on) => {
+        const clock = mock.clock(on, { now: Date.UTC(2026, 0, 2, 0, 30) })
+        const [first, second] = Fixtures.datedItemsOf('a', 2)
+        const edge = {
+          ...first!,
+          id: 'a:edge',
+          title: 'edge',
+          publishedAt: new Date(Date.UTC(2026, 0, 2, 0, 30) - 86_400_000 + 60_000).toISOString(),
+        }
+        const day = {
+          ...first!,
+          id: 'a:day',
+          title: 'day',
+          publishedAt: new Date(Date.UTC(2026, 0, 2, 0, 30) - 86_400_000).toISOString(),
+        }
+        const items = [first!, second!, edge, day]
+
+        Fixtures.bandOn(on, {
+          sources: [ALPHA],
+          items: { a: items },
+          saved: items.map((item, index) => ({ ...item, savedAt: index })),
+        })
+
+        await $.classic.SessionStart({ source: 'clear' })
+
+        const ui = await $.ui.mount({ ...PANE, surface })
+        // Each row's title and date, and the date column's layout: the row's second child, unshrinking and right-aligned in seven cells.
+        const datesOf = async () =>
+          Object.fromEntries(
+            (await newsRowsOf(ui)).map(parts => [
+              parts[0]?.replace('› ', '').replace(/^Alpha /, ''),
+              parts.at(-1),
+            ]),
+          )
+        const columnsOf = async () =>
+          (await ui.findAll({ type: 'Box' }))
+            .filter(
+              box => box.props.flexDirection === 'row' && childOf(box, 0)?.props.flexGrow === 1,
+            )
+            .map(box => childOf(box, box.children.length - 1)?.props)
+        const expected = { 'a 1': '30m', 'a 2': '1h', edge: '23h', day: 'Jan 1' }
+
+        // All is the tab the pane opens on.
+        for (const key of [undefined, 'tab-a', 'tab-saved']) {
+          if (key !== undefined) {
+            await ui.press({ key })
+            await clock.settle()
+          }
+
+          expect(await datesOf()).toEqual(expected)
+          expect(await columnsOf()).toEqual(
+            Array(4).fill({ flexShrink: 0, width: 7, paddingLeft: 1, justifyContent: 'flex-end' }),
+          )
+        }
+
+        await ui.unmount()
+      },
+    )
+
+    test(
+      `on ${surface}: on Your stack a date less than a day old shows as an age, and every date sits in the same right-aligned column as on the other tabs`,
+      { timeoutMs: 30_000 },
+      async ($, on) => {
+        const clock = mock.clock(on, { now: Date.UTC(2026, 9, 8, 12) })
+
+        releasesPaneOn(on)
+
+        await $.session.start(Fixtures.SESSION)
+        await clock.settle()
+
+        const ui = await $.ui.mount({ ...PANE, surface, props: WIDE })
+
+        await ui.press({ key: 'tab-@stack' })
+
+        expect(await rowLinesOf(ui)).toEqual([
+          '› ⚠ @astrojs/node 9.5.5 → 11.1.7 major security Oct 6',
+          '⚠ jsdom 25.0.1 → 30.1.2 major breaking in 30.0.0 · 3 releases Oct 5',
+          '📦 astro 5.18.1 → 7.3.7 major Oct 7',
+          '📦 @fortawesome/fontawesome-svg-core 7.1.0 → 7.3.1 minor 2 releases Jul 15',
+          '📦 left-pad 1.0.0 → canary 12h',
+          '⚠ requests 2.31.0 → 2.31.1 patch security Apr 1',
+        ])
+
+        // Every row is the headline's growing Box, then the date in an unshrinking seven-cell Box at the right end, as on the source tabs.
+        const rows = (await ui.findAll({ type: 'Box' })).filter(
+          box => box.props.flexDirection === 'row' && childOf(box, 0)?.props.flexGrow === 1,
+        )
+
+        expect(rows).toHaveLength(6)
+        expect(rows.map(box => box.children.length)).toEqual(Array(6).fill(2))
+        expect(rows.map(box => childOf(box, 1)?.props)).toEqual(
+          Array(6).fill({ flexShrink: 0, width: 7, paddingLeft: 1, justifyContent: 'flex-end' }),
+        )
+        // The date is not part of the growing text, which holds the cells and so ends before the date column.
+        expect(rows.map(box => lineOf(childOf(box, 0)))).not.toContainEqual(
+          expect.stringMatching(/\d{1,2}h$|Oct \d$/),
+        )
+
+        await ui.press({ key: 'releases' })
+        await ui.press({ key: 'down' })
+
+        const expanded = (await ui.findAll({ type: 'Box' })).filter(
+          box => box.props.flexDirection === 'row' && childOf(box, 0)?.props.flexGrow === 1,
+        )
+
+        expect(expanded.every(box => childOf(box, 1)?.props.width === 7)).toBe(true)
+
+        await ui.unmount()
       },
     )
 

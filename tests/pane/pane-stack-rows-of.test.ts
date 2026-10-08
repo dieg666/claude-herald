@@ -165,4 +165,58 @@ describe('pane-stack-rows-of', () => {
       '1.3.0',
     ])
   })
+
+  test('with the clock a release less than a day old shows its age, every date right-aligned in the one date column and the rest of the row unchanged', () => {
+    const items = [
+      Fixtures.stackItemAt('fresh', '2.0.0', {
+        current: '1.0.0',
+        publishedAt: '2026-10-08T09:30:00Z',
+      }),
+      Fixtures.stackItemAt('edge', '2.0.0', {
+        current: '1.0.0',
+        publishedAt: '2026-10-07T12:00:01Z',
+      }),
+      Fixtures.stackItemAt('older', '2.0.0', {
+        current: '1.0.0',
+        publishedAt: '2026-10-07T12:00:00Z',
+      }),
+    ]
+    const page = Pane.panePageOf({ tab: '@stack', selected: 0 }, [], {}, [], 20, {
+      items,
+      filter: '',
+      expanded: [],
+    })
+    const now = Date.UTC(2026, 9, 8, 12)
+    const withClock = Pane.paneStackRowsOf(page.stack!, 0, 80, now)
+    const without = Pane.paneStackRowsOf(page.stack!, 0, 80)
+
+    expect(withClock.map(row => [row.title, row.date])).toEqual([
+      ['fresh', '2h'],
+      ['edge', '23h'],
+      ['older', 'Oct 7'],
+    ])
+    expect(without.map(row => row.date)).toEqual(['Oct 8', 'Oct 7', 'Oct 7'])
+    expect(withClock.map(row => row.cells)).toEqual(without.map(row => row.cells))
+  })
+
+  test('the cells leave the date column its seven cells whatever the dates, so rows end in one column at every width', () => {
+    for (const columns of [120, 80, 60, 40]) {
+      for (const now of [undefined, Date.UTC(2026, 9, 8, 12)]) {
+        const page = Pane.panePageOf({ tab: '@stack', selected: 0 }, [], {}, [], 20, {
+          items: Fixtures.STACK_RELEASES,
+          filter: '',
+          expanded: ['npm:jsdom'],
+        })
+        const drawn = Pane.paneStackRowsOf(page.stack!, 0, columns, now)
+
+        expect(drawn.length).toBeGreaterThan(7)
+        expect(
+          drawn.every(
+            row => Band.displayWidthOf(lineOf(row)) + 1 + Pane.PANE_DATE_COLUMNS <= columns,
+          ),
+        ).toBe(true)
+        expect(new Set(drawn.map(row => Band.displayWidthOf(lineOf(row)))).size).toBe(1)
+      }
+    }
+  })
 })

@@ -75,6 +75,23 @@ function rowView(ui: BandUi, row: PaneRow): RenderElement {
     </Text>,
   ]
 
+  // The date sits in a column of its own, right-aligned at the pane's edge on every row.
+  const dateView =
+    row.date === undefined
+      ? []
+      : [
+          <Box
+            flexShrink={0}
+            width={PANE_DATE_COLUMNS + 1}
+            paddingLeft={1}
+            justifyContent="flex-end"
+          >
+            <Text dimColor={!row.isSelected} {...style}>
+              {row.date}
+            </Text>
+          </Box>,
+        ]
+
   const line =
     row.cells !== undefined ? (
       <Box flexDirection="row" {...fill}>
@@ -90,16 +107,9 @@ function rowView(ui: BandUi, row: PaneRow): RenderElement {
                 </Text>
               ),
             )}
-            {row.date === undefined
-              ? []
-              : [
-                  ' ',
-                  <Text dimColor={!row.isSelected} {...style}>
-                    {row.date}
-                  </Text>,
-                ]}
           </Text>
         </Box>
+        {dateView}
       </Box>
     ) : (
       <Box flexDirection="row" {...fill}>
@@ -117,20 +127,7 @@ function rowView(ui: BandUi, row: PaneRow): RenderElement {
                 </Text>
               </Box>,
             ]}
-        {row.date === undefined
-          ? []
-          : [
-              <Box
-                flexShrink={0}
-                width={PANE_DATE_COLUMNS + 1}
-                paddingLeft={1}
-                justifyContent="flex-end"
-              >
-                <Text dimColor={!row.isSelected} {...style}>
-                  {row.date}
-                </Text>
-              </Box>,
-            ]}
+        {dateView}
       </Box>
     )
 

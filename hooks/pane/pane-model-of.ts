@@ -19,6 +19,7 @@ import { STACK_TAB } from '../names/stack-tab.js'
 import { collapsedTextOf } from '../page/collapsed-text-of.js'
 import { summaryTextOf } from '../summaries/summary-text-of.js'
 import { PANE_DATE_COLUMNS } from './pane-date-columns.js'
+import { paneDateOf } from './pane-date-of.js'
 import { paneFittedTabsOf } from './pane-fitted-tabs-of.js'
 import { PANE_FOCUS_HINT } from './pane-focus-hint.js'
 import { PANE_HEADING_RESERVE } from './pane-heading-reserve.js'
@@ -28,7 +29,6 @@ import type { PaneRow } from './pane-row.js'
 import { paneStackRowsOf } from './pane-stack-rows-of.js'
 import { PANE_SUMMARY_LINES } from './pane-summary-lines.js'
 import { PANE_TAB_KEYS } from './pane-tab-keys.js'
-import { shortDateOf } from './short-date-of.js'
 import { stateLineTextOf } from './state-line-text-of.js'
 import { wrapColumns } from './wrap-columns.js'
 
@@ -80,6 +80,7 @@ function columnHeadOf(head: ReturnType<typeof sourceHeadOf>) {
  * @param sourceName the source's name when the tab mixes sources, drawn after the headline before the date, or leading a version-only title
  * @param isRead whether the item was opened or copied for Claude
  * @param column the item's source (undefined when gone) when the row starts with a source column
+ * @param now the clock, for an item's age
  */
 function rowOf(
   item: Item,
@@ -90,13 +91,14 @@ function rowOf(
   sourceName?: string,
   isRead = false,
   column?: { readonly source: Source | undefined },
+  now?: number,
 ): PaneRow {
   const stack = isStackItem(item) ? item : undefined
   const hasNoSummary =
     stack === undefined && (!autoSummaries || summary === '' || summaryTextOf(item) === '')
   const note = stack !== undefined ? stackNoteOf(stack.release) : hasNoSummary ? undefined : summary
   const href = httpUrlOf(item.url)?.href
-  const date = shortDateOf(item.publishedAt)
+  const date = paneDateOf(item.publishedAt, now)
   const dated = date === undefined ? 0 : PANE_DATE_COLUMNS + 1
   const headline =
     column !== undefined
@@ -140,6 +142,7 @@ function rowOf(
  * @param filter the stack tab's filter
  * @param isFocused whether the pane holds the keyboard
  * @param read the read item ids by source id
+ * @param now the clock, in milliseconds since the epoch: an item less than a day old shows its age in the date column; without it only dates are drawn
  */
 export function paneModelOf(
   page: PanePage,
@@ -151,6 +154,7 @@ export function paneModelOf(
   filter = '',
   isFocused = true,
   read: Readonly<IdsBySource> = {},
+  now?: number,
 ): PaneModel {
   const names = new Map(sources.map(source => [source.id, lineOf(source.name)]))
   const byId = new Map(sources.map(source => [source.id, source]))
@@ -171,9 +175,10 @@ export function paneModelOf(
             isSavedTab ? names.get(item.sourceId) : undefined,
             Object.hasOwn(read, item.sourceId) && read[item.sourceId]?.includes(item.id) === true,
             isAllTab ? { source: byId.get(item.sourceId) } : undefined,
+            now,
           ),
         )
-      : paneStackRowsOf(page.stack, page.span.selected, columns)
+      : paneStackRowsOf(page.stack, page.span.selected, columns, now)
   const selectedRow = page.stack?.rows[page.selected]
   const keys =
     rows.length === 0 ? [] : PANE_TAB_KEYS[isSavedTab ? 'saved' : isStackTab ? 'stack' : 'news']

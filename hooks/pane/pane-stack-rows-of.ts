@@ -14,10 +14,11 @@ import { stackVersionOf } from '../deps/stack/stack-version-of.js'
 import { versionChangeOf } from '../deps/stack/version-change-of.js'
 import { collapsedTextOf } from '../page/collapsed-text-of.js'
 import type { PaneCell } from './pane-cell.js'
+import { PANE_DATE_COLUMNS } from './pane-date-columns.js'
+import { paneDateOf } from './pane-date-of.js'
 import type { PaneRow } from './pane-row.js'
 import type { PaneStackPage } from './pane-stack-page.js'
 import { fitStartColumns } from './fit-start-columns.js'
-import { shortDateOf } from './short-date-of.js'
 
 /**
  * Cells before a row's glyph: the selection mark and a space.
@@ -130,11 +131,13 @@ function versionCellsOf(pkg: StackPackage, version: string): PaneCell[] {
  * @param stack the stack tab's page
  * @param selected the selected row within the window
  * @param columns the cells the pane's body has
+ * @param now the clock, for the age of a release less than a day old
  */
 export function paneStackRowsOf(
   stack: PaneStackPage,
   selected: number,
   columns: number,
+  now?: number,
 ): PaneRow[] {
   const fit = (text: string, width: number) => fitColumns(lineOf(text), width)
   const releases = stack.rows.flatMap(row => (row.kind === 'release' ? [row.item] : []))
@@ -150,15 +153,14 @@ export function paneStackRowsOf(
     ...stack.packages.map(stackPackageNoteOf),
     ...releases.map(releaseNoteOf),
   ])
-  const dateWidth = widestOf(
-    stack.rows
-      .map(row => shortDateOf((row.kind === 'package' ? row.pkg.target : row.item).publishedAt))
-      .flatMap(date => (date === undefined ? [] : [date])),
+  const hasDates = stack.rows.some(
+    row =>
+      paneDateOf((row.kind === 'package' ? row.pkg.target : row.item).publishedAt) !== undefined,
   )
   const nameWidth = widestOf(stack.packages.map(pkg => lineOf(pkg.name)))
 
   const levelPart = levelWidth === 0 ? 0 : 2 + levelWidth
-  const datePart = dateWidth === 0 ? 0 : 1 + dateWidth
+  const datePart = hasDates ? 1 + PANE_DATE_COLUMNS : 0
   const room =
     columns -
     MARK_COLUMNS -
@@ -188,7 +190,7 @@ export function paneStackRowsOf(
   const rowOf = (row: StackRow, index: number): PaneRow => {
     const item = row.kind === 'package' ? row.pkg.target : row.item
     const href = httpUrlOf(item.url)?.href
-    const date = shortDateOf(item.publishedAt)
+    const date = paneDateOf(item.publishedAt, now)
     const dated = date === undefined ? {} : { date }
     const linked = href === undefined ? {} : { href }
     const isSelected = index === selected
