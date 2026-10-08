@@ -153,8 +153,6 @@ describe('fetch-gently', () => {
 
     expect(await Resolve.fetchGently(host, URL)).toEqual({ kind: 'ok', text: '{}' })
     expect(clock.waitsAsked()).toEqual([Resolve.RESOLVE_LIMITS.requestTimeoutMs])
-
-    await clock.advance(Resolve.RESOLVE_LIMITS.requestTimeoutMs)
     expect(clock.pendingWaits()).toBe(0)
   })
 })
