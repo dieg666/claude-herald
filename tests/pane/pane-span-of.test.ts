@@ -18,4 +18,17 @@ describe('pane-span-of', () => {
     expect(Pane.paneSpanOf(0, 0, 4)).toEqual({ start: 0, count: 0, selected: 0 })
     expect(Pane.paneSpanOf(5, 10, 0)).toEqual({ start: 5, count: 1, selected: 0 })
   })
+
+  test('a size that is not a number is taken as the first window', () => {
+    expect(Pane.paneSpanOf(0, 30, Number.NaN)).toEqual({
+      start: 0,
+      count: Pane.PANE_FIRST_WINDOW,
+      selected: 0,
+    })
+    expect(Pane.paneSpanOf(2, 3, undefined as unknown as number)).toEqual({
+      start: 0,
+      count: 3,
+      selected: 2,
+    })
+  })
 })

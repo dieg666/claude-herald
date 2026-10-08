@@ -67,4 +67,8 @@ describe('pane-page-of', () => {
       2,
     ])
   })
+
+  test('a size that is not a number gives the first window, never NaN', () => {
+    expect(pageOf('a', 0, Number.NaN).size).toBe(Pane.PANE_FIRST_WINDOW)
+  })
 })

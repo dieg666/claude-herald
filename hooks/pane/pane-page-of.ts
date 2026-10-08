@@ -1,6 +1,7 @@
 import type { ItemsBySource, PaneState, SavedItem, Source } from '../../types/index.js'
 import { SAVED_TAB } from '../names/saved-tab.js'
 import type { PanePage } from './pane-page.js'
+import { paneRoomOf } from './pane-room-of.js'
 import { paneSpanOf } from './pane-span-of.js'
 import { paneTabsOf } from './pane-tabs-of.js'
 
@@ -38,6 +39,6 @@ export function panePageOf(
     span,
     shown: list.slice(span.start, span.start + span.count),
     selected,
-    size: Math.max(1, Math.floor(size)),
+    size: paneRoomOf(size),
   }
 }

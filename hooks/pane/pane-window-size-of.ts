@@ -1,5 +1,6 @@
 import type { Source } from '../../types/index.js'
 import { displayWidthOf } from '../band/display-width-of.js'
+import { PANE_FIRST_WINDOW } from './pane-first-window.js'
 import { PANE_ROW_LINES } from './pane-row-lines.js'
 import { paneTabsOf } from './pane-tabs-of.js'
 
@@ -39,7 +40,7 @@ function linesOf(labels: readonly string[], columns: number): number {
 }
 
 /**
- * How many items fit in the pane's body of `columns` by `bodyRows` once the tab row, the heading and the action row are drawn; at least one.
+ * How many items fit in the pane's body of `columns` by `bodyRows` once the tab row, the heading and the action row are drawn; at least one, `PANE_FIRST_WINDOW` when `bodyRows` is not a number, 80 columns taken when `columns` is not.
  *
  * @param sources every source, for the tab row
  * @param columns the cells across the body
@@ -50,10 +51,15 @@ export function paneWindowSizeOf(
   columns: number,
   bodyRows: number,
 ): number {
+  if (!Number.isFinite(bodyRows)) {
+    return PANE_FIRST_WINDOW
+  }
+
+  const width = Number.isFinite(columns) ? columns : 80
   const tabs = paneTabsOf(sources).map(tab =>
     tab.hotkey === undefined ? tab.label : `${tab.hotkey}: ${tab.label}`,
   )
-  const chrome = linesOf(tabs, columns) + 1 + linesOf(ACTION_LABELS, columns)
+  const chrome = linesOf(tabs, width) + 1 + linesOf(ACTION_LABELS, width)
 
   return Math.max(1, Math.floor((bodyRows - chrome) / PANE_ROW_LINES))
 }

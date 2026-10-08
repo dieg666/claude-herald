@@ -24,4 +24,13 @@ describe('pane-window-size-of', () => {
   test('at least one item, however little room', () => {
     expect(Pane.paneWindowSizeOf(ONE, 80, 0)).toBe(1)
   })
+
+  test('rows that are not a number give the first window; columns that are not one count as 80', () => {
+    expect(Pane.paneWindowSizeOf(ONE, 80, Number.NaN)).toBe(Pane.PANE_FIRST_WINDOW)
+    expect(Pane.paneWindowSizeOf(ONE, 80, undefined as unknown as number)).toBe(
+      Pane.PANE_FIRST_WINDOW,
+    )
+    expect(Pane.paneWindowSizeOf(ONE, Number.NaN, 12)).toBe(4)
+    expect(Pane.paneWindowSizeOf(ONE, undefined as unknown as number, 12)).toBe(4)
+  })
 })
