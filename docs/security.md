@@ -17,7 +17,7 @@ Registry and release feed requests carry one header of the mod's own, `User-Agen
 news-claude-code-mod (a Claude Code plugin looking up release feeds of project dependencies)
 ```
 
-The mod's source fetches send no headers of their own. Claude Code may add its own to any request, and its documentation does not say which. Each registry lookup has a fixed host, and the package name goes in the path only. For Go, the module path must match a module-path pattern, the vanity lookup runs only for the ten hosts below, and the result must be a GitHub repository, or the module stays unresolved.
+The mod's source fetches send no headers of their own. Claude Code may add its own to any request, and its documentation does not say which. Each registry lookup has a fixed host, and the package name goes in the path only, percent-encoded. A name with characters outside letters, digits, `.`, `_` and `-` (crates: `_` and `-`), a name of dots only, or a malformed Maven or Packagist coordinate stays unresolved as `not a valid <ecosystem> name`, with no request. Each registry or feed request has a 30-second deadline. For Go, the module path must match a module-path pattern, the vanity lookup runs only for the ten hosts below, and the result must be a GitHub repository, or the module stays unresolved.
 
 ## What the mod never reads
 

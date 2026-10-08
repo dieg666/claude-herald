@@ -219,7 +219,7 @@ The mod detects the stack a moment after the session starts, on `/news deps resc
 
 A package is unresolved when its repository is not on GitHub, its registry does not know it or it has no lookup. `/news deps` lists it with the reason, and nothing shows for it. A mapping, an unresolved one included, is kept for 7 days. A failed request is not kept: `/news deps` shows that package as `not looked up yet` (or with its older mapping), the failure goes to the debug log only, and the mod waits an hour before it tries again.
 
-`/news deps map` sets where a package's releases are read, in every project, and the mapping never expires. To replace it, run `map` again. `/news reset` does not clear it. `/news deps add owner/repo` follows a repository as the `github` ecosystem: no registry lookup, every tag counts as a release, and with no version in use every level is `unknown`. For any other package, a release whose tag names another package of the repository (`other@1.2.0`) is skipped.
+`/news deps map` sets where a package's releases are read, in every project, and the mapping never expires. To replace it, run `map` again; `/news deps map <package> off` removes it, so the package is looked up in its registry again. `/news reset` does not clear it. `/news deps add owner/repo` follows a repository as the `github` ecosystem: no registry lookup, every tag counts as a release, and with no version in use every level is `unknown`. For any other package, a release whose tag names another package of the repository (`other@1.2.0`) is skipped.
 
 ### How a release is classified
 
@@ -259,6 +259,7 @@ The stack refreshes after every source refresh, on the same timer.
 | Registry lookups | 10 per run, 2 at a time. The rest wait for the next run. |
 | Release feeds read | 10 per run, the least recently read first, 2 at a time. A feed is read again after 1 hour, or when your version changed. |
 | Release checks by Haiku | 12 per run, 2 model calls at a time. |
+| Request deadline | 30 seconds per registry or feed request. A request that takes longer counts as a failure. |
 | Retries | 3 after a 429 or 5xx answer, after 1, 2 and 4 seconds. The mod does not read `Retry-After`. |
 | Pause after a failure | 1 hour for a package's lookup, a feed, or a release's check. A new session starts without it. |
 | Releases kept | 5 per package and 100 per project, newest first. |
@@ -276,7 +277,7 @@ The stack refreshes after every source refresh, on the same timer.
 | `ignore <package>` | A package the project follows or has added | Stops following, looking up and showing it. Refused for any other package. | `/news deps ignore npm:left-pad` |
 | `unignore <package>` | An ignored package | Follows it again when a manifest declares it or you added it. | `/news deps unignore left-pad` |
 | `add <ecosystem:package\|owner/repo>` | A package, or a GitHub repository as `owner/repo`, `github:owner/repo` or its address | Follows a package no manifest declares, or a repository as the `github` ecosystem, and takes it off the ignored list. Refused when it is followed already, or at 500 added packages. | `/news deps add vercel/next.js` |
-| `map <package> <owner/repo\|feed-url>` | A followed, added or ignored package, then a repository or feed address | Reads the package's releases from that repository or feed, replacing any earlier mapping, and drops the releases kept from the old feed. | `/news deps map npm:lodash lodash/lodash` |
+| `map <package> <owner/repo\|feed-url\|off>` | A followed, added or ignored package, then a repository or feed address, or `off` | Reads the package's releases from that repository or feed, replacing any earlier mapping, and drops the releases kept from the old feed. `off` removes your mapping (in every project) and drops this project's kept releases of the package; it is refused when the package has no mapping you set. | `/news deps map npm:lodash lodash/lodash`, `/news deps map npm:lodash off` |
 | `dev <on\|off>` | `on` or `off` | Follows dev dependencies too, default off. | `/news deps dev on` |
 | `level <level>` | `all`, `minor+`, `major+breaking+security` or `breaking+security` | Sets what the band and the pane show, default `minor+`. | `/news deps level major+breaking+security` |
 | `toast <level\|off>` | A level or `off` | Sets which new releases raise a toast, default `breaking+security`. | `/news deps toast off` |
