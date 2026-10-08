@@ -33,6 +33,30 @@ describe('detect-deps', () => {
     expect(project?.detectedCount).toBe(6)
   })
 
+  test('the ignored and added packages stored for the project shape what is followed, and stay stored', async () => {
+    const fake = Fixtures.fakeHostOf({
+      deps: {
+        '/repo': {
+          ignored: ['go:github.com/google/go-cmp'],
+          added: [Fixtures.depAt('zod', { manifestPath: '' })],
+        },
+      },
+    })
+
+    Object.assign(
+      fake.host,
+      Fixtures.fakeFsOf('/repo', { '.git': { isDir: true }, 'go.mod': Go.K8S_GO_MOD }),
+    )
+
+    const project = await Detect.detectDeps(fake.host)
+    const names = project?.dependencies.map(dependency => dependency.name) ?? []
+
+    expect(names).not.toContain('github.com/google/go-cmp')
+    expect(names.at(-1)).toBe('zod')
+    expect(project?.ignored).toEqual(['go:github.com/google/go-cmp'])
+    expect(project?.added).toEqual([Fixtures.depAt('zod', { manifestPath: '' })])
+  })
+
   test('each project keeps its own record and settings: two roots never mix', async () => {
     const fake = Fixtures.fakeHostOf({
       deps: { '/a': { settings: { cap: 1 } }, '/b': { settings: { includeDev: true } } },

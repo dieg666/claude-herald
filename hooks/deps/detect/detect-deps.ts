@@ -3,16 +3,16 @@ import type { Host } from '../../host/host.js'
 import { loadDepsProject } from '../../store/load-deps-project.js'
 import { saveDetection } from '../../store/save-detection.js'
 import { DETECTORS } from './detectors.js'
+import { followedOf } from './followed-of.js'
 import { manifestHashOf } from './manifest-hash-of.js'
 import { oversizedHashOf } from './oversized-hash-of.js'
 import type { ProjectRoot } from './project-root.js'
 import { projectRootOf } from './project-root-of.js'
 import { scanProject } from './scan-project.js'
-import { selectDeps } from './select-deps.js'
 import { WALK_LIMITS } from './walk-limits.js'
 
 /**
- * Detects the project's stack and stores it under the project root: the followed dependencies and the hash of every manifest and lockfile read (the size of one too large to read). Does nothing for a project whose stack is turned off, or when the session's root is a filesystem root. Never throws: a failure is one debug line.
+ * Detects the project's stack and stores it under the project root: the followed dependencies (ignored packages left out, hand-added ones in) and the hash of every manifest and lockfile read (the size of one too large to read). Does nothing for a project whose stack is turned off, or when the session's root is a filesystem root. Never throws: a failure is one debug line.
  *
  * @param host the engine
  * @param at where to detect from and how deep; looked up from the session when absent
@@ -38,7 +38,7 @@ export async function detectDeps(host: Host, at?: ProjectRoot): Promise<DepsProj
       ...WALK_LIMITS,
       maxDepth: root.maxDepth,
     })
-    const { followed, detectedCount } = selectDeps(scan.dependencies, project.settings)
+    const { followed, detectedCount } = followedOf(scan.dependencies, project)
     const manifestHashes = Object.fromEntries([
       ...[...scan.texts].map(([path, text]) => [path, manifestHashOf(text)]),
       ...[...scan.oversized].map(([path, size]) => [path, oversizedHashOf(size)]),
