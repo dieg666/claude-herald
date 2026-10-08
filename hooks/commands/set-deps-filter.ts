@@ -1,4 +1,5 @@
 import { mirrorStack } from '../deps/stack/mirror-stack.js'
+import type { StackLoop } from '../deps/stack/stack-loop.js'
 import type { Host } from '../host/host.js'
 import { argumentOf } from './argument-of.js'
 import type { CommandReply } from './command-reply.js'
@@ -15,8 +16,13 @@ const FILTER_CHARS = 100
  *
  * @param host the engine
  * @param rest what follows `filter`
+ * @param stack the stack loop, whose queue orders the stack's store and state writes
  */
-export async function setDepsFilter(host: Host, rest: string): Promise<CommandReply> {
+export async function setDepsFilter(
+  host: Host,
+  rest: string,
+  stack: StackLoop,
+): Promise<CommandReply> {
   const filter = argumentOf(rest)
 
   if (filter.length > FILTER_CHARS) {
@@ -32,15 +38,17 @@ export async function setDepsFilter(host: Host, rest: string): Promise<CommandRe
     return at.reply
   }
 
-  // The filter belongs to the project in state: mirroring another one first starts it blank.
-  if ((await host.state.stack.read()).root !== at.root) {
-    await mirrorStack(host, at.root)
-  }
+  await stack.serially(async () => {
+    // The filter belongs to the project in state: mirroring another one first starts it blank.
+    if ((await host.state.stack.read()).root !== at.root) {
+      await mirrorStack(host, at.root)
+    }
 
-  if ((await host.state.stack.read()).filter !== filter) {
-    await host.state.stack.update(stack => ({ ...stack, filter }))
-    await host.state.pane.update(pane => ({ ...pane, selected: 0 }))
-  }
+    if ((await host.state.stack.read()).filter !== filter) {
+      await host.state.stack.update(current => ({ ...current, filter }))
+      await host.state.pane.update(pane => ({ ...pane, selected: 0 }))
+    }
+  })
 
   return {
     text:

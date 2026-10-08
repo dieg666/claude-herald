@@ -1,3 +1,4 @@
+import type { StackLoop } from '../deps/stack/stack-loop.js'
 import type { Host } from '../host/host.js'
 import { DEPS_CAP_BOUNDS } from '../store/deps-cap-bounds.js'
 import { applyDepsSettings } from './apply-deps-settings.js'
@@ -12,8 +13,13 @@ import { wholeNumberOf } from './whole-number-of.js'
  *
  * @param host the engine
  * @param rest what follows `cap`
+ * @param stack the stack loop, whose queue orders the stack's store and state writes
  */
-export async function setDepsCap(host: Host, rest: string): Promise<CommandReply> {
+export async function setDepsCap(
+  host: Host,
+  rest: string,
+  stack: StackLoop,
+): Promise<CommandReply> {
   const value = argumentOf(rest)
   const cap = wholeNumberOf(value, DEPS_CAP_BOUNDS.min, DEPS_CAP_BOUNDS.max)
 
@@ -30,7 +36,7 @@ export async function setDepsCap(host: Host, rest: string): Promise<CommandReply
     return at.reply
   }
 
-  const settings = await applyDepsSettings(host, at.root, { cap })
+  const settings = await applyDepsSettings(host, stack, at.root, { cap })
   const text = `${at.root} follows at most ${cap} ${cap === 1 ? 'dependency' : 'dependencies'}.`
 
   return settings.isEnabled

@@ -20,13 +20,13 @@ export const DEPS_SUBCOMMANDS: Readonly<Record<keyof typeof DEPS_USAGES, Subcomm
     usage: DEPS_USAGES.on,
     summary: "follow this project's dependency releases (default)",
     needsArgument: false,
-    run: (host, rest) => setDepsEnabled(host, rest, true),
+    run: (host, rest, stack) => setDepsEnabled(host, rest, stack, true),
   },
   off: {
     usage: DEPS_USAGES.off,
     summary: 'stop following them here; other sources stay',
     needsArgument: false,
-    run: (host, rest) => setDepsEnabled(host, rest, false),
+    run: (host, rest, stack) => setDepsEnabled(host, rest, stack, false),
   },
   rescan: {
     usage: DEPS_USAGES.rescan,
@@ -38,13 +38,13 @@ export const DEPS_SUBCOMMANDS: Readonly<Record<keyof typeof DEPS_USAGES, Subcomm
     usage: DEPS_USAGES.ignore,
     summary: 'never follow, look up or show a package (npm:name, or a bare name)',
     needsArgument: true,
-    run: (host, rest) => setDepIgnored(host, rest, true),
+    run: (host, rest, stack) => setDepIgnored(host, rest, stack, true),
   },
   unignore: {
     usage: DEPS_USAGES.unignore,
     summary: 'follow an ignored package again',
     needsArgument: true,
-    run: (host, rest) => setDepIgnored(host, rest, false),
+    run: (host, rest, stack) => setDepIgnored(host, rest, stack, false),
   },
   add: {
     usage: DEPS_USAGES.add,

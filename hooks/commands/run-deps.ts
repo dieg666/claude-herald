@@ -1,3 +1,4 @@
+import type { StackLoop } from '../deps/stack/stack-loop.js'
 import type { Host } from '../host/host.js'
 import { COMMAND_NAME } from '../names/command-name.js'
 import type { CommandReply } from './command-reply.js'
@@ -11,8 +12,9 @@ import { wordsOf } from './words-of.js'
  *
  * @param host the engine
  * @param args everything after `/news deps`
+ * @param stack the stack loop, whose queue orders the stack's store and state writes
  */
-export async function runDeps(host: Host, args: string): Promise<CommandReply> {
+export async function runDeps(host: Host, args: string, stack: StackLoop): Promise<CommandReply> {
   const [, name = '', rest = ''] = /^\s*(\S*)\s*([\s\S]*?)\s*$/.exec(args) ?? []
   const key = name.toLowerCase()
 
@@ -40,5 +42,5 @@ export async function runDeps(host: Host, args: string): Promise<CommandReply> {
     }
   }
 
-  return subcommand.run(host, rest)
+  return subcommand.run(host, rest, stack)
 }

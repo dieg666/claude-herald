@@ -299,7 +299,7 @@ export const register: Register = on => {
   })
 
   on('command.run', { command: 'news' }, async ($, e) => {
-    const reply = await Commands.runNews(hostOf($), e.args)
+    const reply = await Commands.runNews(hostOf($), e.args, STACK)
 
     if (reply.restartRefresh === true) {
       restartRefresh($)

@@ -1,4 +1,5 @@
 import { DEPS_LEVELS } from '../defaults/deps-levels.js'
+import type { StackLoop } from '../deps/stack/stack-loop.js'
 import type { Host } from '../host/host.js'
 import { applyDepsSettings } from './apply-deps-settings.js'
 import { argumentOf } from './argument-of.js'
@@ -12,8 +13,13 @@ import { depsRootOf } from './deps-root-of.js'
  *
  * @param host the engine
  * @param rest what follows `level`
+ * @param stack the stack loop, whose queue orders the stack's store and state writes
  */
-export async function setDepsLevel(host: Host, rest: string): Promise<CommandReply> {
+export async function setDepsLevel(
+  host: Host,
+  rest: string,
+  stack: StackLoop,
+): Promise<CommandReply> {
   const value = argumentOf(rest)
   const showLevel = depsLevelOf(value, DEPS_LEVELS)
 
@@ -30,7 +36,7 @@ export async function setDepsLevel(host: Host, rest: string): Promise<CommandRep
     return at.reply
   }
 
-  await applyDepsSettings(host, at.root, { showLevel })
+  await applyDepsSettings(host, stack, at.root, { showLevel })
 
   return {
     text: `The band and the pane show the ${showLevel} dependency releases of ${at.root}.`,

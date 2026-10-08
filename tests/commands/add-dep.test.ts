@@ -65,6 +65,10 @@ describe('add-dep', () => {
       `"zod" is neither <ecosystem>:<package> (e.g. npm:zod) nor a GitHub repository (owner/repo or its URL).${usage}`,
     )
     expect((await $.command.run(Fixtures.newsOf('deps add nuget:'))).text).toContain(usage)
+    expect((await $.command.run(Fixtures.newsOf('deps add npm:zod extra words'))).text).toBe(
+      `"npm:zod extra words" is neither <ecosystem>:<package> (e.g. npm:zod) nor a GitHub repository (owner/repo or its URL).${usage}`,
+    )
+    expect((await $.command.run(Fixtures.newsOf('deps add "npm:left pad"'))).text).toContain(usage)
     expect(JSON.stringify(stored.get('deps'))).toBe(before)
   })
 

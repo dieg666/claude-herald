@@ -44,15 +44,48 @@ describe('set-dep-ignored', () => {
     },
   )
 
-  test('ecosystem:name ignores a package not followed (dev, over the cap); a quoted name is read whole', async ($, on) => {
-    const stored = Fixtures.storeOn(on, { sources: [] })
+  test('ecosystem:name ignores a followed or added package, spelled as followed; a quoted name is read whole', async ($, on) => {
+    const stored = Fixtures.storeOn(on, {
+      sources: [],
+      deps: {
+        '/repo': {
+          dependencies: [
+            Fixtures.depAt('Some-Package', { ecosystem: 'pypi', manifestPath: 'requirements.txt' }),
+          ],
+          added: [Fixtures.depAt("we'ird", { manifestPath: '' })],
+        },
+      },
+    })
 
     Fixtures.fsOn(on, { '.git': { isDir: true } })
 
-    await $.command.run(Fixtures.newsOf('deps ignore PyPI:Some-Package'))
+    await $.command.run(Fixtures.newsOf('deps ignore PyPI:some-package'))
     await $.command.run(Fixtures.newsOf(`deps ignore "npm:we'ird"`))
 
     expect(projectAt(stored).ignored).toEqual(['pypi:Some-Package', "npm:we'ird"])
+  })
+
+  test('a typed package neither followed nor added, or a name with spaces, is refused with the usage line', async ($, on) => {
+    const stored = Fixtures.storeOn(on, {
+      sources: [],
+      deps: { '/repo': { dependencies: [Fixtures.depAt('zod')] } },
+    })
+
+    Fixtures.fsOn(on, { '.git': { isDir: true } })
+
+    const usage = '\nUsage: /news deps ignore <package>'
+
+    expect((await $.command.run(Fixtures.newsOf('deps ignore npm:typo'))).text).toBe(
+      `npm:typo is not followed or added in /repo; /news deps lists the packages it follows.${usage}`,
+    )
+
+    for (const args of ['npm:zod extra words', '"npm:zod extra"']) {
+      expect((await $.command.run(Fixtures.newsOf(`deps ignore ${args}`))).text).toBe(
+        `Name one package, without spaces.${usage}`,
+      )
+    }
+
+    expect(projectAt(stored).ignored).toBeUndefined()
   })
 
   test('a bare name two ecosystems share, or none has, is refused with the usage line and saves nothing', async ($, on) => {

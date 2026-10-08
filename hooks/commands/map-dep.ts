@@ -2,6 +2,7 @@ import { overrideTargetOf } from '../deps/resolve/override-target-of.js'
 import { depFeedKeyOf } from '../deps/resolve/dep-feed-key-of.js'
 import { setOverride } from '../deps/resolve/set-override.js'
 import { mirrorStack } from '../deps/stack/mirror-stack.js'
+import type { StackLoop } from '../deps/stack/stack-loop.js'
 import type { Host } from '../host/host.js'
 import { COMMAND_NAME } from '../names/command-name.js'
 import { loadDepsProject } from '../store/load-deps-project.js'
@@ -19,13 +20,17 @@ import { wordsOf } from './words-of.js'
  *
  * @param host the engine
  * @param rest what follows `map`
+ * @param stack the stack loop, whose queue orders the stack's store and state writes
  */
-export async function mapDep(host: Host, rest: string): Promise<CommandReply> {
+export async function mapDep(host: Host, rest: string, stack: StackLoop): Promise<CommandReply> {
   const words = wordsOf(rest)
   const [typed = '', target = ''] = words
 
-  if (words.length !== 2) {
-    return depsRefusalOf('map', 'Name the package, then where its releases are.')
+  if (words.length !== 2 || words.some(word => word === '' || /\s/.test(word))) {
+    return depsRefusalOf(
+      'map',
+      'Name the package, then where its releases are, each without spaces.',
+    )
   }
 
   if (overrideTargetOf(target) === undefined) {
@@ -53,17 +58,22 @@ export async function mapDep(host: Host, rest: string): Promise<CommandReply> {
   }
 
   const key = depFeedKeyOf(found.pkg)
-  const override = await setOverride(host, found.pkg, target)
+  // In the stack's queue, so a refresh in flight writes its old feed's read before the drop, or skips it after.
+  const override = await stack.serially(async () => {
+    const set = await setOverride(host, found.pkg, target)
+
+    if (set !== undefined && Object.hasOwn((await loadStackProject(host, at.root)).deps, key)) {
+      await saveStackProject(host, at.root, stored => ({
+        deps: Object.fromEntries(Object.entries(stored.deps).filter(([other]) => other !== key)),
+      }))
+      await mirrorStack(host, at.root)
+    }
+
+    return set
+  })
 
   if (override === undefined) {
     return depsRefusalOf('map', `"${target}" is not a repository or a feed URL.`)
-  }
-
-  if (Object.hasOwn((await loadStackProject(host, at.root)).deps, key)) {
-    await saveStackProject(host, at.root, stored => ({
-      deps: Object.fromEntries(Object.entries(stored.deps).filter(([other]) => other !== key)),
-    }))
-    await mirrorStack(host, at.root)
   }
 
   const where = override.repo ?? override.feed ?? target

@@ -1,3 +1,4 @@
+import type { StackLoop } from '../deps/stack/stack-loop.js'
 import type { Host } from '../host/host.js'
 import type { CommandReply } from './command-reply.js'
 
@@ -11,6 +12,6 @@ export type Subcommand = {
   readonly summary: string
   /** Whether it refuses to run with nothing after its name. */
   readonly needsArgument: boolean
-  /** Runs it with what follows its name, trimmed. */
-  readonly run: (host: Host, rest: string) => Promise<CommandReply>
+  /** Runs it with what follows its name, trimmed, and the stack loop whose queue orders the stack's store and state writes. */
+  readonly run: (host: Host, rest: string, stack: StackLoop) => Promise<CommandReply>
 }

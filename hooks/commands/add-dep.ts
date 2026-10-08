@@ -2,6 +2,7 @@ import type { Dependency } from '../../types/index.js'
 import { depFeedKeyOf } from '../deps/resolve/dep-feed-key-of.js'
 import { shorthandRepoOf } from '../deps/resolve/shorthand-repo-of.js'
 import { mirrorStack } from '../deps/stack/mirror-stack.js'
+import type { StackLoop } from '../deps/stack/stack-loop.js'
 import type { Host } from '../host/host.js'
 import { COMMAND_NAME } from '../names/command-name.js'
 import { DEPS_LIST_MAX } from '../store/deps-list-max.js'
@@ -11,6 +12,7 @@ import { argumentOf } from './argument-of.js'
 import type { CommandReply } from './command-reply.js'
 import { depsRefusalOf } from './deps-refusal-of.js'
 import { depsRootOf } from './deps-root-of.js'
+import { singleWordOf } from './single-word-of.js'
 import { typedPackageOf } from './typed-package-of.js'
 
 /**
@@ -48,10 +50,12 @@ function addedOf(text: string): Dependency | undefined {
  *
  * @param host the engine
  * @param rest what follows `add`
+ * @param stack the stack loop, whose queue orders the stack's store and state writes
  */
-export async function addDep(host: Host, rest: string): Promise<CommandReply> {
+export async function addDep(host: Host, rest: string, stack: StackLoop): Promise<CommandReply> {
   const typed = argumentOf(rest)
-  const dependency = addedOf(typed)
+  const word = singleWordOf(rest)
+  const dependency = word === undefined ? undefined : addedOf(word)
 
   if (dependency === undefined) {
     return depsRefusalOf(
@@ -89,17 +93,19 @@ export async function addDep(host: Host, rest: string): Promise<CommandReply> {
     return depsRefusalOf('add', `${at.root} has ${DEPS_LIST_MAX} packages added already.`)
   }
 
-  await updateDepsProject(host, at.root, stored => ({
-    ...stored,
-    dependencies: stored.dependencies.some(other => depFeedKeyOf(other) === key)
-      ? stored.dependencies
-      : [...stored.dependencies, dependency],
-    ignored: (stored.ignored ?? []).filter(other => other !== key),
-    added: (stored.added ?? []).some(other => depFeedKeyOf(other) === key)
-      ? (stored.added ?? [])
-      : [...(stored.added ?? []), dependency],
-  }))
-  await mirrorStack(host, at.root)
+  await stack.serially(async () => {
+    await updateDepsProject(host, at.root, stored => ({
+      ...stored,
+      dependencies: stored.dependencies.some(other => depFeedKeyOf(other) === key)
+        ? stored.dependencies
+        : [...stored.dependencies, dependency],
+      ignored: (stored.ignored ?? []).filter(other => other !== key),
+      added: (stored.added ?? []).some(other => depFeedKeyOf(other) === key)
+        ? (stored.added ?? [])
+        : [...(stored.added ?? []), dependency],
+    }))
+    await mirrorStack(host, at.root)
+  })
 
   const note = project.settings.isEnabled
     ? ' Looking it up now.'

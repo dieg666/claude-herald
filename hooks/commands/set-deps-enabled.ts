@@ -1,3 +1,4 @@
+import type { StackLoop } from '../deps/stack/stack-loop.js'
 import type { Host } from '../host/host.js'
 import { COMMAND_NAME } from '../names/command-name.js'
 import { loadDepsProject } from '../store/load-deps-project.js'
@@ -12,11 +13,13 @@ import { depsRootOf } from './deps-root-of.js'
  *
  * @param host the engine
  * @param rest what follows `on` or `off`, which must be nothing
+ * @param stack the stack loop, whose queue orders the stack's store and state writes
  * @param isEnabled the state to set
  */
 export async function setDepsEnabled(
   host: Host,
   rest: string,
+  stack: StackLoop,
   isEnabled: boolean,
 ): Promise<CommandReply> {
   const name = isEnabled ? 'on' : 'off'
@@ -37,7 +40,7 @@ export async function setDepsEnabled(
     return { text: `Your stack is already ${name} for ${at.root}.` }
   }
 
-  await applyDepsSettings(host, at.root, { isEnabled })
+  await applyDepsSettings(host, stack, at.root, { isEnabled })
 
   return isEnabled
     ? {

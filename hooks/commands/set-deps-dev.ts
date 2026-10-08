@@ -1,3 +1,4 @@
+import type { StackLoop } from '../deps/stack/stack-loop.js'
 import type { Host } from '../host/host.js'
 import { loadDepsProject } from '../store/load-deps-project.js'
 import { applyDepsSettings } from './apply-deps-settings.js'
@@ -12,8 +13,13 @@ import { onOffOf } from './on-off-of.js'
  *
  * @param host the engine
  * @param rest what follows `dev`
+ * @param stack the stack loop, whose queue orders the stack's store and state writes
  */
-export async function setDepsDev(host: Host, rest: string): Promise<CommandReply> {
+export async function setDepsDev(
+  host: Host,
+  rest: string,
+  stack: StackLoop,
+): Promise<CommandReply> {
   const value = argumentOf(rest)
   const includeDev = onOffOf(value)
 
@@ -38,7 +44,7 @@ export async function setDepsDev(host: Host, rest: string): Promise<CommandReply
     }
   }
 
-  const settings = await applyDepsSettings(host, at.root, { includeDev })
+  const settings = await applyDepsSettings(host, stack, at.root, { includeDev })
   const text = includeDev
     ? `Dev dependencies are followed in ${at.root} too.`
     : `Only runtime dependencies are followed in ${at.root}.`
