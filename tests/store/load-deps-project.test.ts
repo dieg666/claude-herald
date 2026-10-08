@@ -43,6 +43,25 @@ describe('load-deps-project', () => {
     expect((await Store.loadDepsProject(host, '/stamped')).detectedAt).toBe(1234)
   })
 
+  test('the ignored and added lists are read cleaned, and left out when empty', async () => {
+    const { host } = Fixtures.fakeHostOf({
+      deps: {
+        '/repo': {
+          ignored: ['npm:lodash', 'bad', 'npm:lodash'],
+          added: [Fixtures.depAt('zod', { manifestPath: '' }), { name: 'broken' }],
+        },
+        '/empty': { ignored: ['bad'], added: [] },
+      },
+    })
+
+    expect(await Store.loadDepsProject(host, '/repo')).toEqual({
+      ...EMPTY,
+      ignored: ['npm:lodash'],
+      added: [Fixtures.depAt('zod', { manifestPath: '' })],
+    })
+    expect(await Store.loadDepsProject(host, '/empty')).toEqual(EMPTY)
+  })
+
   test('a store value that is not an object, or a root named like a built-in key, reads as empty', async () => {
     expect(await Store.loadDepsProject(Fixtures.fakeHostOf({ deps: [1] }).host, '/repo')).toEqual(
       EMPTY,

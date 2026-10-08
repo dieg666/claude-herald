@@ -14,4 +14,5 @@ export const ECOSYSTEMS: readonly Ecosystem[] = [
   'maven',
   'swift',
   'pub',
+  'github',
 ]

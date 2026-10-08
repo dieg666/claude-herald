@@ -10,7 +10,7 @@ import type { RegistryLookup } from './registry-lookup.js'
 import { rubygemsLookup } from './rubygems-lookup.js'
 
 /**
- * The registry lookup of each ecosystem; Swift and Dart have none, so only a GitHub source URL resolves them.
+ * The registry lookup of each ecosystem; Swift, Dart and repositories followed by hand have none, so only a GitHub source URL resolves them.
  */
 export const REGISTRY_LOOKUPS: Readonly<Record<Ecosystem, RegistryLookup | undefined>> = {
   npm: npmLookup,
@@ -23,4 +23,5 @@ export const REGISTRY_LOOKUPS: Readonly<Record<Ecosystem, RegistryLookup | undef
   maven: mavenLookup,
   swift: undefined,
   pub: undefined,
+  github: undefined,
 }

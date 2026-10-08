@@ -14,4 +14,5 @@ export const ECOSYSTEM_LABELS: Readonly<Record<Ecosystem, string>> = {
   maven: 'Maven',
   swift: 'Swift',
   pub: 'pub',
+  github: 'GitHub',
 }

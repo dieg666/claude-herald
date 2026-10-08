@@ -123,10 +123,20 @@ export type RefreshStatus = {
 }
 
 /**
- * The package registry a dependency comes from; Gradle and Maven share `maven`.
+ * The package registry a dependency comes from; Gradle and Maven share `maven`; `github` is a repository followed by hand, named `owner/repo`.
  */
 export type Ecosystem =
-  'npm' | 'pypi' | 'go' | 'cargo' | 'rubygems' | 'packagist' | 'nuget' | 'maven' | 'swift' | 'pub'
+  | 'npm'
+  | 'pypi'
+  | 'go'
+  | 'cargo'
+  | 'rubygems'
+  | 'packagist'
+  | 'nuget'
+  | 'maven'
+  | 'swift'
+  | 'pub'
+  | 'github'
 
 /**
  * One dependency a project's manifests declare.
@@ -188,6 +198,10 @@ export type DepsProject = {
   manifestHashes: Record<string, string>
   /** When the last detection ran, in milliseconds since the epoch; 0 for a project never detected. */
   detectedAt: number
+  /** The packages the user ignored, `<ecosystem>:<name>`: never followed, resolved or shown; absent when none. */
+  ignored?: string[]
+  /** The packages the user follows without a manifest declaring them, in the order added; absent when none. */
+  added?: Dependency[]
 }
 
 /**
