@@ -102,8 +102,12 @@ describe('pane-page-of', () => {
   test("the stack tab's window counts lines, one per row, less the summary, the filter and one heading per ecosystem", () => {
     const page = Pane.panePageOf({ tab: '@stack', selected: 0 }, SOURCES, ITEMS, SAVED, 4, STACK)
 
-    // Four two-line items are eight lines; the summary, the filter and two headings leave four rows.
-    expect([page.span.count, page.stack?.shownRows.length, page.size]).toEqual([4, 4, 4])
+    // Four one-line items and the three summary lines are seven lines; the summary, the filter and two headings leave three rows.
+    expect([page.span.count, page.stack?.shownRows.length, page.size]).toEqual([3, 3, 4])
+  })
+
+  test('a news tab of the same size shows that many one-line items', () => {
+    expect(pageOf('a', 0, 4).span.count).toBe(4)
   })
 
   test('an expanded package lists its releases as rows acting on each; the window hands over every release of the packages in it', () => {
@@ -125,7 +129,7 @@ describe('pane-page-of', () => {
       expanded: [],
     })
 
-    // Six lines less the summary, the filter and two headings leave two rows: @astrojs/node and jsdom.
+    // Three items and three summary lines are six lines; less the summary, the filter and two headings, two rows: @astrojs/node and jsdom.
     expect(one.shown.map(item => (item as StackItem).release.version)).toEqual([
       '11.1.7',
       '30.1.2',

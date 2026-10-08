@@ -8,10 +8,10 @@ import { SAVED_TAB } from '../names/saved-tab.js'
 import { STACK_TAB } from '../names/stack-tab.js'
 import type { PanePage } from './pane-page.js'
 import { paneRoomOf } from './pane-room-of.js'
-import { PANE_ROW_LINES } from './pane-row-lines.js'
 import { paneSpanOf } from './pane-span-of.js'
 import type { PaneStack } from './pane-stack.js'
 import type { PaneStackPage } from './pane-stack-page.js'
+import { PANE_SUMMARY_LINES } from './pane-summary-lines.js'
 import { paneTabsOf } from './pane-tabs-of.js'
 
 /**
@@ -32,13 +32,13 @@ function releasesShownOf(stack: Omit<PaneStackPage, 'summary'>): Item[] {
 }
 
 /**
- * The page a pane state shows: its tab, or the first when it names none, a disabled or a removed source, or a stack tab that is gone (the selection then back at the top); the selection brought inside the list. The stack tab lists a one-line row per package and per release of an expanded package, in a window of lines that leaves room for its summary, its filter and its ecosystem headings.
+ * The page a pane state shows: its tab, or the first when it names none, a disabled or a removed source, or a stack tab that is gone (the selection then back at the top); the selection brought inside the list. A news or saved tab's window holds `size` one-line items; the stack tab lists a one-line row per package and per release of an expanded package, in the lines that window and the selected item's summary would take, less its summary line, its filter and its ecosystem headings.
  *
  * @param pane the pane state
  * @param sources every source, in order
  * @param items the kept items by source id, newest first
  * @param saved the saved items
- * @param size how many items the window may show
+ * @param size how many one-line items the window may show
  * @param stack the stack tab's items, filter and expanded packages; no stack tab when absent
  */
 export function panePageOf(
@@ -66,10 +66,10 @@ export function panePageOf(
     tab.id === pane.tab && Number.isInteger(pane.selected) && pane.selected > 0 ? pane.selected : 0
   const selected = Math.min(asked, Math.max(0, list.length - 1))
   const summary = isStack ? stackSummaryOf(stackPackagesOf(stack.items)) : ''
-  // A stack row takes one line; the tab also draws its summary, its filter and a heading per ecosystem.
+  // The stack tab has no summary under its selected row; it draws its summary line, its filter and a heading per ecosystem instead.
   const extraLines = (summary === '' ? 0 : 1) + 1 + new Set(packages.map(pkg => pkg.ecosystem)).size
   const room = isStack
-    ? Math.max(1, paneRoomOf(size) * PANE_ROW_LINES - extraLines)
+    ? Math.max(1, paneRoomOf(size) + PANE_SUMMARY_LINES - extraLines)
     : paneRoomOf(size)
   const span = paneSpanOf(selected, list.length, room)
   const window = list.slice(span.start, span.start + span.count)

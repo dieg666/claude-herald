@@ -61,21 +61,50 @@ describe('pane-view', () => {
   const savedOf = async (peek: () => Promise<string | undefined>) =>
     (JSON.parse((await peek()) ?? 'null') as { saved: { id: string }[] }).saved.map(item => item.id)
 
+  // Every string a drawn node holds, its descendants' included, runs of spaces made one.
+  const lineOf = (node: unknown): string => {
+    const all = (child: unknown): string =>
+      typeof child === 'string'
+        ? child
+        : ((child as { children?: unknown[] }).children ?? []).map(all).join('')
+
+    return all(node).replace(/\s+/g, ' ').trim()
+  }
+
+  const childOf = (box: FoundElement, index: number) =>
+    box.children[index] as FoundElement | undefined
+
+  // Each news row as drawn: the line's parts (the headline, then the date when it has one), and the summary lines under it.
+  const newsRowsOf = async (ui: Drawing) =>
+    (await ui.findAll({ type: 'Box' }))
+      .filter(box => box.props.flexDirection === 'row' && childOf(box, 0)?.props.flexGrow === 1)
+      .map(box => box.children.map(lineOf))
+
+  // The summary drawn under a row: the row's line parts and the summary's lines.
+  const summariesOf = async (ui: Drawing) =>
+    (await ui.findAll({ type: 'Box' }))
+      .filter(box => childOf(box, 1)?.props.paddingLeft === 4)
+      .map(box => [
+        (childOf(box, 0)?.children ?? []).map(lineOf),
+        (childOf(box, 1)?.children ?? []).map(lineOf),
+      ])
+
   for (const surface of SURFACES) {
     test(
-      `on ${surface}: a tab per enabled source then Saved, the first active; its items linked, dated, summarized or pending`,
+      `on ${surface}: a tab per enabled source then Saved, the first active; its items one line each, linked and dated; the selected one's summary under it, pending or summarized`,
       { timeoutMs: 20_000 },
       async ($, on) => {
         mock.clock(on)
-        Fixtures.bandOn(on, {
+
+        const { asked } = Fixtures.bandOn(on, {
           ...STORE,
           summaries: [
             {
-              itemId: 'a:1',
+              itemId: 'a:2',
               lang: 'feed',
               kind: 'short',
               version: Summaries.SUMMARY_PROMPT_VERSION,
-              text: 'First, in short.',
+              text: 'Second, in short.',
             },
           ],
         })
@@ -97,8 +126,13 @@ describe('pane-view', () => {
         ])
         expect(await ui.find({ type: 'Text', text: /^Jan 2$/ })).toBeDefined()
         expect((await ui.findAll({ type: 'Text', text: /^Jan 1$/ })).length).toBe(2)
-        expect(await ui.find({ type: 'Text', text: 'First, in short.' })).toBeDefined()
-        expect((await ui.findAll({ type: 'Text', text: /^…$/ })).length).toBe(2)
+        expect(await newsRowsOf(ui)).toEqual([
+          ['› a 1', 'Jan 2'],
+          ['a 2', 'Jan 1'],
+          ['a 3', 'Jan 1'],
+        ])
+        expect(await summariesOf(ui)).toEqual([[['› a 1', 'Jan 2'], ['…']]])
+        expect(await ui.find({ type: 'Text', text: 'Second, in short.' })).toBeUndefined()
         expect(await selectedOf(ui)).toBe('https://example.com/a/1')
         expect(await keysOf(ui)).toEqual([
           'tab-a',
@@ -111,11 +145,16 @@ describe('pane-view', () => {
           'save',
           'copy',
         ])
+
+        await ui.press({ key: 'down' })
+
+        expect(await summariesOf(ui)).toEqual([[['› a 2', 'Jan 1'], ['Second, in short.']]])
+        expect(asked).toEqual([])
       },
     )
 
     test(
-      `on ${surface}: an item without text is its headline row alone, with no summary or placeholder, and is never sent to the model`,
+      `on ${surface}: an item without text, selected, is its headline row alone, with no summary or placeholder, and is never sent to the model`,
       { timeoutMs: 20_000 },
       async ($, on) => {
         const clock = mock.clock(on)
@@ -140,8 +179,8 @@ describe('pane-view', () => {
           'https://example.com/a/2',
           'https://example.com/a/3',
         ])
-        expect((await ui.findAll({ type: 'Text', text: /^…$/ })).length).toBe(2)
-        expect(await summaryLines()).toBe(2)
+        expect((await ui.findAll({ type: 'Text', text: /^…$/ })).length).toBe(1)
+        expect(await summaryLines()).toBe(1)
 
         await ui.press({ key: 'tab-b' })
         await ui.press({ key: 'tab-a' })
@@ -151,9 +190,14 @@ describe('pane-view', () => {
 
         expect(askedOfAlpha()).toEqual(['a 1', 'a 3'])
         expect(await ui.find({ type: 'Text', text: /^…$/ })).toBeUndefined()
-        expect(await summaryLines()).toBe(2)
+        expect(await summaryLines()).toBe(1)
 
         await ui.press({ key: 'down' })
+        await clock.settle()
+
+        expect(await ui.find({ type: 'Text', text: /^…$/ })).toBeUndefined()
+        expect(await summaryLines()).toBe(0)
+
         await ui.press({ key: 'summarize' })
 
         expect(askedOfAlpha()).toEqual(['a 1', 'a 3'])
@@ -244,6 +288,22 @@ describe('pane-view', () => {
 
       expect(await namesOf('Alpha')).toEqual([true, true])
       expect(await namesOf('Beta')).toEqual([true])
+      // Each name sits in its own unshrinking Box between the headline and the seven-cell date column, so names end in one column.
+      expect(await newsRowsOf(ui)).toEqual([
+        ['› a 1', 'Alpha', 'Jan 2'],
+        ['a 2', 'Alpha', 'Jan 1'],
+        ['b 1', 'Beta', 'Jan 2'],
+      ])
+      expect(
+        (await ui.findAll({ type: 'Box' }))
+          .filter(box => box.props.flexDirection === 'row' && childOf(box, 0)?.props.flexGrow === 1)
+          .map(box => [1, 2].map(index => childOf(box, index)?.props)),
+      ).toEqual(
+        Array(3).fill([
+          { flexShrink: 0, paddingLeft: 2 },
+          { flexShrink: 0, width: 7, paddingLeft: 1, justifyContent: 'flex-end' },
+        ]),
+      )
       expect(
         (await ui.findAll({ type: 'Text' })).filter(text => text.props.color === 'claude'),
       ).toEqual([])
@@ -355,26 +415,26 @@ describe('pane-view', () => {
 
       await $.classic.SessionStart({ source: 'clear' })
 
-      // Twelve rows less the tab row, the heading and the action row leave four items.
+      // Twelve rows less the tab row, the heading, the action row and three summary lines leave six items.
       const ui = await $.ui.mount({
         ...PANE,
         surface,
         props: { ...Fixtures.PANE_PROPS, scroll: { offset: 0, bodyRows: 12 } },
       })
 
-      expect(await headingOf(ui)).toBe('Alpha · 1-4 of 20')
+      expect(await headingOf(ui)).toBe('Alpha · 1-6 of 20')
 
       await ui.press({ key: 'up' })
 
       expect(await selectedOf(ui)).toBe('https://example.com/a/1')
 
-      for (let press = 0; press < 3; press += 1) {
+      for (let press = 0; press < 4; press += 1) {
         await ui.press({ key: 'down' })
       }
 
       expect([await headingOf(ui), await selectedOf(ui)]).toEqual([
-        'Alpha · 2-5 of 20',
-        'https://example.com/a/4',
+        'Alpha · 2-7 of 20',
+        'https://example.com/a/5',
       ])
 
       for (let press = 0; press < 20; press += 1) {
@@ -382,21 +442,110 @@ describe('pane-view', () => {
       }
 
       expect([await headingOf(ui), await selectedOf(ui)]).toEqual([
-        'Alpha · 17-20 of 20',
+        'Alpha · 15-20 of 20',
         'https://example.com/a/20',
       ])
-      expect((await linksOf(ui)).length).toBe(4)
+      expect((await linksOf(ui)).length).toBe(6)
     })
 
     test(
-      `on ${surface}: a tab switch or a window move asks once per item without a summary; drawing again or moving inside the window asks nothing`,
+      `on ${surface}: one line per item, the date at its right end; only the selected item has its summary, on at most three lines; moving the selection moves it, asks for a missing one and keeps the window`,
+      { timeoutMs: 20_000 },
+      async ($, on) => {
+        const clock = mock.clock(on)
+        const long = Array.from({ length: 14 }, (_, index) => `word${index + 1}`).join(' ')
+        const { asked } = Fixtures.bandOn(on, {
+          sources: [ALPHA],
+          items: {
+            a: Fixtures.datedItemsOf('a', 10).map(item =>
+              item.id === 'a:2' ? { ...item, title: 'x'.repeat(40) } : item,
+            ),
+          },
+          summaries: [
+            {
+              itemId: 'a:1',
+              lang: 'feed',
+              kind: 'short',
+              version: Summaries.SUMMARY_PROMPT_VERSION,
+              text: long,
+            },
+          ],
+        })
+
+        await $.classic.SessionStart({ source: 'clear' })
+
+        // Thirty-two cells: the action row wraps onto three lines, so twelve rows less the tab row, the heading, those and three summary lines leave four items.
+        const ui = await $.ui.mount({
+          ...PANE,
+          surface,
+          props: { ...Fixtures.PANE_PROPS, bodyColumns: 32, scroll: { offset: 0, bodyRows: 12 } },
+        })
+        const layoutOf = async () =>
+          (await ui.findAll({ type: 'Box' }))
+            .filter(
+              box => box.props.flexDirection === 'row' && childOf(box, 0)?.props.flexGrow === 1,
+            )
+            .map(box => [
+              childOf(box, 0)?.props.flexShrink,
+              childOf(childOf(box, 0) as FoundElement, 0)?.props.wrap,
+              childOf(box, 1)?.props.flexShrink,
+              childOf(box, 1)?.props.width,
+              childOf(box, 1)?.props.justifyContent,
+            ])
+
+        expect(await headingOf(ui)).toBe('Alpha · 1-4 of 10')
+        // Thirty-two cells less the mark and its space and the seven-cell date column leave twenty-three for the headline.
+        expect(await newsRowsOf(ui)).toEqual([
+          ['› a 1', 'Jan 2'],
+          [`${'x'.repeat(22)}…`, 'Jan 1'],
+          ['a 3', 'Jan 1'],
+          ['a 4', 'Jan 1'],
+        ])
+        expect(await layoutOf()).toEqual(Array(4).fill([1, 'truncate-end', 0, 7, 'flex-end']))
+        // Twenty-eight cells after the indent: fourteen words take four lines, so the third ends the summary with an ellipsis.
+        expect(await summariesOf(ui)).toEqual([
+          [
+            ['› a 1', 'Jan 2'],
+            ['word1 word2 word3 word4', 'word5 word6 word7 word8', 'word9 word10 word11 word12…'],
+          ],
+        ])
+
+        await ui.press({ key: 'down' })
+        await clock.settle()
+
+        expect(asked).toEqual(['x'.repeat(40)])
+        expect(await headingOf(ui)).toBe('Alpha · 1-4 of 10')
+        expect(await summariesOf(ui)).toEqual([
+          // The model's line wraps too, its forty-one-cell word cut at twenty-eight.
+          [
+            [`› ${'x'.repeat(22)}…`, 'Jan 1'],
+            ['Summary of', 'x'.repeat(28), `${'x'.repeat(12)}.`],
+          ],
+        ])
+        expect((await newsRowsOf(ui)).length).toBe(4)
+
+        await ui.press({ key: 'up' })
+
+        expect(asked.length).toBe(1)
+        expect((await summariesOf(ui))[0]?.[0]).toEqual(['› a 1', 'Jan 2'])
+        expect(await linksOf(ui)).toEqual([
+          'https://example.com/a/1',
+          'https://example.com/a/2',
+          'https://example.com/a/3',
+          'https://example.com/a/4',
+        ])
+      },
+    )
+
+    test(
+      `on ${surface}: a tab switch or a window move asks once per item without a summary, the selected one first; drawing again or moving inside the window to a summarized item asks nothing`,
       { timeoutMs: 20_000 },
       async ($, on) => {
         const clock = mock.clock(on)
         const gone = { ...Fixtures.datedItemsOf('gone', 1)[0], savedAt: 1 }
         const { asked } = Fixtures.bandOn(on, {
           sources: [ALPHA, BETA],
-          items: { a: Fixtures.datedItemsOf('a', 6), b: Fixtures.datedItemsOf('b', 2) },
+          items: { a: Fixtures.datedItemsOf('a', 10), b: Fixtures.datedItemsOf('b', 2) },
           saved: [gone],
         })
 
@@ -416,8 +565,9 @@ describe('pane-view', () => {
         await ui.press({ key: 'tab-b' })
         await clock.settle()
 
-        expect([...asked].sort()).toEqual(['b 1', 'b 2'])
-        expect(await ui.find({ type: 'Text', text: 'Summary of b 2.' })).toBeDefined()
+        expect(asked).toEqual(['b 1', 'b 2'])
+        expect(await ui.find({ type: 'Text', text: 'Summary of b 1.' })).toBeDefined()
+        expect(await ui.find({ type: 'Text', text: 'Summary of b 2.' })).toBeUndefined()
 
         await ui.press({ key: 'tab-b' })
         await ui.press({ key: 'down' })
@@ -425,27 +575,31 @@ describe('pane-view', () => {
         await clock.settle()
 
         expect(asked.length).toBe(2)
+        expect(await ui.find({ type: 'Text', text: 'Summary of b 2.' })).toBeDefined()
 
         await ui.press({ key: 'tab-a' })
         await clock.settle()
 
-        expect(asked.slice(2).sort()).toEqual(['a 1', 'a 2', 'a 3', 'a 4'])
+        expect(asked[2]).toBe('a 1')
+        expect(asked.slice(2).sort()).toEqual(['a 1', 'a 2', 'a 3', 'a 4', 'a 5', 'a 6'])
 
-        await ui.press({ key: 'down' })
+        for (let press = 0; press < 3; press += 1) {
+          await ui.press({ key: 'down' })
+        }
+
+        await clock.settle()
+
+        expect(asked.length).toBe(8)
+
         await ui.press({ key: 'down' })
         await clock.settle()
 
-        expect(asked.length).toBe(6)
-
-        await ui.press({ key: 'down' })
-        await clock.settle()
-
-        expect(asked.slice(6)).toEqual(['a 5'])
+        expect(asked.slice(8)).toEqual(['a 7'])
 
         await ui.press({ key: 'tab-saved' })
         await clock.settle()
 
-        expect(asked.slice(7)).toEqual(['gone 1'])
+        expect(asked.slice(9)).toEqual(['gone 1'])
         expect(await ui.find({ type: 'Text', text: 'Summary of gone 1.' })).toBeDefined()
         // A removed source has no name to draw.
         expect(await ui.find({ type: 'Text', text: /^\*$/ })).toBeUndefined()
@@ -487,21 +641,21 @@ describe('pane-view', () => {
 
         expect([...asked].sort()).toEqual(titlesTo(Pane.PANE_FIRST_WINDOW))
 
-        // Sixty rows less the tab row, the heading and the action row leave twenty-eight items.
+        // Thirty rows less the tab row, the heading, the action row and three summary lines leave twenty-four items.
         const ui = await $.ui.mount({
           ...PANE,
           surface,
-          props: { ...Fixtures.PANE_PROPS, scroll: { offset: 0, bodyRows: 60 } },
+          props: { ...Fixtures.PANE_PROPS, scroll: { offset: 0, bodyRows: 30 } },
         })
 
-        expect(await headingOf(ui)).toBe('Alpha · 1-28 of 30')
+        expect(await headingOf(ui)).toBe('Alpha · 1-24 of 30')
 
         await $.command.run(Fixtures.heraldOf(''))
         await clock.settle()
         await ui.redraw()
         await clock.settle()
 
-        expect([...asked].sort()).toEqual(titlesTo(28))
+        expect([...asked].sort()).toEqual(titlesTo(24))
         expect(await ui.find({ type: 'Text', text: /^…$/ })).toBeUndefined()
       },
     )
@@ -528,13 +682,13 @@ describe('pane-view', () => {
 
         const ui = await $.ui.mount({ ...PANE, surface })
 
-        expect(await ui.find({ type: 'Text', text: 'Cached a 6.' })).toBeDefined()
+        expect(await ui.find({ type: 'Text', text: 'Cached a 1.' })).toBeDefined()
 
         await $.command.run(Fixtures.heraldOf('lang fr'))
         await clock.settle()
 
         expect([...new Set(asked)].sort()).toEqual(items.map(item => item.title).sort())
-        expect(await ui.find({ type: 'Text', text: 'Summary of a 6.' })).toBeDefined()
+        expect(await ui.find({ type: 'Text', text: 'Summary of a 1.' })).toBeDefined()
         expect(await ui.find({ type: 'Text', text: /^…$/ })).toBeUndefined()
       },
     )
@@ -612,11 +766,11 @@ describe('pane-view', () => {
         props: { ...Fixtures.PANE_PROPS, bodyColumns: 20 },
       })
 
-      // Twenty cells less the mark, a space and ` Jan 1` leave twelve for a headline.
+      // Twenty cells less the mark and its space and the seven-cell date column leave eleven for a headline.
       expect(
         (await ui.findAll({ type: 'Link' })).map(link => [link.props.href, link.children.join('')]),
       ).toEqual([
-        ['https://example.com/a/2', `${'b'.repeat(11)}…`],
+        ['https://example.com/a/2', `${'b'.repeat(10)}…`],
         ['https://example.com/a/3', `${'漢'.repeat(5)}…`],
       ])
       expect(await selectedOf(ui)).toBe('a 1')
@@ -1017,7 +1171,7 @@ describe('pane-view', () => {
     )
 
     test(
-      `on ${surface}: a stack row takes one line, so a short pane shows twice the rows less its summary, filter and headings; expanded releases share the window`,
+      `on ${surface}: a stack row takes one line, so a short pane shows every line its body has less its summary, filter and headings; expanded releases share the window`,
       { timeoutMs: 30_000 },
       async ($, on) => {
         const clock = mock.clock(on)
@@ -1027,7 +1181,7 @@ describe('pane-view', () => {
         await $.session.start(Fixtures.SESSION)
         await clock.settle()
 
-        // Twelve rows less the tab row, the heading and the action row leave four two-line items: eight lines, four rows past the summary, the filter and two headings.
+        // Twelve rows less the tab row, the heading and the action row leave nine lines, five rows past the summary, the filter and two headings.
         const ui = await $.ui.mount({
           ...PANE,
           surface,
@@ -1036,20 +1190,20 @@ describe('pane-view', () => {
 
         await ui.press({ key: 'tab-@stack' })
 
-        expect(await headingOf(ui)).toBe('Your stack · 1-4 of 6')
-        expect((await rowLinesOf(ui)).length).toBe(4)
+        expect(await headingOf(ui)).toBe('Your stack · 1-5 of 6')
+        expect((await rowLinesOf(ui)).length).toBe(5)
 
         await ui.press({ key: 'down' })
         await ui.press({ key: 'releases' })
 
-        expect(await headingOf(ui)).toBe('Your stack · 1-4 of 9')
-        expect((await rowLinesOf(ui)).length).toBe(4)
+        expect(await headingOf(ui)).toBe('Your stack · 1-5 of 9')
+        expect((await rowLinesOf(ui)).length).toBe(5)
 
         for (let press = 0; press < 3; press += 1) {
           await ui.press({ key: 'down' })
         }
 
-        expect(await headingOf(ui)).toBe('Your stack · 3-6 of 9')
+        expect(await headingOf(ui)).toBe('Your stack · 3-7 of 9')
         expect(await selectedRowOf(ui)).toBe('https://github.com/owner/jsdom/releases/tag/v30.0.0')
       },
     )
@@ -1109,6 +1263,37 @@ describe('pane-view', () => {
       },
     )
   }
+
+  test('on mobile the news tabs draw the same one-line rows, the date at the right end, and the selected summary only', async ($, on) => {
+    mock.clock(on)
+    Fixtures.bandOn(on, {
+      ...STORE,
+      summaries: [
+        {
+          itemId: 'a:1',
+          lang: 'feed',
+          kind: 'short',
+          version: Summaries.SUMMARY_PROMPT_VERSION,
+          text: 'First, in short.',
+        },
+      ],
+    })
+
+    await $.classic.SessionStart({ source: 'clear' })
+
+    const ui = await $.ui.mount({ ...PANE, surface: 'mobile' })
+
+    expect(await newsRowsOf(ui)).toEqual([
+      ['› a 1', 'Jan 2'],
+      ['a 2', 'Jan 1'],
+      ['a 3', 'Jan 1'],
+    ])
+    expect(await summariesOf(ui)).toEqual([[['› a 1', 'Jan 2'], ['First, in short.']]])
+
+    await ui.press({ key: 'down' })
+
+    expect((await summariesOf(ui))[0]?.[0]).toEqual(['› a 2', 'Jan 1'])
+  })
 
   test('on mobile the stack tab draws the same package rows, summary and releases toggle, without a filter field', async ($, on) => {
     const clock = mock.clock(on)

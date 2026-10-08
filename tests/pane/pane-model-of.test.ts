@@ -8,7 +8,7 @@ describe('pane-model-of', () => {
   const SOURCES = [Fixtures.sourceAt('a', { name: 'Alpha' })]
   const ITEMS = { a: Fixtures.datedItemsOf('a', 2) }
 
-  test('tabs marked, heading, rows with link, date and summary and no source mark; the selected one marked', () => {
+  test('tabs marked, heading, rows with link and date and no source mark; the selected one marked, with its summary', () => {
     const page = Pane.panePageOf({ tab: 'a', selected: 1 }, SOURCES, ITEMS, [], 10)
     const model = Pane.paneModelOf(page, SOURCES, { 'a:2': 'Short.' }, [], 80)
 
@@ -29,7 +29,7 @@ describe('pane-model-of', () => {
         id: 'a:2',
         title: 'a 2',
         href: 'https://example.com/a/2',
-        summary: 'Short.',
+        summaryLines: ['Short.'],
         date: 'Jan 1',
         isSelected: true,
       },
@@ -60,13 +60,47 @@ describe('pane-model-of', () => {
         index === 0 ? { ...item, text: '' } : item,
       ),
     }
-    const page = Pane.panePageOf({ tab: 'a', selected: 0 }, SOURCES, items, [], 10)
-    const model = Pane.paneModelOf(page, SOURCES, { 'a:1': 'Meta.', 'a:2': 'Real.' }, [], 80)
+    const modelAt = (selected: number) =>
+      Pane.paneModelOf(
+        Pane.panePageOf({ tab: 'a', selected }, SOURCES, items, [], 10),
+        SOURCES,
+        { 'a:1': 'Meta.', 'a:2': 'Real.' },
+        [],
+        80,
+      )
 
-    expect(model.rows.map(row => [row.id, row.summary, row.hasNoSummary, row.date])).toEqual([
-      ['a:1', undefined, true, 'Jan 2'],
-      ['a:2', 'Real.', undefined, 'Jan 1'],
+    expect(modelAt(0).rows.map(row => [row.id, row.summaryLines, row.hasNoSummary])).toEqual([
+      ['a:1', undefined, true],
+      ['a:2', undefined, undefined],
     ])
+    expect(modelAt(1).rows.map(row => [row.id, row.summaryLines, row.hasNoSummary])).toEqual([
+      ['a:1', undefined, true],
+      ['a:2', ['Real.'], undefined],
+    ])
+  })
+
+  test('only the selected row carries its summary, wrapped to the width after the indent on at most three lines', () => {
+    const text = Array.from({ length: 10 }, (_, index) => `w${index}`).join(' ')
+    const page = Pane.panePageOf({ tab: 'a', selected: 0 }, SOURCES, ITEMS, [], 10)
+    const rows = Pane.paneModelOf(page, SOURCES, { 'a:1': text, 'a:2': 'Short.' }, [], 12).rows
+
+    // Eight cells after the four-cell indent hold three words a line; the fourth line's words are cut.
+    expect(rows.map(row => row.summaryLines)).toEqual([
+      ['w0 w1 w2', 'w3 w4 w5', 'w6 w7…'],
+      undefined,
+    ])
+    expect(rows.every(row => row.summary === undefined)).toBe(true)
+  })
+
+  test('a long title is cut so its date fits whole at the end of the line', () => {
+    const items = {
+      a: Fixtures.datedItemsOf('a', 1).map(item => ({ ...item, title: 't'.repeat(40) })),
+    }
+    const page = Pane.panePageOf({ tab: 'a', selected: 0 }, SOURCES, items, [], 10)
+    const [row] = Pane.paneModelOf(page, SOURCES, {}, [], 30).rows
+
+    // Thirty cells less the mark and its space and the seven-cell date column leave twenty-one.
+    expect([row?.title, row?.date]).toEqual([`${'t'.repeat(20)}…`, 'Jan 2'])
   })
 
   test('an empty summary, replies rejected for now, shows no summary line', () => {
@@ -102,7 +136,7 @@ describe('pane-model-of', () => {
     expect(saved.rows.map(row => row.title)).toEqual(['Alpha v1.2.3', 'v1.2.3'])
   })
 
-  test('on the saved tab the source name sits dim at the right end of the headline, before the date, and a source tab has none', () => {
+  test('on the saved tab the source name follows the headline, cut first, before the date column, with no padding of its own; a source tab has none', () => {
     const sources = [Fixtures.sourceAt('a', { name: 'Simon Willison' })]
     const title = 'Margaret Hamilton, who led the Apollo software, has died'
     const kept = [{ ...Fixtures.datedItemsOf('a', 1)[0]!, title, savedAt: 1 }]
@@ -111,19 +145,29 @@ describe('pane-model-of', () => {
     const rowAt = (tab: string, columns: number) =>
       Pane.paneModelOf(pageAt(tab), sources, {}, kept, columns).rows[0]
 
-    // Date `Jan 2` and its space take six cells, the mark and a space two.
-    for (const columns of [120, 80]) {
+    // The mark and its space take two cells, the date column seven; the name needs two cells of gap.
+    for (const columns of [120, 81]) {
       const row = rowAt('saved', columns)
 
-      expect(row).toMatchObject({ title, source: 'Simon Willison', date: 'Jan 2' })
-      expect(Band.displayWidthOf(`${row?.title}${row?.sourceGap}${row?.source}`)).toBe(columns - 8)
+      expect(row).toEqual({
+        id: 'a:1',
+        title,
+        source: 'Simon Willison',
+        href: 'https://example.com/a/1',
+        date: 'Jan 2',
+        isSelected: true,
+      })
+      expect(Band.displayWidthOf(`${row?.title}  ${row?.source}`) <= columns - 9).toBe(true)
     }
 
+    // A name is cut before the headline is, down to six cells, then dropped.
+    expect(rowAt('saved', 80)).toMatchObject({ title, source: 'Simon Willis…' })
+    expect(rowAt('saved', 73)).toMatchObject({ title, source: 'Simon…' })
+    expect(rowAt('saved', 72)?.source).toBeUndefined()
+    expect(rowAt('saved', 72)?.title).toBe(title)
     // At forty columns the headline needs the room: the name goes, then the headline is cut.
     expect(rowAt('saved', 40)?.source).toBeUndefined()
     expect(rowAt('saved', 40)?.title).toBe('Margaret Hamilton, who led the…')
-    // A name is cut before the headline is.
-    expect(rowAt('saved', 72)).toMatchObject({ title, source: 'Simon…' })
     expect(rowAt('a', 120)?.source).toBeUndefined()
     expect(rowAt('a', 120)).toMatchObject({ title, date: 'Jan 2' })
   })
@@ -164,7 +208,7 @@ describe('pane-model-of', () => {
     expect(model.heading).toBe('A name · 1 of 1')
     expect(model.rows[0]?.icon).toBeUndefined()
     expect(model.rows[0]?.title).toBe('one two')
-    expect(model.rows[0]?.summary).toBe(`x${'y'.repeat(24)}…`)
+    expect(model.rows[0]?.summaryLines).toEqual([`x${'y'.repeat(25)}`, 'yyyyy'])
   })
 
   test('on the stack tab: one-line rows under ecosystem headings, the summary line, the filter and whether the selected package is expanded', () => {

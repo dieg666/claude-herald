@@ -1,5 +1,4 @@
 import type { Item, SavedItem, Source } from '../../types/index.js'
-import { displayWidthOf } from '../band/display-width-of.js'
 import { fitColumns } from '../band/fit-columns.js'
 import { ICON_COLUMNS } from '../band/icon-columns.js'
 import { MARK_COLUMNS } from '../band/mark-columns.js'
@@ -15,12 +14,15 @@ import { SAVED_TAB } from '../names/saved-tab.js'
 import { STACK_TAB } from '../names/stack-tab.js'
 import { collapsedTextOf } from '../page/collapsed-text-of.js'
 import { summaryTextOf } from '../summaries/summary-text-of.js'
+import { PANE_DATE_COLUMNS } from './pane-date-columns.js'
 import { PANE_HEADING_RESERVE } from './pane-heading-reserve.js'
 import type { PaneModel } from './pane-model.js'
 import type { PanePage } from './pane-page.js'
 import type { PaneRow } from './pane-row.js'
 import { paneStackRowsOf } from './pane-stack-rows-of.js'
+import { PANE_SUMMARY_LINES } from './pane-summary-lines.js'
 import { shortDateOf } from './short-date-of.js'
+import { wrapColumns } from './wrap-columns.js'
 
 /**
  * Feed text as one line, invisible characters and line breaks gone.
@@ -32,13 +34,26 @@ function lineOf(text: string): string {
 }
 
 /**
- * One item as the pane draws it, every line fitted to `columns` cells; a news item has the source name dim after its headline when `sourceName` is given (the saved tab), before its date; a stack item shows 📦 (⚠ when breaking or security), `pkg current → new` and its ecosystem, level and flags; a news item without usable text, or with an empty summary (replies rejected for now), shows no summary.
+ * A news headline and its source name fitted to `columns` cells as the band fits them, without the band's padding: the pane's layout puts the name before the date column.
+ *
+ * @param title the headline, one line
+ * @param name the source's name, undefined to draw none
+ * @param columns the cells the headline and the name may take together
+ */
+function newsLineOf(title: string, name: string | undefined, columns: number) {
+  const line = newsHeadlineOf(title, name, columns)
+
+  return { title: line.title, ...(line.source === undefined ? {} : { source: line.source }) }
+}
+
+/**
+ * One item as the pane draws it, every line fitted to `columns` cells, the selected one with its summary wrapped onto at most `PANE_SUMMARY_LINES` lines; a news item has the source name after its headline when `sourceName` is given (the saved tab), before its date column; a stack item shows 📦 (⚠ when breaking or security), `pkg current → new` and its ecosystem, level and flags; a news item without usable text, or with an empty summary (replies rejected for now), shows no summary.
  *
  * @param item the item
  * @param summary its one-line summary, when there is one
  * @param isSelected whether it is the selected item
  * @param columns the cells the pane's body has
- * @param sourceName the source's name when the tab mixes sources, drawn at the right end of the headline, or leading a version-only title
+ * @param sourceName the source's name when the tab mixes sources, drawn after the headline before the date, or leading a version-only title
  */
 function rowOf(
   item: Item,
@@ -52,10 +67,10 @@ function rowOf(
   const note = stack !== undefined ? stackNoteOf(stack.release) : hasNoSummary ? undefined : summary
   const href = httpUrlOf(item.url)?.href
   const date = shortDateOf(item.publishedAt)
-  const dated = date === undefined ? 0 : displayWidthOf(date) + 1
+  const dated = date === undefined ? 0 : PANE_DATE_COLUMNS + 1
   const headline =
     stack === undefined
-      ? newsHeadlineOf(lineOf(item.title), sourceName, columns - MARK_COLUMNS - dated)
+      ? newsLineOf(lineOf(item.title), sourceName, columns - MARK_COLUMNS - dated)
       : {
           icon: fitColumns(stackIconOf(stack.release), ICON_COLUMNS),
           title: fitColumns(stackLineOf(stack), columns - ICON_COLUMNS - 3 - dated),
@@ -65,7 +80,9 @@ function rowOf(
     id: item.id,
     ...headline,
     ...(href === undefined ? {} : { href }),
-    ...(note === undefined ? {} : { summary: fitColumns(lineOf(note), columns - SUMMARY_INDENT) }),
+    ...(note === undefined || !isSelected
+      ? {}
+      : { summaryLines: wrapColumns(lineOf(note), columns - SUMMARY_INDENT, PANE_SUMMARY_LINES) }),
     ...(hasNoSummary ? { hasNoSummary: true as const } : {}),
     ...(date === undefined ? {} : { date }),
     isSelected,
