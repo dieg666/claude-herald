@@ -9,8 +9,11 @@ import Pages from '../fixtures/pages'
 describe('refresh-source', () => {
   const FEED = Fixtures.sourceAt('big')
   const PAGE = Fixtures.sourceAt('anthropic', { url: Pages.ANTHROPIC_NEWS_URL, kind: 'page' })
-  const HASH = Page.contentHashOf(
-    Page.htmlToText(Pages.ANTHROPIC_NEWS_HTML, Pages.ANTHROPIC_NEWS_URL),
+  const HASH = Page.pageHashOf(
+    Page.extractionRequestOf(
+      Pages.ANTHROPIC_NEWS_URL,
+      Page.htmlToText(Pages.ANTHROPIC_NEWS_HTML, Pages.ANTHROPIC_NEWS_URL),
+    ),
   )
 
   const feedHost = (count: number, entries: Record<string, unknown> = {}) => {

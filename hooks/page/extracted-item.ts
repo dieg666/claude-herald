@@ -8,4 +8,6 @@ export type ExtractedItem = {
   url: string
   /** An ISO 8601 timestamp; absent when the page gave no usable date. */
   publishedAt?: string
+  /** The one-line description the page shows with the headline, trimmed and capped; absent when it shows none. */
+  teaser?: string
 }

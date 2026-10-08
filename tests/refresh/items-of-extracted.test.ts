@@ -27,4 +27,20 @@ describe('items-of-extracted', () => {
       },
     ])
   })
+
+  test("a teaser becomes the item's text", () => {
+    expect(
+      Refresh.itemsOfExtracted('page', [
+        { title: 'A', url: 'https://example.com/a', teaser: 'What the page says about A.' },
+      ]),
+    ).toEqual([
+      {
+        id: 'page:https://example.com/a',
+        sourceId: 'page',
+        title: 'A',
+        url: 'https://example.com/a',
+        text: 'What the page says about A.',
+      },
+    ])
+  })
 })

@@ -321,4 +321,40 @@ describe('parse-extracted', () => {
       },
     ])
   })
+
+  test('a teaser is kept as one line without invisible characters, trimmed', () => {
+    const [item] = parse(
+      JSON.stringify([
+        {
+          title: 'A',
+          url: 'https://example.com/a',
+          teaser: '  Security researchers\n get wider\u200b access.\u202e ',
+        },
+      ]),
+    )
+
+    expect(item).toEqual({
+      title: 'A',
+      url: 'https://example.com/a',
+      teaser: 'Security researchers get wider access.',
+    })
+  })
+
+  test('a long teaser is capped', () => {
+    const [item] = parse(
+      JSON.stringify([{ title: 'A', url: 'https://example.com/a', teaser: 'word '.repeat(200) }]),
+    )
+
+    expect((item?.teaser ?? '').length <= Page.TEASER_CAP).toBe(true)
+    expect(item?.teaser?.startsWith('word word')).toBe(true)
+    expect(item?.teaser?.endsWith(' ')).toBe(false)
+  })
+
+  test('a null, blank or non-string teaser leaves the item without one', () => {
+    for (const teaser of [null, '', '  \n ', 42, ['x'], { text: 'x' }]) {
+      const [item] = parse(JSON.stringify([{ title: 'A', url: 'https://example.com/a', teaser }]))
+
+      expect(item).toEqual({ title: 'A', url: 'https://example.com/a' })
+    }
+  })
 })

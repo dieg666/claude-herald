@@ -3,7 +3,7 @@ import { itemIdOf } from '../items/item-id-of.js'
 import type { ExtractedItem } from '../page/extracted-item.js'
 
 /**
- * The items a model extracted from a page as items of its source, ids from their addresses.
+ * The items a model extracted from a page as items of its source, ids from their addresses, each teaser as the item's text.
  *
  * @param sourceId the page source
  * @param extracted the validated items
@@ -21,7 +21,7 @@ export function itemsOfExtracted(sourceId: string, extracted: readonly Extracted
             title: entry.title,
             url: entry.url,
             ...(entry.publishedAt === undefined ? {} : { publishedAt: entry.publishedAt }),
-            text: '',
+            text: entry.teaser ?? '',
           },
         ]
   })

@@ -2,6 +2,7 @@ import { describe, expect, test } from 'claude-code/testing'
 
 import Page from '../../hooks/page'
 import Refresh from '../../hooks/refresh'
+import Summaries from '../../hooks/summaries'
 import Fixtures from '../fixtures'
 import Pages from '../fixtures/pages'
 
@@ -9,7 +10,7 @@ describe('fetch-page', () => {
   const URL = Pages.ANTHROPIC_NEWS_URL
   const SOURCE = Fixtures.sourceAt('anthropic', { url: URL, kind: 'page' })
   const TEXT = Page.htmlToText(Pages.ANTHROPIC_NEWS_HTML, URL)
-  const HASH = Page.contentHashOf(TEXT)
+  const HASH = Page.pageHashOf(Page.extractionRequestOf(URL, TEXT))
 
   const REPLY = JSON.stringify([
     { title: 'Newest', url: '/news/newest', date: '2026-10-07' },
@@ -184,4 +185,55 @@ describe('fetch-page', () => {
 
     expect(asked.length).toBe(1)
   })
+
+  test(
+    "a teaser the page shows becomes the item's text, which a summary is written from",
+    { timeoutMs: 20_000 },
+    async () => {
+      const teaser =
+        'Cyber Verification Program, which makes advanced cyber capabilities and reduced blocking classifiers available to qualifying security professionals.'
+      const { host, replies } = pageHost()
+
+      expect(TEXT).toContain(teaser)
+
+      replies.push(
+        Fixtures.answerOf(
+          JSON.stringify([
+            {
+              title: 'Expanding the Cyber Verification Program',
+              url: '/news/cyber-verification-program',
+              date: '2026-10-06',
+              teaser: `Expanding the ${teaser}`,
+            },
+            { title: 'Older', url: 'https://www.anthropic.com/news/older', teaser: null },
+          ]),
+        ),
+      )
+
+      const fetched = await Refresh.fetchPage(host, SOURCE)
+      const items = fetched.kind === 'items' ? fetched.items : []
+
+      expect(items.map(item => item.text)).toEqual([`Expanding the ${teaser}`, ''])
+      expect(items.map(item => Summaries.summaryTextOf(item) !== '')).toEqual([true, false])
+    },
+  )
+
+  test(
+    'a page last read with a hash of its text alone is read again',
+    { timeoutMs: 20_000 },
+    async () => {
+      const { host, replies, asked } = pageHost({
+        pageHashes: { anthropic: Page.contentHashOf(TEXT) },
+      })
+
+      replies.push(Fixtures.answerOf(REPLY))
+
+      expect(await Refresh.fetchPage(host, SOURCE)).toEqual({
+        kind: 'items',
+        items: ITEMS,
+        pageHash: HASH,
+      })
+      expect(asked.length).toBe(1)
+    },
+  )
 })
