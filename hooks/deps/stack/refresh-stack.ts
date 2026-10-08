@@ -360,6 +360,19 @@ async function runOf(
 
     await noteLookups(host, loop, lookups, now, signal)
 
+    // Turned off while the lookups ran: no feed is read, and state follows at once.
+    const before = await loadDepsProject(host, root.path)
+
+    if (!before.settings.isEnabled) {
+      await loop.serially(async () => {
+        const kept = await loadStackProject(host, root.path)
+
+        await host.state.stack.update(current => stackStateOf(root.path, before, kept, current))
+      })
+
+      return NOTHING
+    }
+
     const stored = await loadStackProject(host, root.path)
     const due = dueOf(loop, resolutions, stored, now)
     const bodies = new Map<string, Promise<FetchOutcome>>()
@@ -402,30 +415,35 @@ async function runOf(
 
     // Settings or packages a command changed during this run win over those it started with.
     let latest = project
+    let written = new Set<string>()
 
     await loop.serially(async () => {
       latest = await loadDepsProject(host, root.path)
 
       const followed = new Set(latest.dependencies.map(depFeedKeyOf))
+      const mappings = await loadDepFeeds(host)
+      // A package mapped to another feed during this run keeps nothing from the old one.
+      const isCurrent = (read: Read) => {
+        const entry = Object.hasOwn(mappings, read.key) ? mappings[read.key] : undefined
+
+        return entry?.isOverride !== true || entry.feed === read.feed
+      }
+      const kept = cachedReads.filter(read => followed.has(read.key) && isCurrent(read))
+
+      written = new Set(kept.map(read => read.key))
+
       const saved = await saveStackProject(host, root.path, before =>
-        projectAfter(
-          before,
-          cachedReads.filter(read => followed.has(read.key)),
-          flagged,
-          followed,
-          now,
-        ),
+        projectAfter(before, kept, flagged, followed, now),
       )
 
       await host.state.stack.update(current => stackStateOf(root.path, latest, saved, current))
     })
 
-    const followed = new Set(latest.dependencies.map(depFeedKeyOf))
     const newReleases: StackItem[] = fresh.map(({ release, page }) =>
       stackItemOfRelease(flagged.get(release.id) ?? release, page),
     )
     const toasted = newReleases
-      .filter(item => latest.settings.isEnabled && followed.has(depFeedKeyOf(item.release)))
+      .filter(item => latest.settings.isEnabled && written.has(depFeedKeyOf(item.release)))
       .filter(item => isAtLevel(item.release, latest.settings.toastLevel))
       .map((item, index) => ({
         item,

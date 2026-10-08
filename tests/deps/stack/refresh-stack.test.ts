@@ -398,6 +398,79 @@ describe('refresh-stack', () => {
     })
   }
 
+  test('a stack turned off while a run looks packages up reads no feed after the lookups', async () => {
+    const vite = Fixtures.depAt('vite', { versionInUse: '5.0.0' })
+    const { host, stored, state, fetched, clock, refresh } = stackAt(
+      [REACT, vite],
+      {},
+      {
+        depFeeds: { 'npm:react': { repo: 'owner/react', feed: feedOf('react'), resolvedAt: NOW } },
+      },
+    )
+    const fetch = host.httpFetch
+    let release = () => {}
+    const held = new Promise<void>(resolve => {
+      release = resolve
+    })
+
+    host.httpFetch = async (url, init) => {
+      if (url.includes('registry.npmjs.org')) {
+        fetched.push(url)
+        await held
+
+        return { status: 404, ok: false, text: '' }
+      }
+
+      return fetch(url, init)
+    }
+
+    const running = refresh()
+
+    await clock.settle()
+
+    const projects = stored.get('deps') as Record<string, Record<string, unknown>>
+
+    stored.set('deps', { '/repo': { ...projects['/repo'], settings: { isEnabled: false } } })
+    release()
+    await running
+
+    expect(fetched).toEqual(['https://registry.npmjs.org/vite/latest'])
+    expect((state.stack as { settings: { isEnabled: boolean } }).settings.isEnabled).toBe(false)
+  })
+
+  test('a feed read whose package was mapped elsewhere during the run is neither kept nor toasted', async () => {
+    const { host, web, stored, toasts, clock, refresh } = stackAt([REACT], { toastLevel: 'all' })
+
+    web.set(feedOf('react'), { status: 200, text: Feeds.releasesAtomOf('react', [['v18.2.0']]) })
+    await refresh()
+    await clock.advance(HOUR)
+
+    const fetch = host.httpFetch
+    let release = () => {}
+    const held = new Promise<void>(resolve => {
+      release = resolve
+    })
+
+    host.httpFetch = async (url, init) => {
+      await held
+
+      return { status: 200, ok: true, text: Feeds.releasesAtomOf('react', [['v19.0.0']]) }
+    }
+
+    const running = refresh()
+
+    await clock.settle()
+    stored.set('depFeeds', {
+      'npm:react': { feed: 'https://example.org/react.atom', resolvedAt: NOW, isOverride: true },
+    })
+    host.httpFetch = fetch
+    release()
+    await running
+
+    expect(toasts).toEqual([])
+    expect(keptOf(stored)?.items.map(item => item.release.version)).toEqual([])
+  })
+
   test('a feed missing at first (404) stays silent once it appears; only later releases toast', async () => {
     const { web, toasts, clock, refresh } = stackAt([REACT], { toastLevel: 'all' })
 
