@@ -91,9 +91,11 @@ Hotkeys work while the band or the pane has keyboard focus; otherwise the keys g
 
 The rotation does nothing when all items fit on one page. The band yields its place while Claude Code shows a survey.
 
+The band skips the news items you have read, opened with `o` or copied with `c`, while any unread item remains; the rest keep their newest-first order, and the position counts them only, for example `1–3 of 12` once 3 of 15 are read. An item you open or copy leaves the band right away and the next one takes its place. Once every item is read, the band lists them all again. Releases of your stack are never counted as read.
+
 ## Use the pane
 
-`/herald` opens the pane and asks for keyboard focus, which Claude Code grants while the prompt is empty. Esc closes the pane. The tab row at the top shows a tab per enabled source, then Your stack and Saved. The active tab is drawn as highlighted text, bold and underlined in the theme's inverse colors, and the other tabs are dim buttons with their hotkeys. Source names are drawn in full, unless cutting the names longer than 16 cells (with `…`, wide characters counting two cells) puts the tabs on fewer lines; a name wider than the pane is always cut to fit one line. Your stack shows how many packages are behind and Saved how many items it holds, for example `y: Your stack 5` and `0: Saved 2`; neither shows a count of zero. The tabs take one line when the pane is wide enough and wrap onto more lines otherwise. The title line under them holds the `k: ↑` and `j: ↓` buttons and, at its right end, the window's position in the tab, for example `1–14 of 14`; it does not repeat the tab's name. The pane shows a window of the active tab's items around the selection, one line each with its headline link and, at the right end, its date. The selected item is highlighted across the whole row, headline, source name and date, in the theme's inverse colors, and keeps its `›`; the others stay plain. Only the selected item shows its summary, on up to three lines under its headline (none for an item without text). A source's own tab shows no source mark, since every row is from it; the Saved tab shows each item's source name in dim text just before the date column, the names ending in one column; a long headline drops the name before it is cut. The Your stack tab shows one row per package instead, grouped by ecosystem, with a summary line and a filter field above them.
+`/herald` opens the pane and asks for keyboard focus, which Claude Code grants while the prompt is empty. Esc closes the pane. The tab row at the top shows a tab per enabled source, then Your stack and Saved. The active tab is drawn as highlighted text, bold and underlined in the theme's inverse colors, and the other tabs are dim buttons with their hotkeys. Source names are drawn in full, unless cutting the names longer than 16 cells (with `…`, wide characters counting two cells) puts the tabs on fewer lines; a name wider than the pane is always cut to fit one line. A source's tab shows how many of its items arrived since you last looked at that tab, for example `6: Hacker News 14`; Your stack shows how many packages are behind and Saved how many items it holds, for example `y: Your stack 5` and `0: Saved 2`; no tab shows a count of zero. Looking at a source's tab, by switching to it or by opening the pane on it with `/herald`, clears its count, and so does leaving it, so items that arrive while the tab is shown count only until you switch away. The tabs take one line when the pane is wide enough and wrap onto more lines otherwise. The title line under them holds the `k: ↑` and `j: ↓` buttons and, at its right end, the window's position in the tab, for example `1–14 of 14`; it does not repeat the tab's name. The pane shows a window of the active tab's items around the selection, one line each with its headline link and, at the right end, its date. The selected item is highlighted across the whole row, headline, source name and date, in the theme's inverse colors, and keeps its `›`; the others stay plain, except that a news item you have read, opened with `o` or copied with `c`, has its headline drawn dim, on its source's tab and on Saved. Only the selected item shows its summary, on up to three lines under its headline (none for an item without text). A source's own tab shows no source mark, since every row is from it; the Saved tab shows each item's source name in dim text just before the date column, the names ending in one column; a long headline drops the name before it is cut. The Your stack tab shows one row per package instead, grouped by ecosystem, with a summary line and a filter field above them.
 
 The footer at the pane's bottom holds the keys that act on the active tab: `o`, `s`, `v` and `c` on a source's tab; `o`, `s`, `c` and `r` on Saved, whose items are saved already; and `o`, `s`, `v`, `c` and `e` on Your stack. An empty tab has no footer. While the pane does not have keyboard focus the footer starts with `ctrl+x tab to use these keys:`, and once it has focus it shows the keys alone. A docked pane keeps the footer on its last row however few items the tab has, and the window of items is the same size with or without focus. Tab walks the pane's controls in the order drawn: the tabs, `k` and `j`, the filter field on Your stack, then the footer.
 
@@ -104,7 +106,7 @@ The footer at the pane's bottom holds the keys that act on the active tab: `o`, 
 | `0` | Saved | Shows your saved items. |
 | `k` | ↑ | Selects the previous item. Stops at the first. |
 | `j` | ↓ | Selects the next item. Stops at the last. |
-| `r` | Mark as read | On the Saved tab only, in place of Save: removes the selected item from the saved list. |
+| `r` | Mark as read | On the Saved tab only, in place of Save: removes the selected item from the saved list and counts it as read. |
 | `e` | Releases / Hide releases | On the Your stack tab only: lists the selected package's releases under it, or hides them again. |
 
 ## Act on an item
@@ -113,10 +115,10 @@ The same four actions apply to the selected item in the band and in the pane, a 
 
 | Key | Button | What it does |
 |-----|--------|--------------|
-| `o` | Open | Opens the item's address in your default browser. The headline is also a link. Addresses that are not http or https are refused. |
+| `o` | Open | Opens the item's address in your default browser and counts the item as read. The headline is also a link, but a click on it is not counted, since Claude Code does not tell the mod. Addresses that are not http or https are refused. |
 | `s` | Summarize | Writes a 3 to 5 line summary under the item's title in the transcript, without starting a turn. Claude does not read these lines. For a release, the summary comes from its notes. An item without text gets a line that says so instead, with no model call. |
 | `v` | Save / Saved | Adds the item to the Saved tab. The button reads Saved for an item already saved, and pressing it changes nothing. |
-| `c` | Copy for Claude | Copies the [copy template](#copy-template) filled with the item to the clipboard and shows a "📋 Copied" toast. It never submits a prompt. The text comes from the feed, so pasting it into the prompt makes it part of your prompt. |
+| `c` | Copy for Claude | Copies the [copy template](#copy-template) filled with the item to the clipboard and shows a "📋 Copied" toast. It never submits a prompt, and it counts the item as read once the text reached a clipboard. The text comes from the feed, so pasting it into the prompt makes it part of your prompt. |
 
 ## Commands
 
@@ -127,7 +129,7 @@ Every command replies with text as well as updating the drawing. A missing or in
 | `/herald` | none | Opens the pane. Where no surface draws panes, lists the latest three items of each enabled source. |
 | `/herald add <url> [name]` | A feed address and an optional name | Follows an RSS or Atom feed after checking that it fetches and has entries. The name defaults to the feed's title. |
 | `/herald add-page <url> [name]` | A page address and an optional name | Follows a web page that fetches as HTML. Haiku reads its headlines when the page changes. |
-| `/herald remove <name\|url>` | A source's name (any case), id or address | Stops following the source and forgets its items, seen ids and page hash. Saved items stay. |
+| `/herald remove <name\|url>` | A source's name (any case), id or address | Stops following the source and forgets its items, seen, read and viewed ids and page hash. Saved items stay. |
 | `/herald list` | none | Lists every source: on or off, kind, item count, name, address and its last error. |
 | `/herald enable <name>` | A source's name | Turns a source on and refreshes it. |
 | `/herald disable <name>` | A source's name | Turns a source off. It is kept but no longer fetched or shown. |
@@ -370,6 +372,8 @@ The mod keeps its data in `$.store`, which every Claude Code session on the mach
 | `settings` | Refresh interval, rotation seconds, summary language, copy template and release template. |
 | `saved` | Your saved items. |
 | `seen` | The newest 300 item ids per source. |
+| `read` | The newest 300 ids per source of the news items you opened, copied for Claude or marked as read on Saved. |
+| `viewed` | The newest 300 ids per source of the items its tab held when you last looked at it, what its new count is measured against. |
 | `items` | The last items of each source, at most 30. |
 | `pageHashes` | The hash of each page source's text, with the extraction prompt, at its last extraction. |
 | `summaries` | The summary cache, at most 300 entries, the oldest dropped first, each with the version of the prompts that wrote it. An item pushed out, or summarized by an older version, is summarized again when it is shown. |
@@ -378,7 +382,7 @@ The mod keeps its data in `$.store`, which every Claude Code session on the mach
 | `releaseFlags` | Haiku's verdict for each release, by release id. At most 500, the oldest dropped first. |
 | `stack` | Per project root, at most 5 projects (the least recently refreshed is dropped): each followed package's newest 5 releases (at most 100 per project, notes cut to 1000 characters), its last 10 release ids seen, and when its feed was last read. |
 
-`/herald reset` restores the factory sources, with their factory on or off state, and the default settings, and removes the sources you added with their items, seen ids and page hashes. It keeps your saved items and leaves `deps`, `depFeeds`, `releaseFlags` and `stack` as they are, your `deps map` mappings included.
+`/herald reset` restores the factory sources, with their factory on or off state, and the default settings, and removes the sources you added with their items, seen, read and viewed ids and page hashes. It keeps your saved items and leaves `deps`, `depFeeds`, `releaseFlags` and `stack` as they are, your `deps map` mappings included.
 
 On Claude Code 2.1.293 the store file was observed at `~/.claude/plugins/store/herald_<source>-<id>.json` (`herald_inline-…json` for a `--plugin-dir` load). Claude Code's documentation does not name this file, so the path is observed, not documented. To delete everything the mod stored, quit Claude Code and delete that file. The store is kept per plugin name, so a store from before the mod was renamed from news to Herald is not read and is not migrated.
 
@@ -424,6 +428,10 @@ On Claude Code 2.1.293 the store file was observed at `~/.claude/plugins/store/h
 | The first `/herald` of a session summarizes up to 20 items before the pane is drawn. | The mod learns how many rows fit only when the pane is drawn. |
 | A release row gets a flag check, not a summary. | Its level and flags come from the classification, and Summarize still writes a summary of the notes. |
 | The release template is one setting for all projects; levels, cap and dev toggle are per project. | The template sits beside the copy template, and `/herald reset` restores both. |
+| A source tab's count is the items its tab did not hold when you last looked at it, kept as ids, not timestamps. | Ids need no first-seen time per item and no trust in a feed's dates, which can be missing, wrong or in the future. |
+| A source's count starts from its first refresh with items: the items it loads then (or, for a source followed before counts existed, the items it already had) count as looked at. | A new install or an upgrade does not open with every tab at 30; only items that arrive later count, as with the new-item toasts. |
+| Read means opened with `o` or copied with `c`, not shown. | An item that scrolled past in the band or the pane may not have been read. |
+| The band leaves read items out instead of moving them to the end. | Its position and height count only what it rotates through; once every item is read it lists them all again. |
 
 ## Development
 
