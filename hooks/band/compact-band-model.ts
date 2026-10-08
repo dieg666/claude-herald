@@ -23,4 +23,6 @@ export type CompactHeadline = {
   readonly title: string
   /** The item's address, only when it is http(s). */
   readonly href?: string
+  /** The item's age as `ageOf` says it, drawn dim after the source name (after a stack item's glyph); absent for an undated item and where the room is short. */
+  readonly age?: string
 }

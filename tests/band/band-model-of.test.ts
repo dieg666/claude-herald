@@ -7,18 +7,30 @@ import Fixtures from '../fixtures'
 describe('band-model-of', () => {
   const SOURCES = [Fixtures.sourceAt('src', { name: 'Hacker News' })]
   const ITEMS = Fixtures.datedItemsOf('src', 4)
+  // A clock before every fixture date: a date that far ahead draws no age.
+  const EPOCH = 0
 
   const pageAt = (offset: number, selected: number) =>
     Band.bandPageOf({ offset, selected, isPaused: false }, ITEMS)
 
-  // The cells before a row's headline: the mark and a space, the glyph and its gap, the label and its gap.
-  const leadOf = (row: { icon?: string; source: string; sourceGap: string } | undefined) =>
+  // The cells before a row's headline: the mark and a space, the glyph and its gap, the label and its gap, the age column and its gap.
+  const leadOf = (
+    row: { icon?: string; source: string; sourceGap: string; age: string } | undefined,
+  ) =>
     Band.displayWidthOf(
-      `› ${row?.icon ?? ''}${row?.icon === undefined ? '' : Band.iconGapOf(row.icon)}${row?.source}${row?.sourceGap}`,
+      `› ${row?.icon ?? ''}${row?.icon === undefined ? '' : Band.iconGapOf(row.icon)}${row?.source}${row?.sourceGap}${row?.age}${' '.repeat(Band.AGE_GAP_COLUMNS)}`,
     )
 
   test('rows carry the source column, the headline, the link and the summary; no glyph; one selected', () => {
-    const model = Band.bandModelOf(pageAt(0, 1), SOURCES, { 'src:2': 'Short.' }, [], 80, true)
+    const model = Band.bandModelOf(
+      pageAt(0, 1),
+      SOURCES,
+      { 'src:2': 'Short.' },
+      [],
+      80,
+      true,
+      EPOCH,
+    )
 
     expect(model.range).toBe('1–3 of 4')
     expect(model.isPaused).toBe(false)
@@ -27,6 +39,7 @@ describe('band-model-of', () => {
         id: 'src:1',
         source: 'Hacker News',
         sourceGap: '   ',
+        age: '    ',
         title: 'src 1',
         href: 'https://example.com/src/1',
         isSelected: false,
@@ -35,6 +48,7 @@ describe('band-model-of', () => {
         id: 'src:2',
         source: 'Hacker News',
         sourceGap: '   ',
+        age: '    ',
         title: 'src 2',
         href: 'https://example.com/src/2',
         summary: 'Short.',
@@ -44,6 +58,7 @@ describe('band-model-of', () => {
         id: 'src:3',
         source: 'Hacker News',
         sourceGap: '   ',
+        age: '    ',
         title: 'src 3',
         href: 'https://example.com/src/3',
         isSelected: false,
@@ -64,36 +79,36 @@ describe('band-model-of', () => {
     )
 
     for (const columns of [174, 120, 80]) {
-      const { rows } = Band.bandModelOf(page, sources, {}, [], columns, true)
+      const { rows } = Band.bandModelOf(page, sources, {}, [], columns, true, EPOCH)
 
       expect(rows.map(row => row.source)).toEqual(['HN', 'Simon Willi…', 'Hacker News'])
-      expect(rows.map(leadOf)).toEqual([16, 16, 16])
+      expect(rows.map(leadOf)).toEqual([22, 22, 22])
       expect(rows.map(row => row.title)).toEqual([title, title, title])
     }
 
-    // Sixty-five cells less the sixteen before the headline leave forty-nine.
-    const [row] = Band.bandModelOf(page, sources, {}, [], 65, true).rows
+    // Sixty-five cells less the twenty-two before the headline leave forty-three.
+    const [row] = Band.bandModelOf(page, sources, {}, [], 65, true, EPOCH).rows
 
-    // The cut drops the space before the ellipsis, so the line ends a cell short of 65.
-    expect(row?.title).toBe('Margaret Hamilton, who led the Apollo software,…')
-    expect(leadOf(row) + Band.displayWidthOf(row?.title ?? '')).toBe(64)
+    // The cut fills the room, so the line takes all 65 cells.
+    expect(row?.title).toBe('Margaret Hamilton, who led the Apollo soft…')
+    expect(leadOf(row) + Band.displayWidthOf(row?.title ?? '')).toBe(65)
   })
 
   test('no row carries a name after its headline', () => {
-    const { rows } = Band.bandModelOf(pageAt(0, 0), SOURCES, {}, [], 174, true)
+    const { rows } = Band.bandModelOf(pageAt(0, 0), SOURCES, {}, [], 174, true, EPOCH)
 
     for (const row of rows) {
       expect(row.title.includes('Hacker News')).toBe(false)
       expect(
         Object.keys(row).filter(
-          key => !['id', 'source', 'sourceGap', 'title', 'href', 'isSelected'].includes(key),
+          key => !['id', 'source', 'sourceGap', 'age', 'title', 'href', 'isSelected'].includes(key),
         ),
       ).toEqual([])
     }
   })
 
   test('the last page of one reads N of N', () => {
-    expect(Band.bandModelOf(pageAt(3, 0), SOURCES, {}, [], 80, true).range).toBe('4 of 4')
+    expect(Band.bandModelOf(pageAt(3, 0), SOURCES, {}, [], 80, true, EPOCH).range).toBe('4 of 4')
   })
 
   test('only http(s) addresses become links', () => {
@@ -102,7 +117,7 @@ describe('band-model-of', () => {
         { ...Fixtures.itemAt('a'), url },
       ])
 
-      expect(Band.bandModelOf(page, SOURCES, {}, [], 80, true).rows[0]?.href).toBeUndefined()
+      expect(Band.bandModelOf(page, SOURCES, {}, [], 80, true, EPOCH).rows[0]?.href).toBeUndefined()
     }
   })
 
@@ -110,9 +125,17 @@ describe('band-model-of', () => {
     const page = Band.bandPageOf({ offset: 0, selected: 0, isPaused: false }, [
       { ...Fixtures.itemAt('a'), sourceId: 'gone', title: 'Line\none\u0007 '.repeat(5) },
     ])
-    const [row] = Band.bandModelOf(page, SOURCES, { 'src:a': 'x\ny'.repeat(10) }, [], 28, true).rows
+    const [row] = Band.bandModelOf(
+      page,
+      SOURCES,
+      { 'src:a': 'x\ny'.repeat(10) },
+      [],
+      34,
+      true,
+      EPOCH,
+    ).rows
 
-    // Twenty-eight cells less the sixteen before the headline leave twelve, for the headline and the summary alike.
+    // Thirty-four cells less the twenty-two before the headline leave twelve, for the headline and the summary alike.
     expect(row).toMatchObject({ title: 'Line one Li…', summary: 'x yx yx yx…' })
     expect(row).toMatchObject({ source: '', sourceGap: ' '.repeat(14) })
     expect(row?.isRelease).toBeUndefined()
@@ -131,6 +154,7 @@ describe('band-model-of', () => {
       [],
       80,
       true,
+      EPOCH,
     ).rows
 
     expect(rows.map(row => [row.id, row.summary, row.hasNoSummary])).toEqual([
@@ -141,7 +165,7 @@ describe('band-model-of', () => {
   })
 
   test('an empty summary, replies rejected for now, shows no summary line', () => {
-    const [row] = Band.bandModelOf(pageAt(0, 0), SOURCES, { 'src:1': '' }, [], 80, true).rows
+    const [row] = Band.bandModelOf(pageAt(0, 0), SOURCES, { 'src:1': '' }, [], 80, true, EPOCH).rows
 
     expect(row).toMatchObject({ id: 'src:1', hasNoSummary: true })
     expect(row?.summary).toBeUndefined()
@@ -151,8 +175,12 @@ describe('band-model-of', () => {
     const [, second] = ITEMS
     const saved = second === undefined ? [] : [{ ...second, savedAt: 1 }]
 
-    expect(Band.bandModelOf(pageAt(0, 1), SOURCES, {}, saved, 80, true).isSelectedSaved).toBe(true)
-    expect(Band.bandModelOf(pageAt(0, 0), SOURCES, {}, saved, 80, true).isSelectedSaved).toBe(false)
+    expect(
+      Band.bandModelOf(pageAt(0, 1), SOURCES, {}, saved, 80, true, EPOCH).isSelectedSaved,
+    ).toBe(true)
+    expect(
+      Band.bandModelOf(pageAt(0, 0), SOURCES, {}, saved, 80, true, EPOCH).isSelectedSaved,
+    ).toBe(false)
   })
 
   test('a title that is only a version is drawn bare after its source name, never repeating it; a release feed or a bare version is a release, a news source is not', () => {
@@ -173,7 +201,7 @@ describe('band-model-of', () => {
     const page = Band.bandPageOf({ offset: 0, selected: 0, isPaused: false }, items, 5)
 
     expect(
-      Band.bandModelOf(page, sources, {}, [], 80, true).rows.map(row => [
+      Band.bandModelOf(page, sources, {}, [], 80, true, EPOCH).rows.map(row => [
         row.source,
         row.title,
         row.isRelease,
@@ -198,8 +226,16 @@ describe('band-model-of', () => {
       vite!,
       astro,
     ])
-    const wide = Band.bandModelOf(page, SOURCES, { [react?.id ?? '']: 'Ignored.' }, [], 80, true)
-    const narrow = Band.bandModelOf(page, SOURCES, {}, [], 36, true)
+    const wide = Band.bandModelOf(
+      page,
+      SOURCES,
+      { [react?.id ?? '']: 'Ignored.' },
+      [],
+      80,
+      true,
+      EPOCH,
+    )
+    const narrow = Band.bandModelOf(page, SOURCES, {}, [], 42, true, EPOCH)
 
     expect(
       wide.rows.map(row => [row.icon, row.source, row.title, row.summary, row.isRelease]),
@@ -213,8 +249,8 @@ describe('band-model-of', () => {
       'https://github.com/owner/vite/releases/tag/v5.1.0',
       'https://github.com/owner/@astrojs/node/releases/tag/v11.1.7',
     ])
-    expect(wide.rows.map(leadOf)).toEqual([16, 16, 16])
-    // Thirty-six cells less the sixteen before the headline leave twenty.
+    expect(wide.rows.map(leadOf)).toEqual([22, 22, 22])
+    // Forty-two cells less the twenty-two before the headline leave twenty.
     expect(narrow.rows[0]?.title).toBe('18.2.0 → 19.0.0 · R…')
   })
 
@@ -230,10 +266,9 @@ describe('band-model-of', () => {
     }))
     const page = Band.bandPageOf({ offset: 0, selected: 0, isPaused: false }, items)
 
-    expect(Band.bandModelOf(page, sources, {}, [], 80, true).rows.map(row => row.source)).toEqual([
-      'Claude Code',
-      'My SDK feed',
-    ])
+    expect(
+      Band.bandModelOf(page, sources, {}, [], 80, true, EPOCH).rows.map(row => row.source),
+    ).toEqual(['Claude Code', 'My SDK feed'])
   })
   test('with automatic summaries off every row is one line at 174, 120 and 80 columns: no summary or placeholder, cached, empty or missing', () => {
     const items = [
@@ -245,8 +280,8 @@ describe('band-model-of', () => {
     const summaries = { 'src:a': 'Cached.', 'src:b': '' }
 
     for (const columns of [174, 120, 80]) {
-      const off = Band.bandModelOf(page, SOURCES, summaries, [], columns, false)
-      const on = Band.bandModelOf(page, SOURCES, summaries, [], columns, true)
+      const off = Band.bandModelOf(page, SOURCES, summaries, [], columns, false, EPOCH)
+      const on = Band.bandModelOf(page, SOURCES, summaries, [], columns, true, EPOCH)
 
       expect(off.hasSummaries).toBe(false)
       expect(on.hasSummaries).toBe(true)
@@ -275,9 +310,9 @@ describe('band-model-of', () => {
     const page = Band.bandPageOf({ offset: 0, selected: 0, isPaused: false }, wide)
 
     for (const columns of [174, 120, 80]) {
-      const { rows } = Band.bandModelOf(page, SOURCES, {}, [], columns, false)
+      const { rows } = Band.bandModelOf(page, SOURCES, {}, [], columns, false, EPOCH)
 
-      expect(rows.map(leadOf)).toEqual([16, 16, 16])
+      expect(rows.map(leadOf)).toEqual([22, 22, 22])
 
       for (const row of rows) {
         const note = row.note === undefined ? 0 : 2 + Band.displayWidthOf(row.note)
@@ -289,7 +324,7 @@ describe('band-model-of', () => {
       expect(rows.slice(1).map(row => row.note)).toEqual(['npm · minor', 'npm · major'])
     }
 
-    expect(Band.bandModelOf(page, SOURCES, {}, [], 174, false).rows[0]?.note).toBe(
+    expect(Band.bandModelOf(page, SOURCES, {}, [], 174, false, EPOCH).rows[0]?.note).toBe(
       'npm · major · breaking',
     )
   })
@@ -303,13 +338,13 @@ describe('band-model-of', () => {
     for (const offset of [0, 3]) {
       for (const selected of [0, 1, 2]) {
         const page = Band.bandPageOf({ offset, selected, isPaused: false }, items)
-        const off = Band.bandModelOf(page, SOURCES, { 'src:1': 'Cached.' }, [], 80, false)
+        const off = Band.bandModelOf(page, SOURCES, { 'src:1': 'Cached.' }, [], 80, false, EPOCH)
 
         expect(linesOf(off)).toBe(3)
         expect(off.rows.every(row => row.summary === undefined)).toBe(true)
-        expect(linesOf(Band.bandModelOf(page, SOURCES, { 'src:1': 'Cached.' }, [], 80, true))).toBe(
-          6,
-        )
+        expect(
+          linesOf(Band.bandModelOf(page, SOURCES, { 'src:1': 'Cached.' }, [], 80, true, EPOCH)),
+        ).toBe(6)
       }
     }
   })
@@ -317,12 +352,128 @@ describe('band-model-of', () => {
   test('with automatic summaries off the inline note is dropped when fewer than four cells are left, and cut to four otherwise', () => {
     const item = Fixtures.stackItemAt('pkg', '2.0.0', { current: '1.0.0', level: 'major' })
     const page = Band.bandPageOf({ offset: 0, selected: 0, isPaused: false }, [item])
-    const title = Band.bandModelOf(page, SOURCES, {}, [], 174, false).rows[0]?.title ?? ''
+    const title = Band.bandModelOf(page, SOURCES, {}, [], 174, false, EPOCH).rows[0]?.title ?? ''
     // The lead, the headline and the gap before the note.
-    const used = 16 + Band.displayWidthOf(title) + 2
+    const used = 22 + Band.displayWidthOf(title) + 2
 
-    expect(Band.bandModelOf(page, SOURCES, {}, [], used + 3, false).rows[0]?.note).toBeUndefined()
-    expect(Band.bandModelOf(page, SOURCES, {}, [], used + 4, false).rows[0]?.note).toBe('npm…')
-    expect(Band.bandModelOf(page, SOURCES, {}, [], used + 4, false).rows[0]?.title).toBe(title)
+    expect(
+      Band.bandModelOf(page, SOURCES, {}, [], used + 3, false, EPOCH).rows[0]?.note,
+    ).toBeUndefined()
+    expect(Band.bandModelOf(page, SOURCES, {}, [], used + 4, false, EPOCH).rows[0]?.note).toBe(
+      'npm…',
+    )
+    expect(Band.bandModelOf(page, SOURCES, {}, [], used + 4, false, EPOCH).rows[0]?.title).toBe(
+      title,
+    )
+  })
+
+  // Five hours after the newest dated item (2026-01-02T00:00Z), so src:1 reads 5h, src:2 6h and src:3 7h.
+  const NOW = Date.UTC(2026, 0, 2, 5)
+
+  test('every row has the age column after the source column, right-aligned in four cells; the headline starts at cell 22 at 174, 120 and 80 columns, summaries on and off', () => {
+    for (const columns of [174, 120, 80]) {
+      for (const autoSummaries of [true, false]) {
+        const { rows } = Band.bandModelOf(
+          pageAt(0, 0),
+          SOURCES,
+          {},
+          [],
+          columns,
+          autoSummaries,
+          NOW,
+        )
+
+        expect(rows.map(row => row.age)).toEqual(['  5h', '  6h', '  7h'])
+        expect(rows.map(leadOf)).toEqual([22, 22, 22])
+        expect(rows.map(row => row.title)).toEqual(['src 1', 'src 2', 'src 3'])
+      }
+    }
+  })
+
+  test('the column is four cells wide whatever the age, blank for an undated item, a far-future date and an unparsable one', () => {
+    const hour = 3_600_000
+    const items = [
+      Fixtures.itemAt('now', new Date(NOW).toISOString()),
+      Fixtures.itemAt('mo', new Date(NOW - 120 * 24 * hour).toISOString()),
+      Fixtures.itemAt('none'),
+      Fixtures.itemAt('bad', 'not a date'),
+      Fixtures.itemAt('future', '2027-01-01T00:00:00Z'),
+    ]
+    const page = Band.bandPageOf({ offset: 0, selected: 0, isPaused: false }, items, 5)
+    const { rows } = Band.bandModelOf(page, SOURCES, {}, [], 80, false, NOW)
+
+    expect(rows.map(row => row.age)).toEqual([' now', ' 4mo', '    ', '    ', '    '])
+    expect(rows.map(leadOf)).toEqual([22, 22, 22, 22, 22])
+  })
+
+  test('headlines and summaries take the room after the lead whether a row is dated or not', () => {
+    const items = [
+      { ...Fixtures.itemAt('dated', '2026-01-02T00:00:00Z'), title: 'x'.repeat(300) },
+      { ...Fixtures.itemAt('undated'), title: 'x'.repeat(300) },
+    ]
+    const page = Band.bandPageOf({ offset: 0, selected: 0, isPaused: false }, items)
+
+    for (const columns of [174, 120, 80]) {
+      const { rows } = Band.bandModelOf(
+        page,
+        SOURCES,
+        { 'src:dated': 'y'.repeat(300) },
+        [],
+        columns,
+        true,
+        NOW,
+      )
+
+      expect(rows.map(row => Band.displayWidthOf(row.title))).toEqual([columns - 22, columns - 22])
+      expect(Band.displayWidthOf(rows[0]?.summary ?? '')).toBe(columns - 22)
+    }
+  })
+
+  test('a stack row has its age in the same column after the package, with wide glyphs and names, and the inline note stays within the room', () => {
+    const wide = [
+      Fixtures.stackItemAt('漢字パッケージ', '2.0.0', {
+        current: '1.0.0',
+        level: 'major',
+        breaking: true,
+        title: `漢字のリリース ${'新機能'.repeat(12)}`,
+        publishedAt: '2026-01-01T00:00:00Z',
+      }),
+      Fixtures.stackItemAt('🚀rocket', '1.1.0', {
+        current: '1.0.0',
+        publishedAt: '2025-12-20T00:00:00Z',
+      }),
+      Fixtures.stackItemAt('plain', '3.0.0', { current: '2.0.0', level: 'major' }),
+    ]
+    const page = Band.bandPageOf({ offset: 0, selected: 0, isPaused: false }, wide)
+
+    for (const columns of [174, 120, 80]) {
+      for (const autoSummaries of [true, false]) {
+        const { rows } = Band.bandModelOf(page, SOURCES, {}, [], columns, autoSummaries, NOW)
+
+        expect(rows.map(row => row.age)).toEqual(['  1d', '  1w', '    '])
+        expect(rows.map(leadOf)).toEqual([22, 22, 22])
+
+        for (const row of rows) {
+          const note = row.note === undefined ? 0 : 2 + Band.displayWidthOf(row.note)
+
+          expect(leadOf(row) + Band.displayWidthOf(row.title) + note).toBeLessThanOrEqual(columns)
+        }
+      }
+    }
+  })
+
+  test('the height does not change with the clock: one line per row off, two on', () => {
+    const items = [...Fixtures.datedItemsOf('src', 3), Fixtures.itemAt('z')]
+    const page = Band.bandPageOf({ offset: 0, selected: 0, isPaused: false }, items)
+
+    for (const now of [EPOCH, NOW, NOW + 400 * 86_400_000]) {
+      const off = Band.bandModelOf(page, SOURCES, {}, [], 80, false, now)
+      const on = Band.bandModelOf(page, SOURCES, {}, [], 80, true, now)
+
+      expect(off.rows).toHaveLength(3)
+      expect(off.hasSummaries).toBe(false)
+      expect(on.hasSummaries).toBe(true)
+      expect(on.rows).toHaveLength(3)
+    }
   })
 })

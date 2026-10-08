@@ -49,6 +49,12 @@ describe('compact-band-view', () => {
     return `${String(type)}:${text.join('')}${props.bold === true ? ':bold' : ''}`
   }
 
+  // The text of a drawn child, a string or an element's strings.
+  const textOf = (child: unknown): string =>
+    typeof child === 'string'
+      ? child
+      : ((child as Partial<FoundElement>).children ?? []).map(textOf).join('')
+
   const rootOf = async (ui: Drawing) => (await ui.findAll({ type: 'Box' }))[0]
 
   for (const surface of SURFACES) {
@@ -269,6 +275,39 @@ describe('compact-band-view', () => {
 
           // The band's own rows plus the row of what the mods below drew.
           expect([columns, [...seen]]).toEqual([columns, [rows + 1]])
+          await ui.unmount()
+        }
+      },
+    )
+  }
+
+  for (const surface of SURFACES) {
+    test(
+      `on ${surface}: where the room holds the source, the age and the headline's fewest cells (a row of its own, 40 cells) the dim age comes after the source name; narrower or beside the controls, none`,
+      { timeoutMs: 20_000 },
+      async ($, on) => {
+        mock.clock(on, { now: Date.UTC(2026, 0, 2, 5) })
+        Fixtures.bandOn(on, STORE)
+
+        await $.classic.SessionStart({ source: 'clear' })
+
+        for (const columns of [64, 40, 33]) {
+          const ui = await $.ui.mount(at(surface, columns))
+          const age = await ui.find({ type: 'Text', text: /^\d+[mhdwy]$|^now$/ })
+          const [line] = (await ui.findAll({ type: 'Text' })).filter(
+            text => text.props.wrap === 'truncate-end',
+          )
+
+          if (columns === 40) {
+            expect([age?.text, age?.props.dimColor]).toEqual(['5h', true])
+            expect(
+              (line?.children.map(textOf).join('') ?? '').startsWith('Hacker News  5h  src 1'),
+            ).toBe(true)
+            expect(Fixtures.rowsOf(await rootOf(ui), columns)).toBe(3)
+          } else {
+            expect(age).toBeUndefined()
+          }
+
           await ui.unmount()
         }
       },

@@ -6,6 +6,7 @@ import type { RenderElement, RenderNode } from 'claude-code'
 import { BAND_HOTKEYS } from '../names/band-hotkeys.js'
 import { BAND_LABELS } from '../names/band-labels.js'
 import { BAND_NAME } from '../names/band-name.js'
+import { AGE_GAP_COLUMNS } from './age-gap-columns.js'
 import { GROUP_GAP_COLUMNS } from './group-gap-columns.js'
 import { iconGapOf } from './icon-gap-of.js'
 import { actionRowView } from './action-row-view.js'
@@ -17,7 +18,7 @@ import { LEAD_COLUMNS } from './lead-columns.js'
 import { SUMMARY_PLACEHOLDER } from './summary-placeholder.js'
 
 /**
- * One item: the selection mark, the source column (a news item's source name, dim, or in the release color for a release; a release of the stack's glyph and package), the headline and a stack row's note dim after it, then, while rows take two lines, the summary dim beneath it, starting in the headline's column, or an empty line for an item without one (no text, or replies rejected for now) so the band keeps its height as it turns.
+ * One item: the selection mark, the source column (a news item's source name, dim, or in the release color for a release; a release of the stack's glyph and package), the item's age dim in its own column (blank when undated), the headline and a stack row's note dim after it, then, while rows take two lines, the summary dim beneath it, starting in the headline's column, or an empty line for an item without one (no text, or replies rejected for now) so the band keeps its height as it turns.
  *
  * @param ui the elements
  * @param row the item as drawn
@@ -45,6 +46,8 @@ function rowView(ui: BandUi, row: BandRow, hasSummaries: boolean): RenderElement
           : [<Text color="claude">{row.icon}</Text>, iconGapOf(row.icon)]}
         {label}
         {row.sourceGap}
+        <Text dimColor>{row.age}</Text>
+        {' '.repeat(AGE_GAP_COLUMNS)}
         <Text bold={row.isSelected}>
           {row.href === undefined ? row.title : <Link href={row.href}>{row.title}</Link>}
         </Text>

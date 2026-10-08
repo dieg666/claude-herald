@@ -372,7 +372,7 @@ describe('band-view', () => {
     })
 
     test(
-      `on ${surface}: at 174, 120 and 80 columns every headline and summary starts at cell 16, after the twelve-cell column and its gap, and nothing follows the headline`,
+      `on ${surface}: at 174, 120 and 80 columns every headline and summary starts at cell 22, after the twelve-cell source column, the age column and their gaps, and nothing follows the headline`,
       { timeoutMs: 20_000 },
       async ($, on) => {
         mock.clock(on)
@@ -402,13 +402,13 @@ describe('band-view', () => {
             props: { ...Fixtures.BAND_PROPS, bodyColumns: columns },
           })
 
-          expect(await leadsOf(ui)).toEqual([16, 16, 16])
+          expect(await leadsOf(ui)).toEqual([22, 22, 22])
           expect(await trailsOf(ui)).toEqual([0, 0, 0])
           expect(
             (await ui.findAll({ type: 'Box' }))
               .map(box => box.props.paddingLeft)
               .filter(padding => padding !== undefined),
-          ).toEqual([16, 16, 16])
+          ).toEqual([22, 22, 22])
           expect(await ui.find({ type: 'Text', text: /^Simon Willi…$/ })).toBeDefined()
 
           await ui.unmount()
@@ -706,12 +706,12 @@ describe('band-view', () => {
         props: { ...Fixtures.BAND_PROPS, bodyColumns: 70 },
       })
 
-      // Seventy cells less the sixteen before the headline leave fifty-four, for the headline and the summary alike.
+      // Seventy cells less the twenty-two before the headline leave forty-eight, for the headline and the summary alike.
       expect((await linksOf(ui)).map(([, text]) => text)).toEqual([
-        `${'a'.repeat(53)}…`,
-        `${'漢'.repeat(26)}…`,
+        `${'a'.repeat(47)}…`,
+        `${'漢'.repeat(23)}…`,
       ])
-      expect(await ui.find({ type: 'Text', text: `${'b'.repeat(53)}…` })).toBeDefined()
+      expect(await ui.find({ type: 'Text', text: `${'b'.repeat(47)}…` })).toBeDefined()
     })
 
     test(`on ${surface}: an address that is not http(s) draws its title as plain text`, async ($, on) => {
@@ -1030,7 +1030,7 @@ describe('band-view', () => {
           await ui.press({ key: 'next' })
         }
 
-        expect(leads).toEqual(Array.from({ length: 9 }, () => 16))
+        expect(leads).toEqual(Array.from({ length: 9 }, () => 22))
         expect(names).toEqual(
           ['react', 'vite', 'lodash', 'requests', 'next', 'zod'].map(name => [name, 'claude']),
         )
@@ -1205,6 +1205,112 @@ describe('band-view', () => {
         await turn()
 
         expect(askedOfMuted()).toBe(2)
+      },
+    )
+  }
+
+  // Five hours after the newest of the seven dated items, so a page of three reads 5h, 6h and 7h.
+  const NOW = Date.UTC(2026, 0, 2, 5)
+
+  // Each headline line's age column: the text between the source column and the headline, its gap spaces dropped.
+  const agesOf = async (ui: Drawing) =>
+    (await headlineLinesOf(ui)).map(line => {
+      const before = line.children.slice(0, headlineIndexOf(line)) as Partial<FoundElement>[]
+      const age = before[before.length - 2]
+
+      return {
+        age: textOf(age),
+        isDim: age?.props?.dimColor,
+        gap: textOf(before[before.length - 1]),
+      }
+    })
+
+  for (const surface of SURFACES) {
+    for (const autoSummaries of [false, true]) {
+      test(
+        `on ${surface}: with automatic summaries ${autoSummaries ? 'on' : 'off'} every row has a dim age column after the source column at 174, 120 and 80 columns, the headlines starting at cell 22 and the height unchanged`,
+        { timeoutMs: 20_000 },
+        async ($, on) => {
+          mock.clock(on, { now: NOW })
+          Fixtures.bandOn(on, {
+            ...(autoSummaries ? { settings: Fixtures.SUMMARIES_ON } : {}),
+            ...STORE,
+          })
+
+          await $.classic.SessionStart({ source: 'clear' })
+
+          for (const columns of [174, 120, 80]) {
+            const ui = await $.ui.mount({
+              ...BAND,
+              surface,
+              props: { ...Fixtures.BAND_PROPS, bodyColumns: columns },
+            })
+
+            expect(await agesOf(ui)).toEqual(
+              ['  5h', '  6h', '  7h'].map(age => ({ age, isDim: true, gap: '  ' })),
+            )
+            expect(await leadsOf(ui)).toEqual([22, 22, 22])
+            expect(Fixtures.rowsOf((await partsOf(ui)).root, columns)).toBe(autoSummaries ? 9 : 6)
+
+            await ui.unmount()
+          }
+        },
+      )
+    }
+
+    test(
+      `on ${surface}: an undated item keeps a blank age column, so its headline starts in the same cell`,
+      { timeoutMs: 20_000 },
+      async ($, on) => {
+        mock.clock(on, { now: NOW })
+
+        const [first, second, third] = Fixtures.datedItemsOf('src', 3)
+
+        Fixtures.bandOn(on, {
+          sources: [SOURCE],
+          items: {
+            src: [
+              first!,
+              { ...second!, publishedAt: undefined },
+              { ...third!, publishedAt: 'not a date' },
+            ],
+          },
+        })
+
+        await $.classic.SessionStart({ source: 'clear' })
+
+        const ui = await $.ui.mount({ ...BAND, surface })
+
+        expect((await agesOf(ui)).map(line => line.age)).toEqual(['  5h', '    ', '    '])
+        expect(await leadsOf(ui)).toEqual([22, 22, 22])
+
+        await ui.unmount()
+      },
+    )
+
+    test(
+      `on ${surface}: a stack row has its age in the same column after its package`,
+      { timeoutMs: 20_000 },
+      async ($, on) => {
+        const clock = mock.clock(on, { now: Date.UTC(2026, 0, 6, 12) })
+
+        stackBandOn(on, { showLevel: 'all' })
+
+        await $.session.start(Fixtures.SESSION)
+        await clock.settle()
+
+        for (const columns of [174, 120, 80]) {
+          const ui = await $.ui.mount({
+            ...BAND,
+            surface,
+            props: { ...Fixtures.BAND_PROPS, bodyColumns: columns },
+          })
+
+          expect((await agesOf(ui)).map(line => line.age)).toEqual([' 12h', '  1d', '  2d'])
+          expect(await leadsOf(ui)).toEqual([22, 22, 22])
+
+          await ui.unmount()
+        }
       },
     )
   }

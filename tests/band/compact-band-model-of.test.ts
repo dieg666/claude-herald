@@ -10,22 +10,25 @@ describe('compact-band-model-of', () => {
     index === 1 ? { ...item, title: 'Claude Code v2.1.293 adds a compact band to Herald' } : item,
   )
 
+  // A clock before every fixture date: a date that far ahead draws no age.
+  const EPOCH = 0
+
   const pageAt = (offset: number) =>
     Band.bandPageOf({ offset, selected: 0, isPaused: true }, ITEMS, 1)
 
   test('one item: its position as n/N, its headline linked, no summary or actions, and no name where the room is short', () => {
-    expect(Band.compactBandModelOf(pageAt(0), SOURCES, 60)).toEqual({
+    expect(Band.compactBandModelOf(pageAt(0), SOURCES, 60, EPOCH)).toEqual({
       position: '1/7',
       isPaused: true,
       headline: { id: 'src:1', title: 'src 1', href: 'https://example.com/src/1' },
       rowCount: 1,
     })
-    expect(Band.compactBandModelOf(pageAt(6), SOURCES, 60).position).toBe('7/7')
+    expect(Band.compactBandModelOf(pageAt(6), SOURCES, 60, EPOCH).position).toBe('7/7')
   })
 
   test('the headline is cut to the room beside the controls at their widest', () => {
     const room = 62 - Band.compactControlsColumnsOf(7) - 2
-    const { headline } = Band.compactBandModelOf(pageAt(1), SOURCES, 62)
+    const { headline } = Band.compactBandModelOf(pageAt(1), SOURCES, 62, EPOCH)
 
     expect(room).toBe(26)
     expect(headline.title).toBe('Claude Code v2.1.293 adds…')
@@ -35,7 +38,7 @@ describe('compact-band-model-of', () => {
   test('one row while the headline gets 14 cells, two while the controls fit, else three; by the width and the total only', () => {
     const controls = Band.compactControlsColumnsOf(7)
     const rowsAt = (columns: number, offset = 0) =>
-      Band.compactBandModelOf(pageAt(offset), SOURCES, columns).rowCount
+      Band.compactBandModelOf(pageAt(offset), SOURCES, columns, EPOCH).rowCount
 
     expect(rowsAt(controls + 2 + 14)).toBe(1)
     expect(rowsAt(controls + 2 + 13)).toBe(2)
@@ -49,7 +52,7 @@ describe('compact-band-model-of', () => {
 
   test('on a row of its own the source name, its gap and the headline take the whole width', () => {
     const columns = Band.compactControlsColumnsOf(7)
-    const { headline, rowCount } = Band.compactBandModelOf(pageAt(1), SOURCES, columns)
+    const { headline, rowCount } = Band.compactBandModelOf(pageAt(1), SOURCES, columns, EPOCH)
 
     expect(rowCount).toBe(2)
     expect(headline.source).toBe('Claude Code')
@@ -60,7 +63,7 @@ describe('compact-band-model-of', () => {
     const items = [{ ...Fixtures.itemAt('v'), title: 'v2.1.293', url: 'file:///etc/hosts' }]
     const page = Band.bandPageOf({ offset: 0, selected: 0, isPaused: false }, items, 1)
 
-    expect(Band.compactBandModelOf(page, SOURCES, 60).headline).toEqual({
+    expect(Band.compactBandModelOf(page, SOURCES, 60, EPOCH).headline).toEqual({
       id: 'src:v',
       title: 'Claude Code v2.1.293',
     })
@@ -69,7 +72,7 @@ describe('compact-band-model-of', () => {
   test('the source name, cut to twelve cells, comes before the headline where the room holds the column, its gap and fourteen cells; by the width and the total only', () => {
     const controls = Band.compactControlsColumnsOf(7)
     const modelAt = (columns: number, offset = 0) =>
-      Band.compactBandModelOf(pageAt(offset), SOURCES, columns)
+      Band.compactBandModelOf(pageAt(offset), SOURCES, columns, EPOCH)
 
     // One row: the room beside the controls is 28 cells at 64, the widest compact band for 7 items.
     expect(64 - controls - 2).toBe(28)
@@ -111,6 +114,7 @@ describe('compact-band-model-of', () => {
         Band.bandPageOf({ offset, selected: 0, isPaused: false }, items, 1),
         sources,
         40,
+        EPOCH,
       ).headline
 
     expect(headlineAt(0)).toMatchObject({
@@ -126,7 +130,7 @@ describe('compact-band-model-of', () => {
     const items = [{ ...Fixtures.itemAt('v'), sourceId: 'gone', title: 'v1.0.0' }]
     const page = Band.bandPageOf({ offset: 0, selected: 0, isPaused: false }, items, 1)
 
-    expect(Band.compactBandModelOf(page, SOURCES, 40).headline).toEqual({
+    expect(Band.compactBandModelOf(page, SOURCES, 40, EPOCH).headline).toEqual({
       id: 'src:v',
       title: 'v1.0.0',
       href: 'https://example.com/v',
@@ -136,7 +140,7 @@ describe('compact-band-model-of', () => {
   test('a stack item keeps its 📦 or ⚠ and pkg current → new, cut after the glyph column', () => {
     const [react] = Fixtures.STACK_SAMPLE
     const page = Band.bandPageOf({ offset: 0, selected: 0, isPaused: false }, [react!], 1)
-    const { headline } = Band.compactBandModelOf(page, SOURCES, 62)
+    const { headline } = Band.compactBandModelOf(page, SOURCES, 62, EPOCH)
     const room = 62 - Band.compactControlsColumnsOf(1) - 2
 
     // The glyph and its gap take three cells of the room; the cut drops the space before the ellipsis.
@@ -151,10 +155,86 @@ describe('compact-band-model-of', () => {
     const items = [{ ...Fixtures.itemAt('v'), sourceId: releases!.id, title: 'v2.1.294' }]
     const page = Band.bandPageOf({ offset: 0, selected: 0, isPaused: false }, items, 1)
 
-    expect(Band.compactBandModelOf(page, [releases!], 40).headline).toMatchObject({
+    expect(Band.compactBandModelOf(page, [releases!], 40, EPOCH).headline).toMatchObject({
       source: 'Claude Code',
       isRelease: true,
       title: 'v2.1.294',
     })
+  })
+
+  // Five hours after the newest dated item (2026-01-02T00:00Z).
+  const NOW = Date.UTC(2026, 0, 2, 5)
+  // The source column, its gap, the age column and its gap, and the headline's fewest cells.
+  const AGE_ROOM = 12 + 2 + 4 + 2 + 14
+
+  test('the age comes after the source name where the room holds the source column, the age column and the headline; by the width and the total only', () => {
+    const controls = Band.compactControlsColumnsOf(7)
+    const modelAt = (columns: number, offset = 0) =>
+      Band.compactBandModelOf(pageAt(offset), SOURCES, columns, NOW)
+
+    // One row: the room beside the controls.
+    const wideOne = controls + 2 + AGE_ROOM
+    const { headline } = modelAt(wideOne, 1)
+
+    expect(modelAt(wideOne).rowCount).toBe(1)
+    expect(headline.age).toBe('6h')
+    expect(Band.displayWidthOf(`${headline.source}  ${headline.age}  ${headline.title}`)).toBe(
+      AGE_ROOM,
+    )
+    expect(modelAt(wideOne - 1).headline.age).toBeUndefined()
+
+    // The same on a row of its own, where the room is the whole width.
+    const own = modelAt(controls)
+
+    expect(own.rowCount).toBe(2)
+    expect(own.headline.age).toBe('5h')
+
+    for (const columns of [20, controls - 1, controls, wideOne - 1, wideOne, 120]) {
+      expect(
+        new Set(ITEMS.map((item, offset) => modelAt(columns, offset).headline.age !== undefined))
+          .size,
+      ).toBe(1)
+    }
+  })
+
+  test('the headline gives up the age and its gap, never going under its fewest cells', () => {
+    const controls = Band.compactControlsColumnsOf(7)
+
+    for (const columns of [120, controls + 2 + AGE_ROOM]) {
+      const { headline } = Band.compactBandModelOf(pageAt(1), SOURCES, columns, NOW)
+      const room = columns - controls - 2
+
+      expect(headline.source).toBe('Claude Code')
+      expect(headline.age).toBe('6h')
+      const width = Band.displayWidthOf(`${headline.source}  ${headline.age}  ${headline.title}`)
+
+      expect(columns === 120 ? width <= room : width === room).toBe(true)
+      expect(Band.displayWidthOf(headline.title)).toBeGreaterThanOrEqual(14)
+    }
+  })
+
+  test('an undated or far-future item draws no age and keeps the whole headline', () => {
+    const items = [Fixtures.itemAt('a'), Fixtures.itemAt('b', '2027-01-01T00:00:00Z')]
+
+    for (const item of items) {
+      const page = Band.bandPageOf({ offset: 0, selected: 0, isPaused: false }, [item], 1)
+      const { headline } = Band.compactBandModelOf(page, SOURCES, 120, NOW)
+
+      expect(headline.age).toBeUndefined()
+    }
+
+    expect(Band.compactBandModelOf(pageAt(0), SOURCES, 120, EPOCH).headline.age).toBeUndefined()
+  })
+
+  test('a stack item draws its age after its glyph where the room holds it', () => {
+    const [react] = Fixtures.STACK_SAMPLE
+    const page = Band.bandPageOf({ offset: 0, selected: 0, isPaused: false }, [react!], 1)
+    const { headline } = Band.compactBandModelOf(page, SOURCES, 120, Date.UTC(2026, 0, 7))
+
+    expect(headline.icon).toBe('⚠')
+    expect(headline.age).toBe('1d')
+    expect(
+      Band.displayWidthOf(`${headline.icon}  ${headline.age}  ${headline.title}`),
+    ).toBeLessThanOrEqual(120 - Band.compactControlsColumnsOf(1) - 2)
   })
 })

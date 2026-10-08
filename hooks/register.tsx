@@ -350,7 +350,7 @@ export const register: Register = on => {
     return { text: reply.text }
   })
 
-  // The band reads state only (it notes its page size in the rotation); its Buttons write through the Host when pressed.
+  // The band reads state and the clock only (it notes its page size in the rotation); its Buttons write through the Host when pressed.
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     if (e.props.hasSurvey || (await isPaneShown($))) {
       return next(e)
@@ -369,6 +369,7 @@ export const register: Register = on => {
     }
 
     const columns = e.props.bodyColumns
+    const now = await $.clock.now()
 
     ROTATION.pageSize = Band.bandPageSizeOf(columns, items.length)
 
@@ -379,7 +380,7 @@ export const register: Register = on => {
     if (Band.isCompactBand(columns, items.length)) {
       return Band.compactBandView(
         { Box, Text, Button, Link },
-        Band.compactBandModelOf(page, sources, columns),
+        Band.compactBandModelOf(page, sources, columns, now),
         handlers,
         await next(e),
       )
@@ -394,6 +395,7 @@ export const register: Register = on => {
         await read($, SAVED),
         columns,
         (await read($, SETTINGS)).autoSummaries === true,
+        now,
       ),
       handlers,
       await next(e),

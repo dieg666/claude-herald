@@ -9,13 +9,14 @@ import { BAND_NAME } from '../names/band-name.js'
 import type { BandHandlers } from './band-handlers.js'
 import type { BandUi } from './band-ui.js'
 import type { CompactBandModel } from './compact-band-model.js'
+import { AGE_GAP_COLUMNS } from './age-gap-columns.js'
 import { COMPACT_GAP_COLUMNS } from './compact-gap-columns.js'
 import { GROUP_GAP_COLUMNS } from './group-gap-columns.js'
 import { iconGapOf } from './icon-gap-of.js'
 import { SOURCE_GAP_COLUMNS } from './source-gap-columns.js'
 
 /**
- * The compact band: `Herald 13/156`, the back, next and auto Buttons, then the one item's source name when the model has room for it (dim, or in the release color for a release) and its headline in bold (a link when it has an address), followed by what the mods below drew; on as many rows as the model says, so its height depends on the width and the total only.
+ * The compact band: `Herald 13/156`, the back, next and auto Buttons, then the one item's source name when the model has room for it (dim, or in the release color for a release), its headline in bold (a link when it has an address) and, where the model has room, its age dim at the right end, followed by what the mods below drew; on as many rows as the model says, so its height depends on the width and the total only.
  *
  * @param ui the elements
  * @param model what to draw
@@ -76,6 +77,9 @@ export function compactBandView(
             ),
             ' '.repeat(SOURCE_GAP_COLUMNS),
           ]}
+      {headline.age === undefined
+        ? []
+        : [<Text dimColor>{headline.age}</Text>, ' '.repeat(AGE_GAP_COLUMNS)]}
       <Text bold>
         {headline.href === undefined ? (
           headline.title

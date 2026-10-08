@@ -6,6 +6,8 @@ import { stackIconOf } from '../deps/stack/stack-icon-of.js'
 import { stackNoteOf } from '../deps/stack/stack-note-of.js'
 import { collapsedTextOf } from '../page/collapsed-text-of.js'
 import { summaryTextOf } from '../summaries/summary-text-of.js'
+import { ageColumnOf } from './age-column-of.js'
+import { ageOf } from './age-of.js'
 import type { BandModel } from './band-model.js'
 import type { BandPage } from './band-page.js'
 import { displayWidthOf } from './display-width-of.js'
@@ -49,7 +51,7 @@ function inlineNoteOf(note: string, title: string, room: number): string | undef
 }
 
 /**
- * What the full band draws for a page, every line fitted to `columns` cells: each row starts with a source column `SOURCE_COLUMNS` cells wide, so every headline and summary starts in one column; a news item's column holds its source's name (a factory source's short label) cut with `…` (blank when the source is gone), its title as stored, a bare version tag included since the column names the source; a stack item's column holds 📦 (⚠ when breaking or security) and the package (without its scope when too long), its headline `current → new` and its summary the ecosystem, level and flags; releases are marked so their label takes the release color; a news item without usable text, or with an empty summary (replies rejected for now), shows no summary; with automatic summaries off every row takes one line: no news summary or placeholder, a stack item's note after its headline.
+ * What the full band draws for a page, every line fitted to `columns` cells: each row starts with a source column `SOURCE_COLUMNS` cells wide, so every headline and summary starts in one column; a news item's column holds its source's name (a factory source's short label) cut with `…` (blank when the source is gone), its title as stored, a bare version tag included since the column names the source; a stack item's column holds 📦 (⚠ when breaking or security) and the package (without its scope when too long), its headline `current → new` and its summary the ecosystem, level and flags; releases are marked so their label takes the release color; a news item without usable text, or with an empty summary (replies rejected for now), shows no summary; with automatic summaries off every row takes one line: no news summary or placeholder, a stack item's note after its headline; every row has an age column of `AGE_COLUMNS` cells after the source column, the item's age (`ageOf`) right-aligned in it, blank for an undated item, so headlines and summaries still start in one column.
  *
  * @param page the page shown
  * @param sources every source, for the names
@@ -57,6 +59,7 @@ function inlineNoteOf(note: string, title: string, room: number): string | undef
  * @param saved the saved items
  * @param columns the cells the band's tree may take
  * @param autoSummaries whether one-line summaries are drawn, each row then taking a second line
+ * @param now the clock in milliseconds since the epoch, for the ages
  */
 export function bandModelOf(
   page: BandPage,
@@ -65,6 +68,7 @@ export function bandModelOf(
   saved: readonly SavedItem[],
   columns: number,
   autoSummaries: boolean,
+  now: number,
 ): BandModel {
   const byId = new Map(sources.map(source => [source.id, source]))
   const selected = page.items[page.span.selected]
@@ -94,6 +98,7 @@ export function bandModelOf(
     const row = {
       id: item.id,
       ...headline,
+      age: ageColumnOf(ageOf(item.publishedAt, now)),
       ...(href === undefined ? {} : { href }),
       isSelected: index === page.span.selected,
     }
