@@ -1,12 +1,14 @@
 import type { Item } from '../../types/index.js'
 import type { Host } from '../host/host.js'
 import { messageOf } from '../refresh/message-of.js'
+import { summaryTextOf } from '../summaries/summary-text-of.js'
 import { handPaneItems } from './hand-pane-items.js'
 import { paneAfter } from './pane-after.js'
 import type { PaneMove } from './pane-move.js'
 import { panePageOf } from './pane-page-of.js'
 import { paneStackOf } from './pane-stack-of.js'
 import type { PaneShown } from './pane-shown.js'
+import { shownSelectedFirstOf } from './shown-selected-first-of.js'
 
 /**
  * The ids of a list of items, joined.
@@ -18,7 +20,7 @@ function idsOf(items: readonly Item[]): string {
 }
 
 /**
- * Applies a move to the pane in state (nothing written when it changes nothing) and, when the tab or the items shown changed, hands the items shown to `onShown`; never throws.
+ * Applies a move to the pane in state (nothing written when it changes nothing) and, when the tab or the items shown changed, hands the items shown to `onShown`, the selected one first; a news or saved item with text selected inside the same window goes alone when it has no summary in state; never throws.
  *
  * @param host the engine
  * @param move what happened
@@ -51,10 +53,21 @@ export async function movePane(
     const after = panePageOf(written, sources, items, saved, size, stack)
 
     if (after.tab.id === before.tab.id && idsOf(after.shown) === idsOf(before.shown)) {
+      const selected = after.items[after.selected]
+
+      if (
+        after.stack === undefined &&
+        selected !== undefined &&
+        summaryTextOf(selected) !== '' &&
+        !Object.hasOwn(await host.state.summaries.read(), selected.id)
+      ) {
+        handPaneItems(host, onShown, [selected])
+      }
+
       return undefined
     }
 
-    handPaneItems(host, onShown, after.shown)
+    handPaneItems(host, onShown, shownSelectedFirstOf(after))
 
     return after.shown
   } catch (error) {

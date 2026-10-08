@@ -34,17 +34,35 @@ describe('move-pane', () => {
     expect(shown.length).toBe(1)
   })
 
-  test('a move inside the window writes the selection and hands nothing; one that moves it hands the new window', async () => {
+  test('a move inside the window writes the selection and hands the selected item alone when it has no summary; one that moves the window hands it, the selected item first', async () => {
     const { host, state, shown, onShown } = await paneWith()
+
+    await host.state.summaries.update(() => ({ 'a:3': 'Kept.' }))
 
     expect(await Pane.movePane(host, 'down', 4, onShown)).toBeUndefined()
     expect(await Pane.movePane(host, 'down', 4, onShown)).toBeUndefined()
     expect(state.pane).toEqual({ tab: 'a', selected: 2 })
+    expect(shown).toEqual([['a:2']])
+
+    expect((await Pane.movePane(host, 'down', 4, onShown))?.map(item => item.id)).toEqual([
+      'a:2',
+      'a:3',
+      'a:4',
+      'a:5',
+    ])
+    expect(shown).toEqual([['a:2'], ['a:4', 'a:2', 'a:3', 'a:5']])
+  })
+
+  test('a move inside the window to an item without text hands nothing', async () => {
+    const { host, shown, onShown } = await paneWith()
+
+    await host.state.items.update(items => ({
+      ...items,
+      a: (items.a ?? []).map(item => (item.id === 'a:2' ? { ...item, text: '' } : item)),
+    }))
+
+    expect(await Pane.movePane(host, 'down', 4, onShown)).toBeUndefined()
     expect(shown).toEqual([])
-
-    await Pane.movePane(host, 'down', 4, onShown)
-
-    expect(shown).toEqual([['a:2', 'a:3', 'a:4', 'a:5']])
   })
 
   test('a move that changes nothing writes nothing', async () => {

@@ -32,6 +32,7 @@ export type * from './pane-window.js'
 export * from './pane-window-of.js'
 export * from './pane-window-size-of.js'
 export * from './short-date-of.js'
+export * from './shown-selected-first-of.js'
 export * from './toggle-releases.js'
 
 export * as default from '.'

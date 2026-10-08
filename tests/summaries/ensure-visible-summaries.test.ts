@@ -128,6 +128,27 @@ describe('ensure-visible-summaries', () => {
     expect(Store.summaryEntriesOf(stored.get('summaries')).length).toBe(5)
   })
 
+  test('the items go to the model in the order given, the first before the rest', async () => {
+    const items = ['c', 'a', 'b', 'd'].map(key => Fixtures.itemAt(key))
+    const { host } = Fixtures.fakeHostOf()
+    const model = Fixtures.heldModelOf(host)
+    const titles = () =>
+      model.held.map(({ request }) =>
+        typeof request.prompt === 'string' ? /^Title: (.*)$/m.exec(request.prompt)?.[1] : undefined,
+      )
+
+    const done = Summaries.ensureVisibleSummaries(host, Summaries.summaryJobsOf(), items)
+
+    for (let answered = 0; answered < items.length; answered += 1) {
+      await model.settle()
+      model.held[answered]?.answer(Fixtures.answerOf(`S${answered}.`))
+    }
+
+    await done
+
+    expect(titles()).toEqual(['c', 'a', 'b', 'd'])
+  })
+
   test('overlapping calls and repeated items ask once per item', async () => {
     const { host } = Fixtures.fakeHostOf()
     const model = Fixtures.heldModelOf(host)

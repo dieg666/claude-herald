@@ -28,6 +28,25 @@ describe('hand-shown-pane', () => {
     expect(shown).toEqual([['a:1', 'a:2', 'a:3'], ['src:kept']])
   })
 
+  test('hands the selected item first, then the rest of the window; returns the window in order', async () => {
+    const { host } = Fixtures.fakeHostOf()
+    const shown: string[][] = []
+    const onShown = async (_: unknown, items: readonly Item[]) => {
+      shown.push(items.map(item => item.id))
+    }
+
+    await host.state.sources.update(() => [Fixtures.sourceAt('a')])
+    await host.state.items.update(() => ({ a: Fixtures.datedItemsOf('a', 5) }))
+    await host.state.pane.update(() => ({ tab: 'a', selected: 2 }))
+
+    expect((await Pane.handShownPane(host, 3, onShown)).map(item => item.id)).toEqual([
+      'a:2',
+      'a:3',
+      'a:4',
+    ])
+    expect(shown).toEqual([['a:3', 'a:2', 'a:4']])
+  })
+
   test('an empty tab hands nothing; a failure is logged, never thrown', async () => {
     const { host, logs } = Fixtures.fakeHostOf()
     let calls = 0

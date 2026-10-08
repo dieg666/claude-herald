@@ -5,9 +5,10 @@ import { handPaneItems } from './hand-pane-items.js'
 import { panePageOf } from './pane-page-of.js'
 import { paneStackOf } from './pane-stack-of.js'
 import type { PaneShown } from './pane-shown.js'
+import { shownSelectedFirstOf } from './shown-selected-first-of.js'
 
 /**
- * Hands the items the pane shows now, in a window of `size`, to `onShown`, not waiting; never throws.
+ * Hands the items the pane shows now, in a window of `size`, to `onShown`, the selected one first, not waiting; never throws.
  *
  * @param host the engine
  * @param size how many items the window may show
@@ -29,7 +30,7 @@ export async function handShownPane(
       paneStackOf(await host.state.stack.read()),
     )
 
-    handPaneItems(host, onShown, page.shown)
+    handPaneItems(host, onShown, shownSelectedFirstOf(page))
 
     return page.shown
   } catch (error) {
