@@ -194,10 +194,10 @@ A refresh runs when the session starts and then every 5 minutes, fetching three 
 
 ## Copy template
 
-Copy for Claude puts the copy template on the clipboard, or the release template for a release of your stack. The defaults are:
+Copy for Claude puts the copy template on the clipboard, or the release template for a release of your stack. The defaults are (a release reads `Claude Code v2.1.293` with its source, because a GitHub release title is a bare tag):
 
 ```text
-Read this and tell me whether it affects this project: {title} {url}
+Read this and tell me whether it affects this project: {source} {title} {url}
 ```
 
 ```text

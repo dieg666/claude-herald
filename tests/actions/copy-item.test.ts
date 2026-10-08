@@ -26,6 +26,19 @@ describe('copy-item', () => {
     expect(toasts).toEqual(['📋 Copied'])
   })
 
+  test('the default template falls back to the source id when the source was removed', async () => {
+    const { host, copies } = Fixtures.fakeHostOf({})
+
+    await Actions.copyItem(host, { ...Fixtures.itemAt('a'), title: 'v2.1.293' }, 'terminal')
+
+    expect(copies).toEqual([
+      {
+        text: 'Read this and tell me whether it affects this project: src v2.1.293 https://example.com/a',
+        surface: 'terminal',
+      },
+    ])
+  })
+
   test('an item that reached a clipboard, by the surface or a tool, is recorded as read; a refused or failed copy is not', async () => {
     const copied = await hostWith()
 

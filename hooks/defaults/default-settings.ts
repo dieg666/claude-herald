@@ -7,7 +7,7 @@ export const DEFAULT_SETTINGS: Readonly<Settings> = {
   refreshMinutes: 5,
   rotateSeconds: 20,
   lang: 'feed',
-  template: 'Read this and tell me whether it affects this project: {title} {url}',
+  template: 'Read this and tell me whether it affects this project: {source} {title} {url}',
   depsTemplate:
     "We use {pkg} {current}. {pkg} {new} is out: {url}\nCheck whether it affects this project and what we'd need to change.",
 }

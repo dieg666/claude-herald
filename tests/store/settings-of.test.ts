@@ -28,6 +28,12 @@ describe('settings-of', () => {
     ).toEqual(Defaults.DEFAULT_SETTINGS)
   })
 
+  test('a stored template is kept, not replaced by the default', () => {
+    const stored = '{title} {url}'
+
+    expect(Store.settingsOf({ template: stored }).template).toBe(stored)
+  })
+
   test('a whole stored object is read back as stored', () => {
     const own = {
       refreshMinutes: 10,
