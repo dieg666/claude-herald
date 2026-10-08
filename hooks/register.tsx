@@ -249,6 +249,18 @@ function detectSoon($: EngineInterface): void {
 }
 
 /**
+ * Refreshes the stack's releases, detecting the stack again first when asked, not awaited; behind a refresh in flight it runs once after it.
+ *
+ * @param $ the hook's engine
+ * @param isRescan whether to detect the stack again first
+ */
+function refreshStackSoon($: EngineInterface, isRescan: boolean): void {
+  void (isRescan
+    ? Stack.rescanStack(hostOf($), STACK, SUMMARY_JOBS)
+    : Stack.refreshStack(hostOf($), STACK, SUMMARY_JOBS))
+}
+
+/**
  * Declares `/news` for the session; a refused registration is logged to debug, never thrown.
  *
  * @param $ the hook's engine
@@ -305,6 +317,10 @@ export const register: Register = on => {
       reply.resyncSummaries === true
     ) {
       resyncPane($, reply.summarizePane === true)
+    }
+
+    if (reply.rescanStack === true || reply.refreshStack === true) {
+      refreshStackSoon($, reply.rescanStack === true)
     }
 
     return { text: reply.text }

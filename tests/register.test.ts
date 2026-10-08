@@ -1088,4 +1088,161 @@ describe('register', () => {
     expect(asked.filter(name => name === 'npm zod')).toEqual(['npm zod'])
     expect(asked.length).toBe(4)
   })
+
+  /** The project at /repo following react, kept with its 19.0.0 release, next to one news source with one item, on a store whose writes are counted by key. */
+  const stackAndNewsOn = (on: On) => {
+    const react = Fixtures.STACK_SAMPLE[0] ?? Fixtures.stackItemAt('react', '19.0.0')
+    const entries = new Map<string, unknown>(
+      Object.entries({
+        sources: [Fixtures.sourceAt('src')],
+        items: { src: Fixtures.datedItemsOf('src', 1) },
+        ...Fixtures.stackStoreOf([react]),
+        ...REACT_OVERRIDE,
+      }),
+    )
+    const writes: string[] = []
+
+    on('store.get', ($, e) => ({ value: entries.get(e.key) }))
+    on('store.set', ($, e) => {
+      writes.push(e.key)
+      entries.set(e.key, e.value)
+
+      return { value: undefined }
+    })
+
+    const fs = Fixtures.fsOn(on, REACT_PROJECT)
+    const fetched = webOn(
+      on,
+      new Map([[REACT_FEED, Feeds.releasesAtomOf('react', [['v19.0.0'], ['v18.2.0']])]]),
+    )
+
+    Fixtures.registerOn(on)
+    Fixtures.logsOn(on)
+    on('ui.render', () => Fixtures.BELOW_BAND)
+    on('model.complete', () => ({ deny: 'offline' }))
+    on('session.start', () => ({ cwd: '/repo' }))
+
+    const manifestReads = () => fs.reads.filter(path => path === '/repo/package.json').length
+
+    return { entries, writes, fetched, manifestReads }
+  }
+
+  const linksOf = async (ui: { findAll: (query: { type: string }) => Promise<unknown[]> }) =>
+    ((await ui.findAll({ type: 'Link' })) as { children: string[] }[]).map(link =>
+      link.children.join(''),
+    )
+
+  test('/news deps rescan detects the stack once and refreshes it once, off the dispatch', async ($, on) => {
+    const clock = mock.clock(on)
+    const { writes, manifestReads } = stackAndNewsOn(on)
+
+    await $.session.start(Fixtures.SESSION)
+    await clock.settle()
+
+    const reads = manifestReads()
+    const stackWrites = writes.filter(key => key === 'stack').length
+
+    expect((await $.command.run(Fixtures.newsOf('deps rescan'))).text).toMatch(/^Detecting /)
+    await clock.settle()
+
+    expect(manifestReads()).toBe(reads + 1)
+    expect(writes.filter(key => key === 'stack').length).toBe(stackWrites + 1)
+  })
+
+  test('a refused deps subcommand neither detects nor refreshes', async ($, on) => {
+    const clock = mock.clock(on)
+    const { writes, manifestReads } = stackAndNewsOn(on)
+
+    await $.session.start(Fixtures.SESSION)
+    await clock.settle()
+
+    const reads = manifestReads()
+    const count = writes.length
+
+    for (const args of ['cap 0', 'ignore nope', 'map react nowhere', 'add zod', 'level loud']) {
+      await $.command.run(Fixtures.newsOf(`deps ${args}`))
+    }
+
+    await clock.settle()
+
+    expect(manifestReads()).toBe(reads)
+    expect(writes.length).toBe(count)
+  })
+
+  test('/news deps ignore drops the package from the band at once and keeps it out after the rescan', async ($, on) => {
+    const clock = mock.clock(on)
+    const { manifestReads } = stackAndNewsOn(on)
+
+    await $.session.start(Fixtures.SESSION)
+    await clock.settle()
+
+    const ui = await $.ui.mount(STACK_BAND)
+
+    expect(await linksOf(ui)).toEqual(['react 18.2.0 → 19.0.0', 'src 1'])
+
+    const reads = manifestReads()
+
+    await $.command.run(Fixtures.newsOf('deps ignore react'))
+    await ui.redraw()
+
+    expect(await linksOf(ui)).toEqual(['src 1'])
+
+    await clock.settle()
+    await ui.redraw()
+
+    expect(manifestReads()).toBe(reads + 1)
+    expect(await linksOf(ui)).toEqual(['src 1'])
+  })
+
+  test('/news deps off hides only the stack items and makes no stack request afterwards', async ($, on) => {
+    const clock = mock.clock(on)
+    const { fetched } = stackAndNewsOn(on)
+
+    await $.session.start(Fixtures.SESSION)
+    await clock.settle()
+
+    const ui = await $.ui.mount(STACK_BAND)
+
+    expect((await linksOf(ui)).length).toBe(2)
+
+    await $.command.run(Fixtures.newsOf('deps off'))
+    await ui.redraw()
+
+    expect(await linksOf(ui)).toEqual(['src 1'])
+
+    const before = fetched.length
+
+    await clock.advance(3 * 60 * 60_000)
+
+    const after = fetched.slice(before)
+
+    expect(after.length > 0).toBe(true)
+    expect(after.every(url => url === Fixtures.sourceAt('src').url)).toBe(true)
+  })
+
+  test('/news deps map refreshes once and reads the new feed silently', async ($, on) => {
+    const clock = mock.clock(on)
+    const toasts: string[] = []
+    const { fetched } = stackAndNewsOn(on)
+    const NEW_FEED = 'https://example.org/react.atom'
+
+    on('ui.toast', ($, e) => {
+      toasts.push(e.text)
+
+      return { value: undefined }
+    })
+
+    await $.session.start(Fixtures.SESSION)
+    await clock.settle()
+
+    const before = fetched.length
+
+    expect((await $.command.run(Fixtures.newsOf(`deps map react ${NEW_FEED}`))).text).toBe(
+      `npm:react now reads its releases from ${NEW_FEED}.`,
+    )
+    await clock.settle()
+
+    expect(fetched.slice(before)).toEqual([NEW_FEED])
+    expect(toasts).toEqual([])
+  })
 })

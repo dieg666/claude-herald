@@ -2,24 +2,9 @@ import type { Host } from '../host/host.js'
 import { COMMAND_NAME } from '../names/command-name.js'
 import { applySettings } from './apply-settings.js'
 import type { CommandReply } from './command-reply.js'
+import { TEMPLATE_MAX_CHARS } from './template-max-chars.js'
 import { TEMPLATE_PLACEHOLDERS } from './template-placeholders.js'
-
-/**
- * The longest template, in characters.
- */
-const TEMPLATE_CHARS = 1000
-
-/**
- * The template as typed, without a pair of quotes that encloses all of it and appears nowhere inside.
- *
- * @param rest what follows `template`
- */
-function unquoted(rest: string): string {
-  const match = /^(["'])([\s\S]*)\1$/.exec(rest)
-  const [, quote = '', inner = ''] = match ?? []
-
-  return (match === null || inner.includes(quote) ? rest : inner).trim()
-}
+import { templateTextOf } from './template-text-of.js'
 
 /**
  * `/news template <text>`: saves the copy-for-Claude text, which must name the item by `{title}` or `{url}` and use no other placeholder than `{title}`, `{url}` and `{source}`.
@@ -28,7 +13,7 @@ function unquoted(rest: string): string {
  * @param rest what follows `template`, spacing kept
  */
 export async function setTemplate(host: Host, rest: string): Promise<CommandReply> {
-  const template = unquoted(rest)
+  const template = templateTextOf(rest)
   const allowed = TEMPLATE_PLACEHOLDERS.join(', ')
   const unknown = (template.match(/\{[^{}\s]*\}/g) ?? []).filter(
     placeholder => !(TEMPLATE_PLACEHOLDERS as readonly string[]).includes(placeholder),
@@ -44,8 +29,10 @@ export async function setTemplate(host: Host, rest: string): Promise<CommandRepl
     }
   }
 
-  if (template.length > TEMPLATE_CHARS) {
-    return { text: `The template is ${template.length} characters; the most is ${TEMPLATE_CHARS}.` }
+  if (template.length > TEMPLATE_MAX_CHARS) {
+    return {
+      text: `The template is ${template.length} characters; the most is ${TEMPLATE_MAX_CHARS}.`,
+    }
   }
 
   await applySettings(host, { template })

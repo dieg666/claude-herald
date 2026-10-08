@@ -35,6 +35,7 @@ describe('run-news', () => {
       'lang',
       'template',
       'reset',
+      'deps',
     ])
   })
 

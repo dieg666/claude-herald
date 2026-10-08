@@ -1,8 +1,10 @@
+import { COMMAND_NAME } from '../names/command-name.js'
 import { addFeed } from './add-feed.js'
 import { addPage } from './add-page.js'
 import { listSources } from './list-sources.js'
 import { removeSource } from './remove-source.js'
 import { resetNews } from './reset-news.js'
+import { runDeps } from './run-deps.js'
 import { setEnabled } from './set-enabled.js'
 import { setLang } from './set-lang.js'
 import { setRefreshInterval } from './set-refresh-interval.js'
@@ -79,5 +81,11 @@ export const SUBCOMMANDS: Readonly<Record<string, Subcommand>> = {
     summary: 'factory sources and default settings again; saved items stay',
     needsArgument: false,
     run: resetNews,
+  },
+  deps: {
+    usage: 'deps',
+    summary: `your stack's releases; /${COMMAND_NAME} deps help lists its subcommands`,
+    needsArgument: false,
+    run: runDeps,
   },
 }

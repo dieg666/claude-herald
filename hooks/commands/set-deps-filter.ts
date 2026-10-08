@@ -1,0 +1,52 @@
+import { mirrorStack } from '../deps/stack/mirror-stack.js'
+import type { Host } from '../host/host.js'
+import { argumentOf } from './argument-of.js'
+import type { CommandReply } from './command-reply.js'
+import { depsRefusalOf } from './deps-refusal-of.js'
+import { depsRootOf } from './deps-root-of.js'
+
+/**
+ * The longest filter, in characters, as the pane's field takes it.
+ */
+const FILTER_CHARS = 100
+
+/**
+ * `/news deps filter [text]`: sets the text the pane's stack tab filters this project's releases by (nothing clears it), the selection back at the top when it changed, and asks for what the pane shows now to be checked.
+ *
+ * @param host the engine
+ * @param rest what follows `filter`
+ */
+export async function setDepsFilter(host: Host, rest: string): Promise<CommandReply> {
+  const filter = argumentOf(rest)
+
+  if (filter.length > FILTER_CHARS) {
+    return depsRefusalOf(
+      'filter',
+      `The filter is ${filter.length} characters; the most is ${FILTER_CHARS}.`,
+    )
+  }
+
+  const at = await depsRootOf(host)
+
+  if ('reply' in at) {
+    return at.reply
+  }
+
+  // The filter belongs to the project in state: mirroring another one first starts it blank.
+  if ((await host.state.stack.read()).root !== at.root) {
+    await mirrorStack(host, at.root)
+  }
+
+  if ((await host.state.stack.read()).filter !== filter) {
+    await host.state.stack.update(stack => ({ ...stack, filter }))
+    await host.state.pane.update(pane => ({ ...pane, selected: 0 }))
+  }
+
+  return {
+    text:
+      filter === ''
+        ? 'The stack tab shows every release again.'
+        : `The stack tab shows the releases matching "${filter}".`,
+    resyncSummaries: true,
+  }
+}
