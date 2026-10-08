@@ -1,7 +1,7 @@
 import type { Item, Source } from '../../types/index.js'
 import { sourceLabelOf } from '../defaults/source-label-of.js'
-import { ALL_TAB } from '../names/all-tab.js'
 import { ACTION_HOTKEYS } from '../names/action-hotkeys.js'
+import { ALL_TAB } from '../names/all-tab.js'
 import { COMMAND_NAME } from '../names/command-name.js'
 import { SAVED_TAB } from '../names/saved-tab.js'
 import { STACK_TAB } from '../names/stack-tab.js'

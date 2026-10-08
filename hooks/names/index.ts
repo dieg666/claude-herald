@@ -1,6 +1,6 @@
 export * from './action-hotkeys.js'
-export * from './all-tab.js'
 export * from './action-labels.js'
+export * from './all-tab.js'
 export * from './band-hotkeys.js'
 export * from './band-labels.js'
 export * from './band-name.js'
