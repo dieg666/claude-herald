@@ -26,5 +26,6 @@ export * from './rotation-of.js'
 export * from './summary-indent.js'
 export * from './summary-placeholder.js'
 export * from './turn-band.js'
+export * from './wide-ranges.js'
 
 export * as default from '.'
