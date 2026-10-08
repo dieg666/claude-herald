@@ -14,15 +14,15 @@ describe('pane-tabs-of', () => {
         Fixtures.sourceAt('b', { name: 'Beta' }),
       ]),
     ).toEqual([
-      { id: 'a', label: 'Alpha', short: 'Alpha', hotkey: '1' },
-      { id: 'b', label: 'Beta', short: 'Beta', hotkey: '2' },
-      { id: 'saved', label: 'Saved', short: 'Saved', hotkey: '0' },
+      { id: 'a', name: 'Alpha', label: 'Alpha', short: 'Alpha', hotkey: '1' },
+      { id: 'b', name: 'Beta', label: 'Beta', short: 'Beta', hotkey: '2' },
+      { id: 'saved', name: 'Saved', label: 'Saved', short: 'Saved', hotkey: '0' },
     ])
   })
 
   test('no sources leaves the saved tab alone', () => {
     expect(Pane.paneTabsOf([])).toEqual([
-      { id: 'saved', label: 'Saved', short: 'Saved', hotkey: '0' },
+      { id: 'saved', name: 'Saved', label: 'Saved', short: 'Saved', hotkey: '0' },
     ])
   })
 
@@ -73,13 +73,15 @@ describe('pane-tabs-of', () => {
       { ...code!, id: 'claude-agent-sdk-ts', name: 'Claude Agent SDK (TS)' },
       { ...code!, id: 'anthropic-sdk-python', name: 'My Python SDK' },
       Fixtures.sourceAt('mine', { name: 'Claude Code releases' }),
+      Fixtures.sourceAt('agent', { name: 'Agent SDK' }),
     ])
 
-    expect(tabs.slice(0, 4).map(tab => [tab.id, tab.label, tab.short])).toEqual([
-      ['claude-code-releases', 'Claude Code', 'Claude Code'],
-      ['claude-agent-sdk-ts', 'Agent SDK', 'Agent SDK'],
-      ['anthropic-sdk-python', 'My Python SDK', 'My Python SDK'],
-      ['mine', 'Claude Code releases', 'Claude Code rel…'],
+    expect(tabs.slice(0, 5).map(tab => [tab.id, tab.name, tab.label, tab.short])).toEqual([
+      ['claude-code-releases', 'Claude Code releases', 'Claude Code', 'Claude Code'],
+      ['claude-agent-sdk-ts', 'Claude Agent SDK (TS)', 'Agent SDK', 'Agent SDK'],
+      ['anthropic-sdk-python', 'My Python SDK', 'My Python SDK', 'My Python SDK'],
+      ['mine', 'Claude Code releases', 'Claude Code releases', 'Claude Code rel…'],
+      ['agent', 'Agent SDK', 'Agent SDK', 'Agent SDK'],
     ])
   })
 
@@ -129,9 +131,9 @@ describe('pane-tabs-of', () => {
     })
 
     expect(tabs).toEqual([
-      { id: 'a', label: 'Alpha', short: 'Alpha', hotkey: '1' },
-      { id: '@stack', label: 'Your stack', short: 'Your stack', hotkey: 'y' },
-      { id: 'saved', label: 'Saved', short: 'Saved', hotkey: '0' },
+      { id: 'a', name: 'Alpha', label: 'Alpha', short: 'Alpha', hotkey: '1' },
+      { id: '@stack', name: 'Your stack', label: 'Your stack', short: 'Your stack', hotkey: 'y' },
+      { id: 'saved', name: 'Saved', label: 'Saved', short: 'Saved', hotkey: '0' },
     ])
 
     const others = [...Object.values(Names.PANE_HOTKEYS), ...Object.values(Names.ACTION_HOTKEYS)]

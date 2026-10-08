@@ -64,13 +64,13 @@ export function paneStateLineOf(
   }
 
   if (refreshedAt !== undefined) {
-    return { text: `${tab.label} has no items right now.${everyOf(health)}` }
+    return { text: `${tab.name} has no items right now.${everyOf(health)}` }
   }
 
   return {
     text:
       health.isRefreshing === true
-        ? `Loading ${tab.label}…`
-        : `Nothing from ${tab.label} yet.${everyOf(health)}`,
+        ? `Loading ${tab.name}…`
+        : `Nothing from ${tab.name} yet.${everyOf(health)}`,
   }
 }

@@ -1,10 +1,11 @@
 import { describe, expect, test } from 'claude-code/testing'
 
+import Defaults from '../../hooks/defaults'
 import Pane from '../../hooks/pane'
 import Fixtures from '../fixtures'
 
 describe('pane-state-line-of', () => {
-  const TAB = { id: 'a', label: 'Alpha', short: 'Alpha' }
+  const TAB = { id: 'a', name: 'Alpha', label: 'Alpha', short: 'Alpha' }
   const ITEMS = Fixtures.datedItemsOf('a', 2)
   const HOUR = 3_600_000
 
@@ -56,8 +57,27 @@ describe('pane-state-line-of', () => {
     })
   })
 
+  test('prose names a factory source in full, not by its tab label', () => {
+    const [sdk] = Pane.paneTabsOf(
+      Defaults.FACTORY_SOURCES.filter(source => source.id === 'claude-agent-sdk-ts'),
+    )
+
+    expect(sdk?.label).toBe('Agent SDK')
+    expect(Pane.paneStateLineOf(sdk!, [], { errors: {}, isRefreshing: true })).toEqual({
+      text: 'Loading Claude Agent SDK (TS)…',
+    })
+    expect(Pane.paneStateLineOf(sdk!, [], { errors: {} })).toEqual({
+      text: 'Nothing from Claude Agent SDK (TS) yet.',
+    })
+    expect(
+      Pane.paneStateLineOf(sdk!, [], { errors: {}, refreshedAt: { 'claude-agent-sdk-ts': 0 } }),
+    ).toEqual({
+      text: 'Claude Agent SDK (TS) has no items right now.',
+    })
+  })
+
   test('the saved tab says how to save when empty, nothing otherwise', () => {
-    const saved = { id: 'saved', label: 'Saved', short: 'Saved' }
+    const saved = { id: 'saved', name: 'Saved', label: 'Saved', short: 'Saved' }
 
     expect(Pane.paneStateLineOf(saved, [], { errors: {} })).toEqual({
       text: 'Nothing saved yet. Press v on an item to keep it here.',
@@ -66,7 +86,7 @@ describe('pane-state-line-of', () => {
   })
 
   test('the stack tab says why it is empty, and nothing with rows', () => {
-    const stackTab = { id: '@stack', label: 'Your stack', short: 'Your stack' }
+    const stackTab = { id: '@stack', name: 'Your stack', label: 'Your stack', short: 'Your stack' }
     const stack = {
       items: [],
       filter: '',

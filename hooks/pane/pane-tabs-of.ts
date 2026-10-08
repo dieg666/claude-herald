@@ -20,7 +20,7 @@ function countOf(count: number): { readonly count?: number } {
 }
 
 /**
- * The pane's tabs, each with its name (a factory source's short label while it keeps its factory name, else the source's own) and that name cut to `PANE_TAB_COLUMNS` cells: one per enabled source in order (the first nine with the digits 1 to 9) with its new items, then the stack tab on y with its packages behind when there is a stack, then the saved tab on 0 with its items; a source whose id is the saved tab's never gets a tab.
+ * The pane's tabs, each with its full name, its label (a factory source's short label while it keeps its factory name, else the source's own) and the label cut to `PANE_TAB_COLUMNS` cells: one per enabled source in order (the first nine with the digits 1 to 9) with its new items, then the stack tab on y with its packages behind when there is a stack, then the saved tab on 0 with its items; a source whose id is the saved tab's never gets a tab.
  *
  * @param sources every source, in order
  * @param stack the stack tab's items; no stack tab when absent
@@ -36,10 +36,12 @@ export function paneTabsOf(
   const tabs = sources
     .filter(source => source.isEnabled && source.id !== SAVED_TAB)
     .map((source, index) => {
+      const name = collapsedTextOf(source.name).trim() || source.id
       const label = collapsedTextOf(sourceLabelOf(source)).trim() || source.id
 
       return {
         id: source.id,
+        name,
         label,
         short: fitColumns(label, PANE_TAB_COLUMNS),
         ...(index < 9 ? { hotkey: String(index + 1) } : {}),
@@ -53,6 +55,7 @@ export function paneTabsOf(
       : [
           {
             id: STACK_TAB,
+            name: 'Your stack',
             label: 'Your stack',
             short: 'Your stack',
             hotkey: PANE_HOTKEYS.stack,
@@ -65,6 +68,7 @@ export function paneTabsOf(
     ...stackTab,
     {
       id: SAVED_TAB,
+      name: 'Saved',
       label: 'Saved',
       short: 'Saved',
       hotkey: PANE_HOTKEYS.saved,

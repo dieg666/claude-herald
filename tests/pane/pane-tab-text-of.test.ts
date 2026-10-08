@@ -4,10 +4,12 @@ import Pane from '../../hooks/pane'
 
 describe('pane-tab-text-of', () => {
   test('the name, then the count when there is one', () => {
-    expect(Pane.paneTabTextOf({ id: 'saved', label: 'Saved', short: 'Saved', count: 2 })).toBe(
-      'Saved 2',
+    expect(
+      Pane.paneTabTextOf({ id: 'saved', name: 'Saved', label: 'Saved', short: 'Saved', count: 2 }),
+    ).toBe('Saved 2')
+    expect(Pane.paneTabTextOf({ id: 'saved', name: 'Saved', label: 'Saved', short: 'Saved' })).toBe(
+      'Saved',
     )
-    expect(Pane.paneTabTextOf({ id: 'saved', label: 'Saved', short: 'Saved' })).toBe('Saved')
   })
 
   test('tabs with nothing to count carry no count and draw none', () => {
