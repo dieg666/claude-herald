@@ -11,21 +11,22 @@ import { depsProjectsOf } from './deps-projects-of.js'
 type Detection = Omit<DepsProject, 'settings' | 'detectedAt'>
 
 /**
- * Records a project's detection stamped with the clock, reading the store right before writing so its settings and other projects stay; past the most projects kept, the least recently detected others are dropped.
+ * Records a project's detection stamped with the clock, reading the store right before writing so its settings, ignored and added packages and other projects stay; given a function, the detection is worked out from the record as read then, so a change saved during the scan counts. Past the most projects kept, the least recently detected others are dropped.
  *
  * @param host the engine
  * @param root the project's root path
- * @param detection the followed dependencies, the count found and the manifest hashes
+ * @param detection the followed dependencies, the count found and the manifest hashes, or how to get them from the record stored now
  * @returns the project's record as stored now
  */
 export async function saveDetection(
   host: Host,
   root: string,
-  detection: Detection,
+  detection: Detection | ((stored: DepsProject) => Detection),
 ): Promise<DepsProject> {
   const projects = depsProjectsOf(await host.storeGet(STORE_KEYS.deps))
   const stored = depsProjectOf(Object.hasOwn(projects, root) ? projects[root] : undefined)
-  const next: DepsProject = { ...stored, ...detection, detectedAt: await host.clockNow() }
+  const found = typeof detection === 'function' ? detection(stored) : detection
+  const next: DepsProject = { ...stored, ...found, detectedAt: await host.clockNow() }
   const kept = Object.entries(projects)
     .filter(([path]) => path !== root)
     .sort(([, a], [, b]) => depsProjectOf(b).detectedAt - depsProjectOf(a).detectedAt)

@@ -57,6 +57,47 @@ describe('detect-deps', () => {
     expect(project?.added).toEqual([Fixtures.depAt('zod', { manifestPath: '' })])
   })
 
+  test('ignored, added and cap changes saved while the scan reads the manifests are honoured by what it saves', async () => {
+    const fake = Fixtures.fakeHostOf({ deps: { '/repo': { settings: { cap: 50 } } } })
+    const fs = Fixtures.fakeFsOf('/repo', { '.git': { isDir: true }, 'go.mod': Go.K8S_GO_MOD })
+    let release = () => {}
+    const held = new Promise<void>(resolve => {
+      release = resolve
+    })
+
+    Object.assign(fake.host, fs, {
+      readText: async (path: string) => {
+        await held
+
+        return fs.readText(path)
+      },
+    })
+
+    const detecting = Detect.detectDeps(fake.host)
+
+    for (let tick = 0; tick < 50; tick += 1) {
+      await Promise.resolve()
+    }
+
+    fake.stored.set('deps', {
+      '/repo': {
+        settings: { cap: 2 },
+        ignored: ['go:bitbucket.org/bertimus9/systemstat'],
+        added: [Fixtures.depAt('zod', { manifestPath: '' })],
+      },
+    })
+    release()
+
+    const project = await detecting
+
+    expect(project?.dependencies.map(dependency => dependency.name)).toEqual([
+      'github.com/google/go-cmp',
+      'zod',
+    ])
+    expect(project?.settings.cap).toBe(2)
+    expect(Fixtures.depsAt(fake.stored, '/repo')).toEqual(project?.dependencies)
+  })
+
   test('each project keeps its own record and settings: two roots never mix', async () => {
     const fake = Fixtures.fakeHostOf({
       deps: { '/a': { settings: { cap: 1 } }, '/b': { settings: { includeDev: true } } },

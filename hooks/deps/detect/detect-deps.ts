@@ -38,16 +38,16 @@ export async function detectDeps(host: Host, at?: ProjectRoot): Promise<DepsProj
       ...WALK_LIMITS,
       maxDepth: root.maxDepth,
     })
-    const { followed, detectedCount } = followedOf(scan.dependencies, project)
     const manifestHashes = Object.fromEntries([
       ...[...scan.texts].map(([path, text]) => [path, manifestHashOf(text)]),
       ...[...scan.oversized].map(([path, size]) => [path, oversizedHashOf(size)]),
     ])
 
-    return await saveDetection(host, root.path, {
-      dependencies: followed,
-      detectedCount,
-      manifestHashes,
+    // Picked against the record as saved now, so settings and lists changed during the scan count.
+    return await saveDetection(host, root.path, stored => {
+      const { followed, detectedCount } = followedOf(scan.dependencies, stored)
+
+      return { dependencies: followed, detectedCount, manifestHashes }
     })
   } catch (error) {
     host.debug(
