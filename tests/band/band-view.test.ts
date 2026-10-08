@@ -36,6 +36,31 @@ describe('band-view', () => {
   const shapeOf = (tree: unknown) =>
     JSON.parse(JSON.stringify(tree, (key, value: unknown) => (key === 'press' ? undefined : value)))
 
+  // The band cannot tell whether it has the keyboard, so its selected row stays bold with the mark and is never filled.
+  for (const surface of SURFACES) {
+    test(`on ${surface}: the selected row is marked and bold, with no fill or inverse color`, async ($, on) => {
+      mock.clock(on)
+      Fixtures.bandOn(on, STORE)
+
+      await $.classic.SessionStart({ source: 'clear' })
+
+      const ui = await $.ui.mount({ ...BAND, surface })
+
+      expect((await ui.findAll({ type: 'Text', text: /^›$/ })).length).toBe(1)
+      expect(
+        (await ui.findAll({ type: 'Text' })).filter(text => text.props.bold === true),
+      ).toHaveLength(1)
+      expect(
+        Fixtures.colorsOf(await ui.drawn()).filter(color =>
+          ['text', 'inverseText'].includes(color),
+        ),
+      ).toEqual([])
+      expect(
+        (await ui.findAll({ type: 'Box' })).filter(box => box.props.backgroundColor !== undefined),
+      ).toEqual([])
+    })
+  }
+
   for (const surface of SURFACES) {
     test(
       `on ${surface}: header, three linked items with summaries or a placeholder, actions, then what the mods below drew`,

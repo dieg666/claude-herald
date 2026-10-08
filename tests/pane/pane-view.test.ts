@@ -286,7 +286,8 @@ describe('pane-view', () => {
 
       await ui.press({ key: 'tab-saved' })
 
-      expect(await namesOf('Alpha')).toEqual([true, true])
+      // The selected row's name is not dim: dim on the highlight would not read.
+      expect(await namesOf('Alpha')).toEqual([false, true])
       expect(await namesOf('Beta')).toEqual([true])
       // Each name sits in its own unshrinking Box between the headline and the seven-cell date column, so names end in one column.
       expect(await newsRowsOf(ui)).toEqual([
@@ -964,7 +965,7 @@ describe('pane-view', () => {
       .filter(
         text =>
           text.props.wrap === 'truncate-end' &&
-          text.props.color === undefined &&
+          (text.props.color === undefined || text.props.color === 'inverseText') &&
           text.props.dimColor !== true,
       )
       .map(text => textOf(text).replace(/\s+/g, ' ').trim())
@@ -974,7 +975,9 @@ describe('pane-view', () => {
   // The link of the selected stack row: the bold headline, not an ecosystem heading.
   const selectedRowOf = async (ui: Drawing) => {
     const [bold] = (await ui.findAll({ type: 'Text' })).filter(
-      text => text.props.bold === true && text.props.color === undefined,
+      text =>
+        text.props.bold === true &&
+        (text.props.color === undefined || text.props.color === 'inverseText'),
     )
     const [child] = bold?.children ?? []
 
@@ -1015,8 +1018,8 @@ describe('pane-view', () => {
           .filter(text => ['error', 'warning', 'success'].includes(String(text.props.color)))
           .map(text => [text.text, text.props.color])
 
+        // The selected row (the first) is drawn inverse, so its changed part carries no level color.
         expect(changed).toEqual([
-          ['11.1.7', 'error'],
           ['30.1.2', 'error'],
           ['7.3.7', 'error'],
           ['3.1', 'warning'],
@@ -1377,5 +1380,134 @@ describe('pane-view', () => {
         ])
       },
     )
+  }
+
+  // Every Text under a drawn node, the node's own included.
+  const textsIn = (node: unknown): FoundElement[] => {
+    const element = node as Partial<FoundElement> | null
+
+    return typeof element !== 'object' || element === null || element.props === undefined
+      ? []
+      : [
+          ...(element.type === 'Text' ? [element as FoundElement] : []),
+          ...(element.children ?? []).flatMap(textsIn),
+        ]
+  }
+
+  // Whether a Text holds no other Text, so it is one part of a row, not the line around the parts.
+  const isPart = (text: FoundElement) => !text.children.some(child => textsIn(child).length > 0)
+
+  // The rows drawn as selected: the Boxes filled with the text color, as one line each.
+  const filledRowsOf = async (ui: Drawing) =>
+    (await ui.findAll({ type: 'Box' }))
+      .filter(box => box.props.backgroundColor === 'text')
+      .map(box => lineOf(box))
+
+  // The strings of every Text in the inverse text color, anywhere in the pane.
+  const inverseTextsOf = async (ui: Drawing) =>
+    (await ui.findAll({ type: 'Text' }))
+      .filter(text => text.props.color === 'inverseText' && isPart(text))
+      .map(text => lineOf(text))
+
+  // Whether every Text of every filled row is in the inverse text color and none is dim.
+  const isFilledRowsInverse = async (ui: Drawing) =>
+    (await ui.findAll({ type: 'Box' }))
+      .filter(box => box.props.backgroundColor === 'text')
+      .flatMap(textsIn)
+      .every(text => text.props.color === 'inverseText' && text.props.dimColor !== true)
+
+  for (const surface of SURFACES) {
+    test(`on ${surface}: the selected news row is filled and its Texts inverse across headline and date, the summary stays dim, and moving the selection moves the highlight`, async ($, on) => {
+      mock.clock(on)
+      Fixtures.bandOn(on, STORE)
+
+      await $.classic.SessionStart({ source: 'clear' })
+
+      const ui = await $.ui.mount({ ...PANE, surface })
+
+      expect(await filledRowsOf(ui)).toEqual(['› a 1Jan 2'])
+      expect(await inverseTextsOf(ui)).toEqual(['›', 'a 1', 'Jan 2'])
+      expect(await isFilledRowsInverse(ui)).toBe(true)
+      expect(await ui.find({ type: 'Text', text: '…' })).toMatchObject({
+        props: { dimColor: true },
+      })
+
+      await ui.press({ key: 'down' })
+
+      expect(await filledRowsOf(ui)).toEqual(['› a 2Jan 1'])
+      expect(await inverseTextsOf(ui)).toEqual(['›', 'a 2', 'Jan 1'])
+
+      await ui.press({ key: 'down' })
+
+      expect(await filledRowsOf(ui)).toEqual(['› a 3Jan 1'])
+
+      await ui.press({ key: 'up' })
+
+      expect(await filledRowsOf(ui)).toEqual(['› a 2Jan 1'])
+    })
+
+    test(`on ${surface}: on Saved the selected row's source name and date are inverse with its headline, and the others are not`, async ($, on) => {
+      mock.clock(on)
+
+      const saved = Fixtures.datedItemsOf('a', 3).slice(0, 2)
+
+      Fixtures.bandOn(on, {
+        sources: [ALPHA],
+        items: { a: Fixtures.datedItemsOf('a', 3) },
+        saved: saved.map((item, index) => ({ ...item, savedAt: index })),
+      })
+
+      await $.classic.SessionStart({ source: 'clear' })
+
+      const ui = await $.ui.mount({ ...PANE, surface })
+
+      await ui.press({ key: 'tab-saved' })
+
+      expect(await filledRowsOf(ui)).toEqual(['› a 1AlphaJan 2'])
+      expect(await inverseTextsOf(ui)).toEqual(['›', 'a 1', 'Alpha', 'Jan 2'])
+      expect(await isFilledRowsInverse(ui)).toBe(true)
+      expect(
+        (await ui.findAll({ type: 'Text', text: /^Alpha$/ })).map(text => text.props.dimColor),
+      ).toEqual([false, true])
+
+      await ui.press({ key: 'down' })
+
+      expect(await filledRowsOf(ui)).toEqual(['› a 2AlphaJan 1'])
+    })
+
+    test(`on ${surface}: the selected Your stack row is filled whole, a release under its package too, and moving the selection moves it`, async ($, on) => {
+      const clock = mock.clock(on)
+
+      releasesPaneOn(on)
+
+      await $.session.start(Fixtures.SESSION)
+      await clock.settle()
+
+      const ui = await $.ui.mount({ ...PANE, surface, props: WIDE })
+
+      await ui.press({ key: 'tab-@stack' })
+
+      expect(await filledRowsOf(ui)).toHaveLength(1)
+      expect((await filledRowsOf(ui))[0]).toMatch(/^› ⚠ @astrojs\/node.*9\.5\.5 → 11\.1\.7.*Oct 6$/)
+      expect(await isFilledRowsInverse(ui)).toBe(true)
+      expect(await inverseTextsOf(ui)).toContain('11.1.7')
+
+      await ui.press({ key: 'down' })
+
+      expect(await filledRowsOf(ui)).toHaveLength(1)
+      expect((await filledRowsOf(ui))[0]).toMatch(/^› ⚠ jsdom.*Oct 5$/)
+
+      await ui.press({ key: 'releases' })
+      await ui.press({ key: 'down' })
+
+      const rows = await filledRowsOf(ui)
+
+      expect(rows).toHaveLength(1)
+      expect(rows[0]).toMatch(/^› 📦 30\.1\.2.*major.*Oct 5$/)
+      expect(await isFilledRowsInverse(ui)).toBe(true)
+      expect(
+        (await ui.findAll({ type: 'Text' })).filter(text => text.props.color === 'error'),
+      ).not.toEqual([])
+    })
   }
 })

@@ -6,6 +6,8 @@ import type { RenderElement } from 'claude-code'
 import { actionRowView } from '../band/action-row-view.js'
 import type { BandUi } from '../band/band-ui.js'
 import { iconGapOf } from '../band/icon-gap-of.js'
+import { selectedFillOf } from '../band/selected-fill-of.js'
+import { selectedStyleOf } from '../band/selected-style-of.js'
 import { SOURCE_GAP_COLUMNS } from '../band/source-gap-columns.js'
 import { SUMMARY_INDENT } from '../band/summary-indent.js'
 import { SUMMARY_PLACEHOLDER } from '../band/summary-placeholder.js'
@@ -25,55 +27,85 @@ import type { PaneUi } from './pane-ui.js'
 function rowView(ui: BandUi, row: PaneRow): RenderElement {
   const { Box, Text, Link } = ui
 
+  const style = selectedStyleOf(row.isSelected)
+  const fill = selectedFillOf(row.isSelected)
+
   const head = [
-    <Text color={row.isSelected ? 'suggestion' : 'inactive'}>{row.isSelected ? '›' : ' '}</Text>,
+    <Text color={row.isSelected ? 'suggestion' : 'inactive'} {...style}>
+      {row.isSelected ? '›' : ' '}
+    </Text>,
     row.isIndented === true ? '   ' : ' ',
     ...(row.icon === undefined
       ? []
-      : [<Text color="claude">{row.icon}</Text>, iconGapOf(row.icon)]),
-    <Text bold={row.isSelected}>
+      : [
+          <Text color="claude" {...style}>
+            {row.icon}
+          </Text>,
+          iconGapOf(row.icon),
+        ]),
+    <Text bold={row.isSelected} {...style}>
       {row.href === undefined ? row.title : <Link href={row.href}>{row.title}</Link>}
     </Text>,
   ]
 
-  if (row.cells !== undefined) {
-    return (
-      <Text wrap="truncate-end">
-        {head}
-        {row.cells.map(cell =>
-          cell.color === undefined ? cell.text : <Text color={cell.color}>{cell.text}</Text>,
-        )}
-        {row.date === undefined ? [] : [' ', <Text dimColor>{row.date}</Text>]}
-      </Text>
-    )
-  }
-
-  const line = (
-    <Box flexDirection="row">
-      <Box flexGrow={1} flexShrink={1}>
-        <Text wrap="truncate-end">{head}</Text>
+  const line =
+    row.cells !== undefined ? (
+      <Box flexDirection="row" {...fill}>
+        <Box flexGrow={1} flexShrink={1}>
+          <Text wrap="truncate-end" {...style}>
+            {head}
+            {row.cells.map(cell =>
+              cell.color === undefined ? (
+                cell.text
+              ) : (
+                <Text color={cell.color} bold={row.isSelected} {...style}>
+                  {cell.text}
+                </Text>
+              ),
+            )}
+            {row.date === undefined
+              ? []
+              : [
+                  ' ',
+                  <Text dimColor={!row.isSelected} {...style}>
+                    {row.date}
+                  </Text>,
+                ]}
+          </Text>
+        </Box>
       </Box>
-      {row.source === undefined
-        ? []
-        : [
-            <Box flexShrink={0} paddingLeft={SOURCE_GAP_COLUMNS}>
-              <Text dimColor>{row.source}</Text>
-            </Box>,
-          ]}
-      {row.date === undefined
-        ? []
-        : [
-            <Box
-              flexShrink={0}
-              width={PANE_DATE_COLUMNS + 1}
-              paddingLeft={1}
-              justifyContent="flex-end"
-            >
-              <Text dimColor>{row.date}</Text>
-            </Box>,
-          ]}
-    </Box>
-  )
+    ) : (
+      <Box flexDirection="row" {...fill}>
+        <Box flexGrow={1} flexShrink={1}>
+          <Text wrap="truncate-end" {...style}>
+            {head}
+          </Text>
+        </Box>
+        {row.source === undefined
+          ? []
+          : [
+              <Box flexShrink={0} paddingLeft={SOURCE_GAP_COLUMNS}>
+                <Text dimColor={!row.isSelected} {...style}>
+                  {row.source}
+                </Text>
+              </Box>,
+            ]}
+        {row.date === undefined
+          ? []
+          : [
+              <Box
+                flexShrink={0}
+                width={PANE_DATE_COLUMNS + 1}
+                paddingLeft={1}
+                justifyContent="flex-end"
+              >
+                <Text dimColor={!row.isSelected} {...style}>
+                  {row.date}
+                </Text>
+              </Box>,
+            ]}
+      </Box>
+    )
 
   if (!row.isSelected || row.hasNoSummary === true) {
     return line
