@@ -13,7 +13,6 @@ export function sourceAt(id: string, fields: Partial<Source> = {}): Source {
     url: `https://example.com/${id}.xml`,
     kind: 'feed',
     isEnabled: true,
-    icon: '*',
     isFactory: false,
     ...fields,
   }

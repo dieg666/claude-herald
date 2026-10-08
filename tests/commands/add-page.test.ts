@@ -35,7 +35,6 @@ describe('add-page', () => {
         url: URL,
         kind: 'page',
         isEnabled: true,
-        icon: 'N',
         isFactory: false,
       },
     ])

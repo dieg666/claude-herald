@@ -16,8 +16,6 @@ export type Source = {
   kind: SourceKind
   /** Disabled sources are kept but never fetched or shown. */
   isEnabled: boolean
-  /** A single-width text glyph drawn before its headlines. */
-  icon: string
   /** Fetched when `url` fails. */
   fallbackUrl?: string
   /** Whether it came with the mod (restored by a reset). */

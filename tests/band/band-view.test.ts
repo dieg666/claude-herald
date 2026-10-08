@@ -8,7 +8,7 @@ import Fixtures from '../fixtures'
 
 describe('band-view', () => {
   const SURFACES = ['terminal', 'desktop'] as const
-  const SOURCE = Fixtures.sourceAt('src', { icon: 'S' })
+  const SOURCE = Fixtures.sourceAt('src', { name: 'Hacker News' })
   const STORE = { sources: [SOURCE], items: { src: Fixtures.datedItemsOf('src', 7) } }
   const BAND = { plugin: 'herald', component: 'AbovePrompt', props: Fixtures.BAND_PROPS } as const
 
@@ -68,9 +68,15 @@ describe('band-view', () => {
         ])
         expect(await ui.find({ type: 'Text', text: 'First, in short.' })).toBeDefined()
         expect((await ui.findAll({ type: 'Text', text: /^…$/ })).length).toBe(2)
+        // The source name, dim, at the right end of each headline line; no glyph column.
         expect(
-          (await ui.findAll({ type: 'Text', text: /^S$/ })).map(icon => icon.props.color),
-        ).toEqual(['claude', 'claude', 'claude'])
+          (await ui.findAll({ type: 'Text', text: /^Hacker News$/ })).map(
+            name => name.props.dimColor,
+          ),
+        ).toEqual([true, true, true])
+        expect(
+          (await ui.findAll({ type: 'Text' })).filter(text => text.props.color === 'claude'),
+        ).toEqual([])
         expect((await ui.findAll({ type: 'Text', text: /^›$/ })).length).toBe(1)
         expect(await selectedOf(ui)).toBe('https://example.com/src/1')
         expect(
@@ -95,7 +101,7 @@ describe('band-view', () => {
     test(`on ${surface}: a bare version tag is drawn with its source's name, a headline as it is, the stored title unchanged`, async ($, on) => {
       mock.clock(on)
 
-      const source = Fixtures.sourceAt('rel', { name: 'Claude Code', icon: 'C' })
+      const source = Fixtures.sourceAt('rel', { name: 'Claude Code' })
       const tag = { ...Fixtures.datedItemsOf('rel', 2)[0], title: 'v2.1.293' }
       const headline = { ...Fixtures.datedItemsOf('rel', 2)[1], title: 'Claude Code v2.1.292 adds' }
       const { stored } = Fixtures.bandOn(on, { sources: [source], items: { rel: [tag, headline] } })
@@ -109,6 +115,25 @@ describe('band-view', () => {
         'Claude Code v2.1.292 adds',
       ])
       expect(stored.get('items')).toEqual({ rel: [tag, headline] })
+
+      await ui.unmount()
+    })
+
+    test(`on ${surface}: a bare version tag draws no name at the right end, a headline does`, async ($, on) => {
+      mock.clock(on)
+
+      const source = Fixtures.sourceAt('rel', { name: 'Claude Code' })
+      const tag = { ...Fixtures.datedItemsOf('rel', 2)[0], title: 'v2.1.293' }
+      const headline = { ...Fixtures.datedItemsOf('rel', 2)[1], title: 'Claude Code v2.1.292 adds' }
+
+      Fixtures.bandOn(on, { sources: [source], items: { rel: [tag, headline] } })
+
+      await $.classic.SessionStart({ source: 'clear' })
+
+      const ui = await $.ui.mount({ ...BAND, surface })
+
+      // Only the second row draws the name; the first leads with it already.
+      expect((await ui.findAll({ type: 'Text', text: /^Claude Code$/ })).length).toBe(1)
 
       await ui.unmount()
     })
@@ -365,10 +390,10 @@ describe('band-view', () => {
         props: { ...Fixtures.BAND_PROPS, bodyColumns: 20 },
       })
 
-      // Twenty cells less the mark, the two-cell glyph column and two spaces leave fifteen for a headline.
+      // Twenty cells less the mark and a space leave eighteen for a headline, and none for a name.
       expect((await linksOf(ui)).map(([, text]) => text)).toEqual([
-        `${'a'.repeat(14)}…`,
-        `${'漢'.repeat(7)}…`,
+        `${'a'.repeat(17)}…`,
+        `${'漢'.repeat(8)}…`,
       ])
       expect(await ui.find({ type: 'Text', text: `${'b'.repeat(15)}…` })).toBeDefined()
     })
@@ -661,7 +686,7 @@ describe('band-view', () => {
         const asked: string[] = []
 
         Fixtures.storeOn(on, {
-          sources: [Fixtures.sourceAt(id, { icon: 'S' })],
+          sources: [Fixtures.sourceAt(id)],
           items: { [id]: Fixtures.datedItemsOf(id, 7) },
           settings: { rotateSeconds: 3600 },
         })

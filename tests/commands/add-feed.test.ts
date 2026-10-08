@@ -29,7 +29,6 @@ describe('add-feed', () => {
         url: URL,
         kind: 'feed',
         isEnabled: true,
-        icon: 'S',
         isFactory: false,
       }
 

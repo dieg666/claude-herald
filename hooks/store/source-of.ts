@@ -29,7 +29,6 @@ export function sourceOf(value: unknown): Source | undefined {
     url,
     kind,
     isEnabled: value.isEnabled !== false,
-    icon: textOf(value.icon) || '*',
     ...(fallbackUrl === undefined ? {} : { fallbackUrl }),
     isFactory: value.isFactory === true,
   }

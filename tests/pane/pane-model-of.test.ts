@@ -1,13 +1,14 @@
 import { describe, expect, test } from 'claude-code/testing'
 
+import Band from '../../hooks/band'
 import Pane from '../../hooks/pane'
 import Fixtures from '../fixtures'
 
 describe('pane-model-of', () => {
-  const SOURCES = [Fixtures.sourceAt('a', { name: 'Alpha', icon: 'A' })]
+  const SOURCES = [Fixtures.sourceAt('a', { name: 'Alpha' })]
   const ITEMS = { a: Fixtures.datedItemsOf('a', 2) }
 
-  test('tabs marked, heading, rows with glyph, link, date and summary; the selected one marked', () => {
+  test('tabs marked, heading, rows with link, date and summary and no source mark; the selected one marked', () => {
     const page = Pane.panePageOf({ tab: 'a', selected: 1 }, SOURCES, ITEMS, [], 10)
     const model = Pane.paneModelOf(page, SOURCES, { 'a:2': 'Short.' }, [], 80)
 
@@ -19,7 +20,6 @@ describe('pane-model-of', () => {
     expect(model.rows).toEqual([
       {
         id: 'a:1',
-        icon: 'A',
         title: 'a 1',
         href: 'https://example.com/a/1',
         date: 'Jan 2',
@@ -27,7 +27,6 @@ describe('pane-model-of', () => {
       },
       {
         id: 'a:2',
-        icon: 'A',
         title: 'a 2',
         href: 'https://example.com/a/2',
         summary: 'Short.',
@@ -38,7 +37,7 @@ describe('pane-model-of', () => {
     expect([model.isSavedTab, model.isSelectedSaved]).toEqual([false, false])
   })
 
-  test('on the saved tab: the stored snapshot drawn, a removed source as *, undated with no date', () => {
+  test('on the saved tab: the stored snapshot drawn, a removed source with no name, undated with no date', () => {
     const kept = { ...Fixtures.itemAt('kept'), sourceId: 'gone', savedAt: 1 }
     const page = Pane.panePageOf({ tab: 'saved', selected: 0 }, SOURCES, ITEMS, [kept], 10)
     const model = Pane.paneModelOf(page, SOURCES, {}, [kept], 80)
@@ -47,7 +46,6 @@ describe('pane-model-of', () => {
     expect(model.rows).toEqual([
       {
         id: 'src:kept',
-        icon: '*',
         title: 'kept',
         href: 'https://example.com/kept',
         isSelected: true,
@@ -104,6 +102,32 @@ describe('pane-model-of', () => {
     expect(saved.rows.map(row => row.title)).toEqual(['Alpha v1.2.3', 'v1.2.3'])
   })
 
+  test('on the saved tab the source name sits dim at the right end of the headline, before the date, and a source tab has none', () => {
+    const sources = [Fixtures.sourceAt('a', { name: 'Simon Willison' })]
+    const title = 'Margaret Hamilton, who led the Apollo software, has died'
+    const kept = [{ ...Fixtures.datedItemsOf('a', 1)[0]!, title, savedAt: 1 }]
+    const pageAt = (tab: string) =>
+      Pane.panePageOf({ tab, selected: 0 }, sources, { a: kept }, kept, 10)
+    const rowAt = (tab: string, columns: number) =>
+      Pane.paneModelOf(pageAt(tab), sources, {}, kept, columns).rows[0]
+
+    // Date `Jan 2` and its space take six cells, the mark and a space two.
+    for (const columns of [120, 80]) {
+      const row = rowAt('saved', columns)
+
+      expect(row).toMatchObject({ title, source: 'Simon Willison', date: 'Jan 2' })
+      expect(Band.displayWidthOf(`${row?.title}${row?.sourceGap}${row?.source}`)).toBe(columns - 8)
+    }
+
+    // At forty columns the headline needs the room: the name goes, then the headline is cut.
+    expect(rowAt('saved', 40)?.source).toBeUndefined()
+    expect(rowAt('saved', 40)?.title).toBe('Margaret Hamilton, who led the…')
+    // A name is cut before the headline is.
+    expect(rowAt('saved', 72)).toMatchObject({ title, source: 'Simon…' })
+    expect(rowAt('a', 120)?.source).toBeUndefined()
+    expect(rowAt('a', 120)).toMatchObject({ title, date: 'Jan 2' })
+  })
+
   test('an empty tab names itself and says so', () => {
     const empty = Pane.paneModelOf(
       Pane.panePageOf({ tab: 'a', selected: 0 }, SOURCES, {}, [], 10),
@@ -132,13 +156,13 @@ describe('pane-model-of', () => {
   })
 
   test('feed text is one line and every line fits the width', () => {
-    const sources = [Fixtures.sourceAt('a', { name: 'A\nname', icon: '漢x' })]
+    const sources = [Fixtures.sourceAt('a', { name: 'A\nname' })]
     const items = { a: [{ ...Fixtures.itemAt('1'), id: 'a:1', sourceId: 'a', title: 'one\ntwo' }] }
     const page = Pane.panePageOf({ tab: 'a', selected: 0 }, sources, items, [], 10)
     const model = Pane.paneModelOf(page, sources, { 'a:1': `x${'y'.repeat(30)}` }, [], 30)
 
     expect(model.heading).toBe('A name · 1 of 1')
-    expect(model.rows[0]?.icon).toBe('…')
+    expect(model.rows[0]?.icon).toBeUndefined()
     expect(model.rows[0]?.title).toBe('one two')
     expect(model.rows[0]?.summary).toBe(`x${'y'.repeat(24)}…`)
   })

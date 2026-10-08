@@ -41,14 +41,13 @@ describe('factory-sources', () => {
     ).toEqual(['Anthropic news'])
   })
 
-  test('ids are unique, every source is a factory one, icons are one character', () => {
+  test('ids are unique, every source is a factory one', () => {
     const ids = Defaults.FACTORY_SOURCES.map(source => source.id)
 
     expect(new Set(ids).size).toBe(ids.length)
 
     for (const source of Defaults.FACTORY_SOURCES) {
       expect(source.isFactory, source.name).toBe(true)
-      expect([...source.icon].length, source.name).toBe(1)
     }
   })
 })

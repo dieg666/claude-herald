@@ -10,7 +10,6 @@ export const FACTORY_SOURCES: readonly Source[] = [
     url: 'https://www.anthropic.com/news',
     kind: 'page',
     isEnabled: true,
-    icon: 'A',
     isFactory: true,
   },
   {
@@ -19,7 +18,6 @@ export const FACTORY_SOURCES: readonly Source[] = [
     url: 'https://github.com/anthropics/claude-code/releases.atom',
     kind: 'feed',
     isEnabled: true,
-    icon: 'C',
     isFactory: true,
   },
   {
@@ -28,7 +26,6 @@ export const FACTORY_SOURCES: readonly Source[] = [
     url: 'https://github.com/anthropics/claude-agent-sdk-typescript/releases.atom',
     kind: 'feed',
     isEnabled: true,
-    icon: 'T',
     isFactory: true,
   },
   {
@@ -37,7 +34,6 @@ export const FACTORY_SOURCES: readonly Source[] = [
     url: 'https://github.com/anthropics/anthropic-sdk-python/releases.atom',
     kind: 'feed',
     isEnabled: true,
-    icon: 'P',
     isFactory: true,
   },
   {
@@ -46,7 +42,6 @@ export const FACTORY_SOURCES: readonly Source[] = [
     url: 'https://github.com/modelcontextprotocol/modelcontextprotocol/releases.atom',
     kind: 'feed',
     isEnabled: true,
-    icon: 'M',
     isFactory: true,
   },
   {
@@ -55,7 +50,6 @@ export const FACTORY_SOURCES: readonly Source[] = [
     url: 'https://status.claude.com/history.rss',
     kind: 'feed',
     isEnabled: false,
-    icon: 'S',
     isFactory: true,
   },
   {
@@ -64,7 +58,6 @@ export const FACTORY_SOURCES: readonly Source[] = [
     url: 'https://hnrss.org/frontpage',
     kind: 'feed',
     isEnabled: true,
-    icon: 'Y',
     fallbackUrl: 'https://news.ycombinator.com/rss',
     isFactory: true,
   },
@@ -74,7 +67,6 @@ export const FACTORY_SOURCES: readonly Source[] = [
     url: 'https://simonwillison.net/atom/everything/',
     kind: 'feed',
     isEnabled: true,
-    icon: 'W',
     isFactory: true,
   },
   {
@@ -83,7 +75,6 @@ export const FACTORY_SOURCES: readonly Source[] = [
     url: 'https://news.smol.ai/rss.xml',
     kind: 'feed',
     isEnabled: true,
-    icon: 'N',
     isFactory: true,
   },
   {
@@ -92,7 +83,6 @@ export const FACTORY_SOURCES: readonly Source[] = [
     url: 'https://github.blog/changelog/feed/',
     kind: 'feed',
     isEnabled: true,
-    icon: 'G',
     isFactory: true,
   },
 ]

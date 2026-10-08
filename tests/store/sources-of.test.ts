@@ -9,7 +9,6 @@ describe('sources-of', () => {
     url: 'https://x.test/feed',
     kind: 'feed',
     isEnabled: false,
-    icon: 'X',
     isFactory: false,
   }
 
@@ -18,9 +17,14 @@ describe('sources-of', () => {
     expect(Store.sourcesOf({ sources: [] })).toBeUndefined()
   })
 
-  test('drops entries that are not a source and keeps known fields only', () => {
+  test('drops entries that are not a source and keeps known fields only, a stored icon included', () => {
     expect(
-      Store.sourcesOf([{ ...SOURCE, extra: 1 }, { id: 'y' }, 'z', { ...SOURCE, kind: 'video' }]),
+      Store.sourcesOf([
+        { ...SOURCE, icon: 'X', extra: 1 },
+        { id: 'y' },
+        'z',
+        { ...SOURCE, kind: 'video' },
+      ]),
     ).toEqual([SOURCE])
   })
 

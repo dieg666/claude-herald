@@ -17,7 +17,7 @@ describe('pane-stack-rows-of', () => {
 
   // A row as the terminal spells it, up to its date.
   const lineOf = (row: Pane.PaneRow) =>
-    `${row.isSelected ? '›' : ' '}${row.isIndented === true ? '   ' : ' '}${row.icon}${Band.iconGapOf(row.icon)}${row.title}${(row.cells ?? []).map(cell => cell.text).join('')}`
+    `${row.isSelected ? '›' : ' '}${row.isIndented === true ? '   ' : ' '}${row.icon ?? ''}${Band.iconGapOf(row.icon ?? '')}${row.title}${(row.cells ?? []).map(cell => cell.text).join('')}`
 
   test('one row per package: name, current → newest, level, flags naming their release, release count, date', () => {
     const rows = rowsOf([])

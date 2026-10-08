@@ -4,7 +4,6 @@ import { refreshSource } from '../refresh/refresh-source.js'
 import { loadSources } from '../store/load-sources.js'
 import { saveSources } from '../store/save-sources.js'
 import { addRefusalOf } from './add-refusal-of.js'
-import { iconOf } from './icon-of.js'
 import { uniqueIdOf } from './unique-id-of.js'
 import { uniqueNameOf } from './unique-name-of.js'
 
@@ -34,7 +33,6 @@ export async function saveNewSource(
     url: draft.url,
     kind: draft.kind,
     isEnabled: true,
-    icon: iconOf(name),
     isFactory: false,
   }
 

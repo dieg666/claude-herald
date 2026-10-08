@@ -73,7 +73,7 @@ The band appears above the prompt once the first refresh has fetched items, and 
 
 ## Use the band
 
-The band appears above the prompt once at least one enabled source has items. It lists every enabled source's items and the releases of [your stack](#your-stack) in one list, newest first, and the items without a date last. The header shows the page buttons around the position (`1-3 of N`), the auto button and the selection buttons, and the selected item is marked with `›`. In the terminal each button shows its hotkey before its label, for example `p: ◀`. The auto button reads `⏸ auto` while the rotation runs and `▶ auto` while it is paused.
+The band appears above the prompt once at least one enabled source has items. It lists every enabled source's items and the releases of [your stack](#your-stack) in one list, newest first, and the items without a date last. The header shows the page buttons around the position (`1-3 of N`), the auto button and the selection buttons, and the selected item is marked with `›`. A news item's headline line ends with its source's name in dim text, for example `Margaret Hamilton has died` and, at the right end, `Hacker News`. When the line is short of room the name is cut first, down to six cells, then dropped, and only then is the headline cut. A title that is only a version already leads with the name, so none is repeated at the right end. A release of your stack keeps its `📦` or `⚠` before the headline and shows no name. In the terminal each button shows its hotkey before its label, for example `p: ◀`. The auto button reads `⏸ auto` while the rotation runs and `▶ auto` while it is paused.
 
 Hotkeys work while the band or the pane has keyboard focus; otherwise the keys go to the prompt. Tab moves between controls, Enter presses the focused one and Esc returns focus to the prompt. Claude Code's documentation says how a pane gets focus (opening it with `/herald` while the prompt is empty, Ctrl+X then Tab, or a click) and does not say how the band gets it, so open the pane with `/herald` to use every band action.
 
@@ -89,7 +89,7 @@ The rotation does nothing when all items fit on one page. The band yields its pl
 
 ## Use the pane
 
-`/herald` opens the pane and asks for keyboard focus, which Claude Code grants while the prompt is empty. Esc closes the pane. The pane shows a window of the active tab's items around the selection, each with its source glyph, headline link, date and summary (no summary for an item without text). The Your stack tab shows one row per package instead, grouped by ecosystem, with a summary line and a filter field above them.
+`/herald` opens the pane and asks for keyboard focus, which Claude Code grants while the prompt is empty. Esc closes the pane. The pane shows a window of the active tab's items around the selection, each with its headline link, date and summary (no summary for an item without text). A source's own tab shows no source mark, since every row is from it; the Saved tab shows each item's source name in dim text at the right end of the headline, before the date, as the band does. The Your stack tab shows one row per package instead, grouped by ecosystem, with a summary line and a filter field above them.
 
 | Key | Button | What it does |
 |-----|--------|--------------|
@@ -408,7 +408,7 @@ On Claude Code 2.1.293 the store file was observed at `~/.claude/plugins/store/h
 | Source tabs take `1` to `9` by position, Your stack is `y`, Saved is `0`. | Saved keeps one key however many sources you follow. |
 | The Your stack tab lists releases under a package on `e`, not `r`. | `r` is Mark as read on the Saved tab, and the pane keeps every hotkey distinct. |
 | The pane draws only the items that fit, centred on the selection. | The mod does not need to call `$.ui.scroll`. |
-| The band header draws `◀` `▶` `⏸` as they are, and release rows draw `📦` and `⚠` in a glyph column two cells wide. | Some terminals draw `◀` `▶` `⏸` as two-cell emoji, which can misalign the header; `📦` is two cells, so the column pads a one-cell glyph. |
+| The band header draws `◀` `▶` `⏸` as they are, and release rows draw `📦` and `⚠` in a glyph column two cells wide (news rows have none). | Some terminals draw `◀` `▶` `⏸` as two-cell emoji, which can misalign the header; `📦` is two cells, so the column pads a one-cell glyph. |
 | A long summary has 3 to 5 lines, or 1 or 2 when the model's reply has fewer than three sentences. | The mod does not pad a short reply. |
 | The pane shows dates as `Oct 8`, in UTC. | The date does not depend on the machine's time zone. |
 | The first `/herald` of a session summarizes up to 20 items before the pane is drawn. | The mod learns how many rows fit only when the pane is drawn. |

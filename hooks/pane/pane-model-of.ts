@@ -2,6 +2,8 @@ import type { Item, SavedItem, Source } from '../../types/index.js'
 import { displayWidthOf } from '../band/display-width-of.js'
 import { fitColumns } from '../band/fit-columns.js'
 import { ICON_COLUMNS } from '../band/icon-columns.js'
+import { MARK_COLUMNS } from '../band/mark-columns.js'
+import { newsHeadlineOf } from '../band/news-headline-of.js'
 import { rangeLabelOf } from '../band/range-label-of.js'
 import { SUMMARY_INDENT } from '../band/summary-indent.js'
 import { httpUrlOf } from '../commands/http-url-of.js'
@@ -9,7 +11,6 @@ import { isStackItem } from '../deps/stack/is-stack-item.js'
 import { stackIconOf } from '../deps/stack/stack-icon-of.js'
 import { stackLineOf } from '../deps/stack/stack-line-of.js'
 import { stackNoteOf } from '../deps/stack/stack-note-of.js'
-import { displayTitleOf } from '../items/display-title-of.js'
 import { SAVED_TAB } from '../names/saved-tab.js'
 import { STACK_TAB } from '../names/stack-tab.js'
 import { collapsedTextOf } from '../page/collapsed-text-of.js'
@@ -31,37 +32,38 @@ function lineOf(text: string): string {
 }
 
 /**
- * One item as the pane draws it, every line fitted to `columns` cells; a stack item shows 📦 (⚠ when breaking or security), `pkg current → new` and its ecosystem, level and flags; a news item without usable text, or with an empty summary (replies rejected for now), shows no summary.
+ * One item as the pane draws it, every line fitted to `columns` cells; a news item has the source name dim after its headline when `sourceName` is given (the saved tab), before its date; a stack item shows 📦 (⚠ when breaking or security), `pkg current → new` and its ecosystem, level and flags; a news item without usable text, or with an empty summary (replies rejected for now), shows no summary.
  *
  * @param item the item
- * @param icon its source's glyph, fitted
  * @param summary its one-line summary, when there is one
  * @param isSelected whether it is the selected item
  * @param columns the cells the pane's body has
- * @param sourceName the source's name when the tab mixes sources, so a version-only title leads with it
+ * @param sourceName the source's name when the tab mixes sources, drawn at the right end of the headline, or leading a version-only title
  */
 function rowOf(
   item: Item,
-  icon: string,
   summary: string | undefined,
   isSelected: boolean,
   columns: number,
   sourceName?: string,
 ): PaneRow {
   const stack = isStackItem(item) ? item : undefined
-  const glyph = stack === undefined ? icon : fitColumns(stackIconOf(stack.release), ICON_COLUMNS)
   const hasNoSummary = stack === undefined && (summary === '' || summaryTextOf(item) === '')
   const note = stack !== undefined ? stackNoteOf(stack.release) : hasNoSummary ? undefined : summary
   const href = httpUrlOf(item.url)?.href
   const date = shortDateOf(item.publishedAt)
   const dated = date === undefined ? 0 : displayWidthOf(date) + 1
-  const title =
-    stack === undefined ? displayTitleOf(lineOf(item.title), sourceName) : stackLineOf(stack)
+  const headline =
+    stack === undefined
+      ? newsHeadlineOf(lineOf(item.title), sourceName, columns - MARK_COLUMNS - dated)
+      : {
+          icon: fitColumns(stackIconOf(stack.release), ICON_COLUMNS),
+          title: fitColumns(stackLineOf(stack), columns - ICON_COLUMNS - 3 - dated),
+        }
 
   return {
     id: item.id,
-    icon: glyph,
-    title: fitColumns(title, columns - ICON_COLUMNS - 3 - dated),
+    ...headline,
     ...(href === undefined ? {} : { href }),
     ...(note === undefined ? {} : { summary: fitColumns(lineOf(note), columns - SUMMARY_INDENT) }),
     ...(hasNoSummary ? { hasNoSummary: true as const } : {}),
@@ -95,7 +97,7 @@ function emptyOf(tab: string, name: string, filter: string): string {
  * What the pane draws for a page, every line fitted to `columns` cells; on the saved tab a title that is only a version leads with its source's name; the stack tab draws a one-line row per package (and per release of an expanded one) under a heading per ecosystem, with its summary line and its filter.
  *
  * @param page the page shown
- * @param sources every source, for the names and glyphs
+ * @param sources every source, for the names
  * @param summaries the one-line summaries by item id
  * @param saved the saved items
  * @param columns the cells the pane's body has
@@ -109,7 +111,6 @@ export function paneModelOf(
   columns: number,
   filter = '',
 ): PaneModel {
-  const icons = new Map(sources.map(source => [source.id, lineOf(source.icon)]))
   const names = new Map(sources.map(source => [source.id, lineOf(source.name)]))
   const isSavedTab = page.tab.id === SAVED_TAB
   const isStackTab = page.tab.id === STACK_TAB
@@ -125,7 +126,6 @@ export function paneModelOf(
       ? page.shown.map((item, index) =>
           rowOf(
             item,
-            fitColumns(icons.get(item.sourceId) || '*', ICON_COLUMNS),
             Object.hasOwn(summaries, item.id) ? summaries[item.id] : undefined,
             index === page.span.selected,
             columns,

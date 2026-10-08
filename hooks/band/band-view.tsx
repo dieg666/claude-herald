@@ -14,7 +14,7 @@ import { SUMMARY_INDENT } from './summary-indent.js'
 import { SUMMARY_PLACEHOLDER } from './summary-placeholder.js'
 
 /**
- * One item: the selection mark, the source glyph and the headline, then the summary dim beneath, or an empty line for an item without one (no text, or replies rejected for now) so the band keeps its height as it turns.
+ * One item: the selection mark and the headline, the source name dim at the right end (a release row has its glyph before the headline instead), then the summary dim beneath, or an empty line for an item without one (no text, or replies rejected for now) so the band keeps its height as it turns.
  *
  * @param ui the elements
  * @param row the item as drawn
@@ -26,11 +26,13 @@ function rowView(ui: BandUi, row: BandRow): RenderElement {
     <Box flexDirection="column">
       <Text wrap="truncate-end">
         <Text color={row.isSelected ? 'suggestion' : 'inactive'}>{row.isSelected ? '›' : ' '}</Text>{' '}
-        <Text color="claude">{row.icon}</Text>
-        {iconGapOf(row.icon)}
+        {row.icon === undefined
+          ? []
+          : [<Text color="claude">{row.icon}</Text>, iconGapOf(row.icon)]}
         <Text bold={row.isSelected}>
           {row.href === undefined ? row.title : <Link href={row.href}>{row.title}</Link>}
         </Text>
+        {row.source === undefined ? [] : [row.sourceGap, <Text dimColor>{row.source}</Text>]}
       </Text>
       {row.hasNoSummary === true ? (
         <Box height={1} />

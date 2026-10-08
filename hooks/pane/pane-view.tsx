@@ -15,7 +15,7 @@ import type { PaneRow } from './pane-row.js'
 import type { PaneUi } from './pane-ui.js'
 
 /**
- * One item: the selection mark, the source glyph, the headline and its date, then the summary dim beneath; an item without one (no text, or replies rejected for now) is the headline row alone; a stack tab row is one line, its columns after the headline, a release under its package indented.
+ * One item: the selection mark, the headline (a release row has its glyph before it), on the saved tab the source name dim at the right end, and its date, then the summary dim beneath; an item without one (no text, or replies rejected for now) is the headline row alone; a stack tab row is one line, its columns after the headline, a release under its package indented.
  *
  * @param ui the elements
  * @param row the item as drawn
@@ -27,11 +27,11 @@ function rowView(ui: BandUi, row: PaneRow): RenderElement {
     <Text wrap="truncate-end">
       <Text color={row.isSelected ? 'suggestion' : 'inactive'}>{row.isSelected ? '›' : ' '}</Text>
       {row.isIndented === true ? '   ' : ' '}
-      <Text color="claude">{row.icon}</Text>
-      {iconGapOf(row.icon)}
+      {row.icon === undefined ? [] : [<Text color="claude">{row.icon}</Text>, iconGapOf(row.icon)]}
       <Text bold={row.isSelected}>
         {row.href === undefined ? row.title : <Link href={row.href}>{row.title}</Link>}
       </Text>
+      {row.source === undefined ? [] : [row.sourceGap, <Text dimColor>{row.source}</Text>]}
       {(row.cells ?? []).map(cell =>
         cell.color === undefined ? cell.text : <Text color={cell.color}>{cell.text}</Text>,
       )}

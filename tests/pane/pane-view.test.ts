@@ -9,9 +9,9 @@ import Fixtures from '../fixtures'
 
 describe('pane-view', () => {
   const SURFACES = ['terminal', 'desktop'] as const
-  const ALPHA = Fixtures.sourceAt('a', { name: 'Alpha', icon: 'A' })
+  const ALPHA = Fixtures.sourceAt('a', { name: 'Alpha' })
   const OFF = Fixtures.sourceAt('off', { name: 'Off', isEnabled: false })
-  const BETA = Fixtures.sourceAt('b', { name: 'Beta', icon: 'B' })
+  const BETA = Fixtures.sourceAt('b', { name: 'Beta' })
 
   const STORE = {
     sources: [ALPHA, OFF, BETA],
@@ -213,6 +213,44 @@ describe('pane-view', () => {
       expect(await selectedOf(ui)).toBe('https://example.com/a/1')
     })
 
+    test(`on ${surface}: a source's own tab draws no source mark; Saved draws the name dim, then the date`, async ($, on) => {
+      mock.clock(on)
+
+      const saved = Fixtures.datedItemsOf('a', 3).slice(0, 2)
+
+      Fixtures.bandOn(on, {
+        sources: [ALPHA, BETA],
+        items: { a: Fixtures.datedItemsOf('a', 3), b: Fixtures.datedItemsOf('b', 2) },
+        saved: [
+          ...saved.map((item, index) => ({ ...item, savedAt: index })),
+          { ...Fixtures.datedItemsOf('b', 1)[0], savedAt: 3 },
+        ],
+      })
+
+      await $.classic.SessionStart({ source: 'clear' })
+
+      const ui = await $.ui.mount({ ...PANE, surface })
+      const namesOf = async (name: string) =>
+        (await ui.findAll({ type: 'Text', text: new RegExp(`^${name}$`) })).map(
+          text => text.props.dimColor,
+        )
+
+      expect(await namesOf('Alpha')).toEqual([])
+      expect(
+        (await ui.findAll({ type: 'Text' })).filter(text => text.props.color === 'claude'),
+      ).toEqual([])
+
+      await ui.press({ key: 'tab-saved' })
+
+      expect(await namesOf('Alpha')).toEqual([true, true])
+      expect(await namesOf('Beta')).toEqual([true])
+      expect(
+        (await ui.findAll({ type: 'Text' })).filter(text => text.props.color === 'claude'),
+      ).toEqual([])
+
+      await ui.unmount()
+    })
+
     test(`on ${surface}: a bare version tag keeps its bare title on the source's tab and leads with the source name under Saved`, async ($, on) => {
       mock.clock(on)
 
@@ -235,6 +273,8 @@ describe('pane-view', () => {
       await ui.press({ key: 'tab-saved' })
 
       expect(await titlesOf()).toEqual(['Alpha v0.3.293'])
+      // The title already leads with the name, so none is drawn at the right end.
+      expect(await ui.find({ type: 'Text', text: /^Alpha$/ })).toBeUndefined()
 
       await ui.unmount()
     })
@@ -407,7 +447,8 @@ describe('pane-view', () => {
 
         expect(asked.slice(7)).toEqual(['gone 1'])
         expect(await ui.find({ type: 'Text', text: 'Summary of gone 1.' })).toBeDefined()
-        expect((await ui.findAll({ type: 'Text', text: /^\*$/ })).length).toBe(1)
+        // A removed source has no name to draw.
+        expect(await ui.find({ type: 'Text', text: /^\*$/ })).toBeUndefined()
       },
     )
 
@@ -571,12 +612,12 @@ describe('pane-view', () => {
         props: { ...Fixtures.PANE_PROPS, bodyColumns: 20 },
       })
 
-      // Twenty cells less the mark, the two-cell glyph column, two spaces and ` Jan 1` leave nine for a headline.
+      // Twenty cells less the mark, a space and ` Jan 1` leave twelve for a headline.
       expect(
         (await ui.findAll({ type: 'Link' })).map(link => [link.props.href, link.children.join('')]),
       ).toEqual([
-        ['https://example.com/a/2', `${'b'.repeat(8)}…`],
-        ['https://example.com/a/3', `${'漢'.repeat(4)}…`],
+        ['https://example.com/a/2', `${'b'.repeat(11)}…`],
+        ['https://example.com/a/3', `${'漢'.repeat(5)}…`],
       ])
       expect(await selectedOf(ui)).toBe('a 1')
     })
