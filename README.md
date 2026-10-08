@@ -89,7 +89,7 @@ The rotation does nothing when all items fit on one page. The band yields its pl
 
 ## Use the pane
 
-`/herald` opens the pane and asks for keyboard focus, which Claude Code grants while the prompt is empty. Esc closes the pane. The pane shows a window of the active tab's items around the selection, each with its source glyph, headline link, date and summary. The Your stack tab shows one row per package instead, grouped by ecosystem, with a summary line and a filter field above them.
+`/herald` opens the pane and asks for keyboard focus, which Claude Code grants while the prompt is empty. Esc closes the pane. The pane shows a window of the active tab's items around the selection, each with its source glyph, headline link, date and summary (no summary for an item without text). The Your stack tab shows one row per package instead, grouped by ecosystem, with a summary line and a filter field above them.
 
 | Key | Button | What it does |
 |-----|--------|--------------|
@@ -108,7 +108,7 @@ The same four actions apply to the selected item in the band and in the pane, a 
 | Key | Button | What it does |
 |-----|--------|--------------|
 | `o` | Open | Opens the item's address in your default browser. The headline is also a link. Addresses that are not http or https are refused. |
-| `s` | Summarize | Writes a 3 to 5 line summary under the item's title in the transcript, without starting a turn. Claude does not read these lines. For a release, the summary comes from its notes. |
+| `s` | Summarize | Writes a 3 to 5 line summary under the item's title in the transcript, without starting a turn. Claude does not read these lines. For a release, the summary comes from its notes. An item without text gets a line that says so instead, with no model call. |
 | `v` | Save / Saved | Adds the item to the Saved tab. The button reads Saved for an item already saved, and pressing it changes nothing. |
 | `c` | Copy for Claude | Copies the [copy template](#copy-template) filled with the item to the clipboard and shows a "📋 Copied" toast. It never submits a prompt. The text comes from the feed, so pasting it into the prompt makes it part of your prompt. |
 
@@ -160,7 +160,7 @@ The mod starts with these ten sources. Disable one with `/herald disable <name>`
 
 To follow a GitHub repository's releases as a news source, add its feed: `/herald add https://github.com/OWNER/REPO/releases.atom`. To follow it as part of [your stack](#your-stack), with a version comparison and flags, run `/herald deps add OWNER/REPO`.
 
-Each source keeps its 30 newest items. An item is identified by its source and its guid, id or link, so a repeated item appears once. A source whose fetch fails keeps its last items and retries at the next refresh; the reason shows in `/herald list`. A page source has no feed to parse: the mod turns the page into text and asks Haiku for a JSON list of `title`, `url` and `date`, only when the page text has changed, and drops malformed entries. Items from a page carry a title and no text.
+Each source keeps its 30 newest items. An item is identified by its source and its guid, id or link, so a repeated item appears once. A source whose fetch fails keeps its last items and retries at the next refresh; the reason shows in `/herald list`. A page source has no feed to parse: the mod turns the page into text and asks Haiku for a JSON list of `title`, `url`, `date` and `teaser`, only when the page text or the extraction prompt has changed, and drops malformed entries. The teaser is the one-line description the page shows under a headline, copied as written, at most 200 characters; it is the item's text, and an item from a page that shows none has no text.
 
 A refresh runs when the session starts and then every 5 minutes, fetching three sources at a time, and then refreshes your stack within its [limits](#limits-per-refresh). When it finds new items, one toast names them, for example `3 new: Title …`. A source's first load shows no toast.
 
@@ -186,7 +186,7 @@ A template must contain `{title}` or `{url}` (the release template: `{pkg}` or `
 
 ## Summaries and languages
 
-The band and the pane show a one-line summary under each headline, and `…` while it is pending. The mod writes summaries from the item's title and the excerpt the feed carries (at most 500 characters), not from the linked page. Link and counter lines (such as Hacker News' `Article URL`, `Points` and `# Comments`) are left out of the excerpt; when no text remains, the summary comes from the title alone.
+The band and the pane show a one-line summary under each headline, and `…` while it is pending. The mod writes summaries from the item's title and the excerpt the feed carries (at most 500 characters), not from the linked page. Link and counter lines (such as Hacker News' `Article URL`, `Points` and `# Comments`) are left out of the excerpt. An item with no text left, such as a Hacker News link post or a page item without a teaser, gets no summary and no model call: the pane draws its headline alone, and the band leaves its second line empty so the band keeps its height as it turns. Summarize on such an item says there is no text to summarize. A reply that talks about the item or its title instead of the story (such as "according to the title"), or that shows the model's reasoning, is dropped and not kept, and the item is asked about again the next time it is shown.
 
 `/herald lang` sets the language of every summary:
 
@@ -196,7 +196,7 @@ The band and the pane show a one-line summary under each headline, and `…` whi
 | `user` | The language of Claude Code's `language` setting. Without that setting, the item's own language. |
 | A code such as `es` or `pt-BR` | That language, whatever the item's language. |
 
-The mod keeps one summary per item, language and length. Changing the language summarizes the shown items again in the new one, and a summary already kept in that language is reused.
+The mod keeps one summary per item, language and length. Changing the language summarizes the shown items again in the new one, and a summary already kept in that language is reused. A summary written by an older version of the mod's prompts is not reused; it leaves the cache as newer summaries push it out.
 
 ## Your stack
 
@@ -292,16 +292,16 @@ The stack refreshes after every source refresh, on the same timer.
 
 ## Cost
 
-The mod calls Haiku through your Claude Code session, so the calls count against your plan or are billed to your API key. Each call is small: one-line summaries are capped at 120 output tokens, long summaries at 400, page extraction at 3000 and a release check at 60, with timeouts of 20, 45, 45 and 20 seconds. At most two model calls are in flight at once, and a refresh extracts from at most three page sources at a time.
+The mod calls Haiku through your Claude Code session, so the calls count against your plan or are billed to your API key. Each call is small: one-line summaries are capped at 120 output tokens, long summaries at 400, page extraction at 6000 and a release check at 60, with timeouts of 20, 45, 60 and 20 seconds. At most two model calls are in flight at once, and a refresh extracts from at most three page sources at a time.
 
 | Call | When it happens |
 |------|-----------------|
-| One-line summary | For each new item a refresh finds, newest first, at most 12 per run; for each item on a band page and in the pane. The first `/herald` of a session, before the pane has been drawn, summarizes up to 20 items. |
-| Long summary | When you press Summarize on an item. |
-| Page extraction | When a page source's text has a different hash from the last extraction. |
+| One-line summary | For each new item with text a refresh finds, newest first, at most 12 per run; for each item with text on a band page and in the pane. The first `/herald` of a session, before the pane has been drawn, summarizes up to 20 items. |
+| Long summary | When you press Summarize on an item with text. |
+| Page extraction | When a page source's text, or the extraction prompt, has a different hash from the last extraction. |
 | Release check | One call per release, to flag it from its notes. For releases a refresh has not seen before, never on a package's first read: at most 12 per run, notes cut to 4000 characters. For release rows the band or the pane shows that have no verdict yet: at most 12 per view, notes cut to 1000 characters. |
 
-The mod caches every summary (by item, language and length) and every release verdict (by release id), so it asks for each once while it stays cached. A failed call is retried the next time the item is shown; after the model gives no answer for a release, a view waits an hour before asking again. A release gets no check when the keywords already flag both breaking and security with an advisory id, or after two malformed answers. Release checks follow the number of new releases of the packages you follow, not the time: a quiet day costs none, and a refresh run makes at most 12.
+The mod caches every summary (by item, language, length and prompt version) and every release verdict (by release id), so it asks for each once while it stays cached. A failed call, or a reply that talks about the item instead of the story, is retried the next time the item is shown; after the model gives no answer for a release, a view waits an hour before asking again. A release gets no check when the keywords already flag both breaking and security with an advisory id, or after two malformed answers. Release checks follow the number of new releases of the packages you follow, not the time: a quiet day costs none, and a refresh run makes at most 12.
 
 To cut the cost, pause the rotation with `a` (each band page it reaches gets summaries and checks) or run `/herald rotate 3600`; run `/herald deps off` to stop all stack requests and calls; lower `/herald deps cap`, `ignore` packages or raise `/herald deps level` to check fewer releases. `/herald deps toast off` cuts nothing, because the check on new releases runs whatever the toast level.
 
@@ -361,8 +361,8 @@ The mod keeps its data in `$.store`, which every Claude Code session on the mach
 | `saved` | Your saved items. |
 | `seen` | The newest 300 item ids per source. |
 | `items` | The last items of each source, at most 30. |
-| `pageHashes` | The hash of each page source's text at its last extraction. |
-| `summaries` | The summary cache, at most 300 entries, the oldest dropped first. An item pushed out is summarized again when it is shown. |
+| `pageHashes` | The hash of each page source's text, with the extraction prompt, at its last extraction. |
+| `summaries` | The summary cache, at most 300 entries, the oldest dropped first, each with the version of the prompts that wrote it. An item pushed out, or summarized by an older version, is summarized again when it is shown. |
 | `deps` | Per project root, at most 20 projects (the least recently detected is dropped): stack settings, followed packages, packages you ignored and added (at most 500 each), a hash of each manifest and lockfile read, and the detection time. |
 | `depFeeds` | The release feed of each package, by `<ecosystem>:<name>`, with negative results and your `deps map` mappings. A looked-up mapping is trusted for 7 days, and at most 500 are kept; a mapping you set never expires or counts toward the 500. |
 | `releaseFlags` | Haiku's verdict for each release, by release id. At most 500, the oldest dropped first. |
