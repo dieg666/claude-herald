@@ -88,8 +88,17 @@ describe('pane-view', () => {
       )
   }
 
+  // The action Buttons' keys; the active tab's held key is read apart, by `heldOf`.
   const keysOf = async (ui: Drawing) =>
-    (await ui.findAll({ type: 'Button' })).map(button => button.key)
+    (await ui.findAll({ type: 'Button' }))
+      .map(button => button.key)
+      .filter(key => key?.startsWith('hold-') !== true)
+
+  // The Buttons that keep the active tab's key bound: their key and hotkey.
+  const heldOf = async (ui: Drawing) =>
+    (await ui.findAll({ type: 'Button' }))
+      .filter(button => button.key?.startsWith('hold-') === true)
+      .map(button => [button.key, button.props.hotkey])
 
   const linksOf = async (ui: Drawing) =>
     (await ui.findAll({ type: 'Link' })).map(link => link.props.href)
@@ -2955,5 +2964,97 @@ describe('pane-view', () => {
         expect(await dimLinksOf(ui)).toEqual(['https://example.com/a/1'])
       },
     )
+  }
+
+  for (const surface of SURFACES) {
+    test(
+      `on ${surface}: the active tab's key stays bound to a Button that takes no room and does nothing, so pressing it keeps the pane focused and the tab`,
+      { timeoutMs: 30_000 },
+      async ($, on) => {
+        const clock = mock.clock(on)
+
+        stackPaneOn(on, {})
+
+        await $.session.start(Fixtures.SESSION)
+        await clock.settle()
+
+        const ui = await $.ui.mount({ ...PANE, surface })
+        const keyOfTab = async (id: string) =>
+          (await ui.find({ type: 'Button', key: `tab-${id}` }))?.props.hotkey
+        const everyKey = async () =>
+          (await ui.findAll({ type: 'Button' })).map(button => button.props.hotkey)
+
+        for (const [id, hotkey] of [
+          ['@all', 'l'],
+          ['a', '1'],
+          ['b', '2'],
+          ['@stack', 'y'],
+          ['saved', '0'],
+        ] as const) {
+          // Becoming active hands the tab's key from its Button to the held one.
+          if (id !== '@all') {
+            expect(await keyOfTab(id)).toBe(hotkey)
+
+            await ui.press({ key: `tab-${id}` })
+          }
+
+          expect(await keyOfTab(id)).toBeUndefined()
+          expect(await heldOf(ui)).toEqual([[`hold-${id}`, hotkey]])
+          expect(await tabsOf(ui)).toContainEqual([
+            `tab-${id}`,
+            expect.any(String),
+            undefined,
+            'active',
+          ])
+
+          // Every tab's key is bound, the active one's included, each once.
+          const keys = await everyKey()
+
+          expect(['l', '1', '2', 'y', '0'].filter(key => !keys.includes(key))).toEqual([])
+          expect(new Set(keys).size).toBe(keys.length)
+
+          // The held Button draws nothing: no room in the layout, and the tab row is as before.
+          const held = (await ui.findAll({ type: 'Box' })).find(box => box.key === `held-${id}`)
+
+          expect(held?.props.display).toBe('none')
+
+          // Pressing it changes neither the tab nor the selection.
+          await ui.press({ key: 'down' })
+
+          const before = await selectedOf(ui)
+          const position = await positionOf(ui)
+
+          await ui.press({ key: `hold-${id}` })
+
+          expect(await selectedOf(ui)).toBe(before)
+          expect(await positionOf(ui)).toBe(position)
+          expect(await heldOf(ui)).toEqual([[`hold-${id}`, hotkey]])
+        }
+      },
+    )
+
+    test(`on ${surface}: a tab without a hotkey holds no key`, async ($, on) => {
+      mock.clock(on)
+
+      const many = Array.from({ length: 10 }, (_, index) =>
+        Fixtures.sourceAt(`s${index}`, { name: `Source ${index}` }),
+      )
+
+      Fixtures.bandOn(on, {
+        sources: many,
+        items: Object.fromEntries(
+          many.map(source => [source.id, Fixtures.datedItemsOf(source.id, 1)]),
+        ),
+      })
+
+      await $.classic.SessionStart({ source: 'clear' })
+
+      const ui = await $.ui.mount({ ...PANE, surface })
+
+      await ui.press({ key: 'tab-s9' })
+
+      expect((await ui.find({ key: 'tab-s9' }))?.props.hotkey).toBeUndefined()
+      expect(await heldOf(ui)).toEqual([])
+    })
   }
 })

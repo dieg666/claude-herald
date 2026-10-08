@@ -149,6 +149,35 @@ function rowView(ui: BandUi, row: PaneRow): RenderElement {
   )
 }
 
+// What the active tab's held key runs: nothing.
+const NOTHING = (): void => undefined
+
+/**
+ * The active tab's own key, kept bound so pressing it in the focused pane does nothing instead of falling through to the prompt: a Button in a Box that takes no room; none for a tab without a hotkey.
+ *
+ * @param ui the elements
+ * @param tab the tab
+ */
+function heldKeyView(ui: PaneUi, tab: PaneTabView): RenderElement[] {
+  const { Box, Button } = ui
+
+  if (!tab.isActive || tab.hotkey === undefined) {
+    return []
+  }
+
+  return [
+    <Box key={`held-${tab.id}`} display="none">
+      <Button
+        key={`hold-${tab.id}`}
+        label={tab.label}
+        hotkey={tab.hotkey}
+        plain
+        onPress={NOTHING}
+      />
+    </Box>,
+  ]
+}
+
 /**
  * One tab of the tab row: the active one as plain text filled like the selected row, bold and underlined too, spelled on the terminal as a plain Button there reads so the row keeps its layout, and as its name alone elsewhere, as a native button reads; any other a dim Button with its hotkey; then its count as a token of its own after the name, outside the fill: new items in the accent color, a total dim.
  *
@@ -182,20 +211,26 @@ function tabView(
     />
   )
   const count = paneTabCountTextOf(tab)
+  const held = heldKeyView(ui, tab)
 
-  if (count === '') {
+  if (count === '' && held.length === 0) {
     return name
   }
 
   return (
     <Box flexDirection="row" flexShrink={0} columnGap={PANE_TAB_COUNT_GAP}>
       {name}
-      <Text
-        key={`count-${tab.id}`}
-        {...(count.startsWith('•') ? { color: 'claude' } : { dimColor: true })}
-      >
-        {count}
-      </Text>
+      {count === ''
+        ? []
+        : [
+            <Text
+              key={`count-${tab.id}`}
+              {...(count.startsWith('•') ? { color: 'claude' } : { dimColor: true })}
+            >
+              {count}
+            </Text>,
+          ]}
+      {held}
     </Box>
   )
 }
