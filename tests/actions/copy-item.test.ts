@@ -42,7 +42,7 @@ describe('copy-item', () => {
     expect(toasts).toEqual(['📋 Copied'])
   })
 
-  test('the fallback is pbcopy on macOS and clip.exe on Windows', async () => {
+  test('the fallback is pbcopy on macOS, and on Windows PowerShell before clip.exe', async () => {
     const mac = await hostWith()
 
     mac.copyResult.value = { isCopied: false, reason: 'no-surface' }
@@ -56,8 +56,11 @@ describe('copy-item', () => {
     windows.copyResult.value = new Error('copy unavailable')
     windows.env.OS = 'Windows_NT'
 
+    windows.programs.set('powershell', { exitCode: 1, stderr: 'Set-Clipboard not found' })
+
     expect(await Actions.copyItem(windows.host, ITEM, 'terminal')).toBe(true)
-    expect(windows.runs.map(run => run.argv)).toEqual([['clip.exe']])
+    expect(windows.runs.map(run => run.argv[0])).toEqual(['powershell', 'clip.exe'])
+    expect(windows.runs.map(run => run.init?.stdin)).toEqual([TEXT, TEXT])
     expect(windows.toasts).toEqual(['📋 Copied'])
   })
 
@@ -67,6 +70,7 @@ describe('copy-item', () => {
     copyResult.value = { isCopied: false, reason: 'no-clipboard' }
     programs.set('wl-copy', { exitCode: 1 })
     programs.set('xclip', new Error('ENOENT'))
+    programs.set('powershell.exe', new Error('ENOENT'))
     programs.set('clip.exe', { exitCode: 127, stderr: 'not found' })
 
     expect(await Actions.copyItem(host, ITEM, 'terminal')).toBe(false)
@@ -74,6 +78,7 @@ describe('copy-item', () => {
     expect(logs).toEqual([
       'news: clipboard: wl-copy exited with 1',
       'news: clipboard: xclip: ENOENT',
+      'news: clipboard: powershell.exe: ENOENT',
       'news: clipboard: clip.exe exited with 127: not found',
     ])
   })
