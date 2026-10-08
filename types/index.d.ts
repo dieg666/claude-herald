@@ -224,6 +224,8 @@ export type ReleaseFlags = {
 export type ReleaseFlagsEntry = ReleaseFlags & {
   /** `<ecosystem>:<name>|<entry guid, link or title>`. */
   releaseId: string
+  /** How many malformed answers the model gave instead of a verdict; when set, the flags are the keyword ones. */
+  malformed?: number
 }
 
 declare module 'claude-code' {

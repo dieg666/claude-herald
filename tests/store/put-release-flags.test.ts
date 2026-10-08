@@ -28,5 +28,12 @@ describe('put-release-flags', () => {
       { releaseId: 'y', breaking: false, security: false },
     ])
     expect(Store.releaseFlagEntriesOf({ not: 'a list' })).toEqual([])
+    expect(
+      Store.releaseFlagEntriesOf([
+        { releaseId: 'a', breaking: false, security: false, malformed: 0 },
+        { releaseId: 'b', breaking: false, security: false, malformed: 1.5 },
+        { releaseId: 'c', breaking: false, security: true, malformed: 2 },
+      ]),
+    ).toEqual([{ releaseId: 'c', breaking: false, security: true, malformed: 2 }])
   })
 })

@@ -1,4 +1,4 @@
-import type { ReleaseFlags } from '../../../types/index.js'
+import type { ReleaseFlags, ReleaseFlagsEntry } from '../../../types/index.js'
 import type { Host } from '../../host/host.js'
 import { messageOf } from '../../refresh/message-of.js'
 import { loadReleaseFlags } from '../../store/load-release-flags.js'
@@ -6,40 +6,99 @@ import { putReleaseFlags } from '../../store/put-release-flags.js'
 import { runLimited } from '../../summaries/run-limited.js'
 import type { SummaryJobs } from '../../summaries/summary-jobs.js'
 import type { ClassifiedRelease } from './classified-release.js'
+import { hasAdvisoryId } from './has-advisory-id.js'
 import { releaseFlagsOfReply } from './release-flags-of-reply.js'
 import { releaseFlagsRequestOf } from './release-flags-request-of.js'
 import { RELEASE_LIMITS } from './release-limits.js'
 
 /**
- * The model's cached verdict on a release, read from the store now.
+ * What the cache says about a release: the model's flags, keyword flags for good (it answered malformed too often), or worth asking again.
+ */
+type Verdict = { kind: 'model'; flags: ReleaseFlags } | { kind: 'keywords' } | { kind: 'retry' }
+
+/**
+ * The verdict a cache entry stands for; undefined when the release was never asked.
+ *
+ * @param entry the cached entry
+ */
+function verdictOf(entry: ReleaseFlagsEntry | undefined): Verdict | undefined {
+  if (entry === undefined) {
+    return undefined
+  }
+
+  if (entry.malformed === undefined) {
+    return { kind: 'model', flags: { breaking: entry.breaking, security: entry.security } }
+  }
+
+  return entry.malformed >= RELEASE_LIMITS.malformedTries ? { kind: 'keywords' } : { kind: 'retry' }
+}
+
+/**
+ * The cache entry of a release, read from the store now.
  *
  * @param host the engine
  * @param id the release id
  */
-async function cachedOf(host: Host, id: string): Promise<ReleaseFlags | undefined> {
-  const entry = (await loadReleaseFlags(host)).find(other => other.releaseId === id)
-
-  return entry === undefined ? undefined : { breaking: entry.breaking, security: entry.security }
+async function entryOf(host: Host, id: string): Promise<ReleaseFlagsEntry | undefined> {
+  return (await loadReleaseFlags(host)).find(entry => entry.releaseId === id)
 }
 
 /**
- * The release with the model's flags added to its keyword flags; the model can raise a flag, never clear one.
+ * Whether the model could change nothing: the keywords already flag both, and an advisory id keeps security set whatever it says.
  *
  * @param release the release
- * @param flags the model's verdict
  */
-function withFlags(release: ClassifiedRelease, flags: ReleaseFlags): ClassifiedRelease {
+function isSettled(release: ClassifiedRelease): boolean {
+  return (
+    release.flags.breaking &&
+    release.flags.security &&
+    hasAdvisoryId(`${release.title}\n${release.notes}`)
+  )
+}
+
+/**
+ * The release with a verdict applied: the model's flags replace the keyword ones, except that an advisory id in the title or notes always sets security; any other verdict leaves the keyword flags.
+ *
+ * @param release the release
+ * @param verdict what is known
+ */
+function withVerdict(release: ClassifiedRelease, verdict: Verdict | undefined): ClassifiedRelease {
+  if (verdict?.kind !== 'model') {
+    return release
+  }
+
   return {
     ...release,
     flags: {
-      breaking: release.flags.breaking || flags.breaking,
-      security: release.flags.security || flags.security,
+      breaking: verdict.flags.breaking,
+      security: verdict.flags.security || hasAdvisoryId(`${release.title}\n${release.notes}`),
     },
   }
 }
 
 /**
- * Asks the model about a release's notes, once a slot is free, and caches a well-formed answer.
+ * Counts a malformed answer in the cache, unless a verdict arrived meanwhile; reads the store right before writing.
+ *
+ * @param host the engine
+ * @param release the release
+ */
+async function countMalformed(host: Host, release: ClassifiedRelease): Promise<Verdict> {
+  const stored = await entryOf(host, release.id)
+  const known = verdictOf(stored)
+
+  if (known !== undefined && known.kind !== 'retry') {
+    return known
+  }
+
+  const entry = { releaseId: release.id, ...release.flags, malformed: (stored?.malformed ?? 0) + 1 }
+
+  await putReleaseFlags(host, entry)
+
+  return verdictOf(entry) ?? { kind: 'retry' }
+}
+
+/**
+ * Asks the model about a release's notes, once a slot is free, and caches the answer: a well-formed one as the verdict, a malformed one as a count.
  *
  * @param host the engine
  * @param jobs the limiter and write queue
@@ -51,15 +110,15 @@ async function requestOf(
   jobs: SummaryJobs,
   release: ClassifiedRelease,
   signal: AbortSignal | undefined,
-): Promise<ReleaseFlags | undefined> {
+): Promise<Verdict | undefined> {
   if (signal?.aborted === true) {
     return undefined
   }
 
   // A request that waited for a slot may find the verdict cached meanwhile, by another session too.
-  const cached = await cachedOf(host, release.id)
+  const cached = verdictOf(await entryOf(host, release.id))
 
-  if (cached !== undefined) {
+  if (cached !== undefined && cached.kind !== 'retry') {
     return cached
   }
 
@@ -84,23 +143,23 @@ async function requestOf(
 
   const flags = releaseFlagsOfReply(reply.text)
 
-  if (flags === undefined) {
-    host.debug(`news: no release flags for ${release.id}: malformed reply`)
-
-    return undefined
-  }
-
   try {
+    if (flags === undefined) {
+      host.debug(`news: no release flags for ${release.id}: malformed reply`)
+
+      return await jobs.serially(() => countMalformed(host, release))
+    }
+
     await jobs.serially(() => putReleaseFlags(host, { releaseId: release.id, ...flags }))
   } catch (error) {
     host.debug(`news: could not keep the release flags of ${release.id}: ${messageOf(error)}`)
   }
 
-  return flags
+  return flags === undefined ? undefined : { kind: 'model', flags }
 }
 
 /**
- * Adds the model's breaking and security reading of the notes to releases a view shows: a cached verdict needs no call; otherwise one Haiku request per release through the limiter shared with summaries (keys `release|<id>`), at most a few per call in the order given, cached by release id when the answer is exactly the expected JSON. A release the model gives no usable answer for keeps its keyword flags, uncached, so a later call retries; never throws.
+ * Checks the breaking and security flags of releases a view shows against the model's reading of the notes. A cached verdict needs no call, and neither does a release whose keywords flag both with an advisory id. Otherwise one Haiku request per release goes through the limiter shared with summaries (keys `release|<id>`), at most a few per call: never-asked releases first in the order given, then ones whose answer was malformed. A well-formed answer is cached by release id and replaces the keyword flags, except that an advisory id always sets security; a malformed one is counted, and after the second the release keeps its keyword flags for good. A release with no answer keeps its keyword flags, uncached, so a later call retries; never throws.
  *
  * @param host the engine
  * @param jobs the limiter and write queue shared with summaries
@@ -114,43 +173,40 @@ export async function flagReleases(
   releases: readonly ClassifiedRelease[],
   signal?: AbortSignal,
 ): Promise<ClassifiedRelease[]> {
-  let cache: Map<string, ReleaseFlags>
+  let entries: Map<string, ReleaseFlagsEntry>
 
   try {
-    cache = new Map(
-      (await loadReleaseFlags(host)).map(entry => [
-        entry.releaseId,
-        { breaking: entry.breaking, security: entry.security },
-      ]),
-    )
+    entries = new Map((await loadReleaseFlags(host)).map(entry => [entry.releaseId, entry]))
   } catch (error) {
     host.debug(`news: could not read the release flags: ${messageOf(error)}`)
 
     return [...releases]
   }
 
-  let asked = 0
+  const asking = releases.filter(
+    release => verdictOf(entries.get(release.id)) === undefined && !isSettled(release),
+  )
+  const retrying = releases.filter(
+    release => verdictOf(entries.get(release.id))?.kind === 'retry' && !isSettled(release),
+  )
+  const chosen = new Set(
+    [...asking, ...retrying].slice(0, RELEASE_LIMITS.modelPerCall).map(release => release.id),
+  )
 
   return Promise.all(
     releases.map(async release => {
-      const cached = cache.get(release.id)
+      const cached = verdictOf(entries.get(release.id))
 
-      if (cached !== undefined) {
-        return withFlags(release, cached)
+      if (!chosen.has(release.id)) {
+        return withVerdict(release, cached)
       }
-
-      if (asked >= RELEASE_LIMITS.modelPerCall) {
-        return release
-      }
-
-      asked += 1
 
       try {
-        const flags = await runLimited(jobs.limiter, `release|${release.id}`, () =>
+        const verdict = await runLimited(jobs.limiter, `release|${release.id}`, () =>
           requestOf(host, jobs, release, signal),
         )
 
-        return flags === undefined ? release : withFlags(release, flags)
+        return withVerdict(release, verdict)
       } catch (error) {
         host.debug(`news: no release flags for ${release.id}: ${messageOf(error)}`)
 

@@ -22,6 +22,12 @@ const TEXTS: readonly (readonly [string, Classify.ClassifiedRelease['flags']])[]
   ['CVEs page link, xGHSA-1', { breaking: false, security: false }],
   ['Bump lodash', { breaking: false, security: false }],
   ['Breaking: fix CVE-2024-1 too', { breaking: true, security: true }],
+  ['not a breaking change but security fix', { breaking: false, security: true }],
+  ['There is no known security vulnerability', { breaking: false, security: false }],
+  ['Not a security release', { breaking: false, security: false }],
+  ['no longer breaking on Windows', { breaking: false, security: false }],
+  ['without any breaking changes', { breaking: false, security: false }],
+  ['No known issues. Breaking: removed `foo`', { breaking: true, security: false }],
 ]
 
 describe('keyword-flags-of', () => {

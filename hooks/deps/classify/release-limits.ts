@@ -12,4 +12,6 @@ export const RELEASE_LIMITS = {
   titleChars: 300,
   /** The most releases one call sends to the model, in the order given; the rest keep their keyword flags until a later call. */
   modelPerCall: 12,
+  /** After this many malformed answers a release keeps its keyword flags and is not asked again. */
+  malformedTries: 2,
 } as const
