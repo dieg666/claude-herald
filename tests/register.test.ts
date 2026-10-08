@@ -2,6 +2,7 @@ import type { On } from 'claude-code'
 import { describe, expect, mock, test } from 'claude-code/testing'
 
 import Defaults from '../hooks/defaults'
+import Store from '../hooks/store'
 import Fixtures from './fixtures'
 import Go from './fixtures/deps/go'
 import Feeds from './fixtures/feeds'
@@ -1018,6 +1019,172 @@ describe('register', () => {
     await clock.advance(10 * 60_000)
 
     expect(fetched).toEqual([REGISTRY, REGISTRY])
+  })
+
+  const VITE_FEED = 'https://github.com/owner/vite/releases.atom'
+  const TWO_PROJECT = Fixtures.stackTreeOf([
+    Fixtures.stackItemAt('react', '19.0.0', { current: '18.2.0' }),
+    Fixtures.stackItemAt('vite', '5.1.0', { current: '5.0.0' }),
+  ])
+  const REQUEST_DEADLINE = 30_000
+  const HOUR = 60 * 60_000
+
+  /** Answers the pages, holding every request to the hung addresses until `release` is called. */
+  const holdingOn = (on: On, pages: Map<string, string>, hung: ReadonlySet<string>) => {
+    const asked: string[] = []
+    let release = () => {}
+    const gate = new Promise<void>(resolve => {
+      release = resolve
+    })
+
+    on('http.fetch', async ($, e) => {
+      asked.push(e.url)
+
+      if (hung.has(e.url)) {
+        await gate
+      }
+
+      const text = pages.get(e.url)
+
+      return text === undefined
+        ? { deny: 'offline' }
+        : { value: { status: 200, ok: true, headers: {}, text } }
+    })
+
+    return { asked, release }
+  }
+
+  const stackOf = (stored: Map<string, unknown>) =>
+    Store.stackProjectOf((stored.get('stack') as Record<string, unknown> | undefined)?.['/repo'])
+
+  test('a release feed that never answers frees the stack run at the deadline, pauses for an hour and lets the next refresh run', async ($, on) => {
+    const clock = mock.clock(on)
+    const logs: string[] = []
+    const pages = new Map([
+      [REACT_FEED, Feeds.releasesAtomOf('react', [['v18.3.0'], ['v18.2.0']])],
+      [VITE_FEED, Feeds.releasesAtomOf('vite', [['v5.1.0'], ['v5.0.0']])],
+    ])
+    const stored = Fixtures.storeOn(on, {
+      sources: [],
+      depFeeds: {
+        'npm:react': { feed: REACT_FEED, resolvedAt: 0, isOverride: true },
+        'npm:vite': { feed: VITE_FEED, resolvedAt: 0, isOverride: true },
+      },
+    })
+
+    Fixtures.fsOn(on, TWO_PROJECT)
+    Fixtures.registerOn(on)
+
+    const { asked, release } = holdingOn(on, pages, new Set([REACT_FEED]))
+
+    on('ui.log', ($, e) => {
+      logs.push(e.text)
+
+      return { value: undefined }
+    })
+    on('session.start', () => ({ cwd: '/repo' }))
+
+    await $.session.start(Fixtures.SESSION)
+    await clock.settle()
+
+    // The run writes its reads together at its end, so the hung feed holds it until the deadline.
+    expect(asked.filter(url => url === REACT_FEED).length).toBe(1)
+    expect(stored.get('stack')).toBeUndefined()
+
+    await clock.advance(REQUEST_DEADLINE - 1)
+    expect(stored.get('stack')).toBeUndefined()
+
+    await clock.advance(1)
+
+    expect(stackOf(stored).deps['npm:vite']).toBeDefined()
+    expect(stackOf(stored).deps['npm:react']).toBeUndefined()
+
+    expect(logs.filter(line => line.includes('timed out'))).toEqual([
+      'news: deps: npm:react: release feed: timed out',
+    ])
+
+    // The held answer arriving after the deadline writes nothing.
+    release()
+    await clock.settle()
+
+    expect(stackOf(stored).deps['npm:react']).toBeUndefined()
+
+    pages.set(VITE_FEED, Feeds.releasesAtomOf('vite', [['v5.2.0'], ['v5.1.0'], ['v5.0.0']]))
+    await clock.advance(HOUR - REQUEST_DEADLINE - 1)
+
+    expect(asked.filter(url => url === REACT_FEED).length).toBe(1)
+
+    await clock.advance(1)
+    await clock.settle()
+
+    expect(asked.filter(url => url === REACT_FEED).length).toBe(2)
+    expect(stackOf(stored).deps['npm:react']?.items.map(item => item.release.version)).toEqual([
+      '18.3.0',
+    ])
+    expect(stackOf(stored).deps['npm:vite']?.items.map(item => item.release.version)).toEqual([
+      '5.2.0',
+      '5.1.0',
+    ])
+  })
+
+  test('a registry that never answers frees the stack run at the deadline, pauses for an hour and lets the next refresh run', async ($, on) => {
+    const clock = mock.clock(on)
+    const REGISTRY = 'https://registry.npmjs.org/react/latest'
+    const pages = new Map([
+      [REGISTRY, '{"repository":"github:owner/react"}'],
+      ['https://registry.npmjs.org/vite/latest', '{"repository":"github:owner/vite"}'],
+      [REACT_FEED, Feeds.releasesAtomOf('react', [['v18.3.0'], ['v18.2.0']])],
+      [VITE_FEED, Feeds.releasesAtomOf('vite', [['v5.1.0'], ['v5.0.0']])],
+    ])
+    const logs: string[] = []
+    const stored = Fixtures.storeOn(on, { sources: [] })
+
+    Fixtures.fsOn(on, TWO_PROJECT)
+    Fixtures.registerOn(on)
+
+    const { asked, release } = holdingOn(on, pages, new Set([REGISTRY]))
+
+    on('ui.log', ($, e) => {
+      logs.push(e.text)
+
+      return { value: undefined }
+    })
+    on('session.start', () => ({ cwd: '/repo' }))
+
+    await $.session.start(Fixtures.SESSION)
+    await clock.settle()
+
+    expect(asked.filter(url => url === REGISTRY).length).toBe(1)
+    expect(stored.get('stack')).toBeUndefined()
+
+    await clock.advance(REQUEST_DEADLINE - 1)
+    expect(stored.get('stack')).toBeUndefined()
+
+    await clock.advance(1)
+
+    expect(stackOf(stored).deps['npm:vite']).toBeDefined()
+
+    expect(logs.filter(line => line.includes('timed out'))).toEqual([
+      'news: deps: could not resolve npm:react: timed out',
+    ])
+
+    // The held answer arriving after the deadline caches and reads nothing.
+    release()
+    await clock.settle()
+
+    expect(Object.keys(stored.get('depFeeds') as object)).toEqual(['npm:vite'])
+    expect(stackOf(stored).deps['npm:react']).toBeUndefined()
+
+    await clock.advance(HOUR - REQUEST_DEADLINE - 1)
+
+    expect(asked.filter(url => url === REGISTRY).length).toBe(1)
+
+    await clock.advance(1)
+    await clock.settle()
+
+    expect(asked.filter(url => url === REGISTRY).length).toBe(2)
+    expect(Object.keys(stored.get('depFeeds') as object).sort()).toEqual(['npm:react', 'npm:vite'])
+    expect(stackOf(stored).deps['npm:react']).toBeDefined()
   })
 
   test("a session reads its own project's releases only, and keeps them after /clear", async ($, on) => {
