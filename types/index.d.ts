@@ -79,6 +79,8 @@ export type Settings = {
   /** Seconds between band rotations. */
   rotateSeconds: number
   lang: SummaryLang
+  /** Whether Herald asks Haiku for one-line summaries on its own and draws them in the band and the pane; Summarize works either way. */
+  autoSummaries: boolean
   /** The copy-for-Claude text, with `{title}`, `{url}` and `{source}` placeholders. */
   template: string
   /** The copy-for-Claude text of a dependency release, with `{pkg}`, `{current}`, `{new}` and `{url}` placeholders. */

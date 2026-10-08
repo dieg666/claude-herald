@@ -2,6 +2,7 @@ import type { On } from 'claude-code'
 import { describe, expect, mock, test } from 'claude-code/testing'
 
 import Defaults from '../hooks/defaults'
+import Names from '../hooks/names'
 import Store from '../hooks/store'
 import Summaries from '../hooks/summaries'
 import Fixtures from './fixtures'
@@ -284,7 +285,7 @@ describe('register', () => {
 
     const stored = Fixtures.storeOn(on, {
       sources: [FEED, page],
-      settings: { refreshMinutes: 2 },
+      settings: { ...Fixtures.SUMMARIES_ON, refreshMinutes: 2 },
       items: kept,
     })
     Fixtures.fsOn(on, {})
@@ -366,7 +367,7 @@ describe('register', () => {
       // The band keeps its first page meanwhile, so only refresh runs ask for summaries.
       const stored = Fixtures.storeOn(on, {
         sources: [FEED],
-        settings: { refreshMinutes: 2, rotateSeconds: 3600 },
+        settings: { ...Fixtures.SUMMARIES_ON, refreshMinutes: 2, rotateSeconds: 3600 },
       })
       const asked: string[] = []
       const NEW = 'feed:https://example.com/5'
@@ -414,7 +415,10 @@ describe('register', () => {
     const clock = mock.clock(on)
     const asked: string[] = []
 
-    Fixtures.storeOn(on, { sources: [FEED], settings: { refreshMinutes: 2, rotateSeconds: 3600 } })
+    Fixtures.storeOn(on, {
+      sources: [FEED],
+      settings: { ...Fixtures.SUMMARIES_ON, refreshMinutes: 2, rotateSeconds: 3600 },
+    })
     webOn(on, new Map([[FEED.url, Feeds.rssWithItems(7)]]))
     on('ui.render', () => Fixtures.BELOW_BAND)
     on('model.complete', ($, e) => {
@@ -450,7 +454,10 @@ describe('register', () => {
     async ($, on) => {
       const clock = mock.clock(on)
       const pages = new Map([[FEED.url, Feeds.rssWithItems(1)]])
-      const stored = Fixtures.storeOn(on, { sources: [FEED], settings: { refreshMinutes: 2 } })
+      const stored = Fixtures.storeOn(on, {
+        sources: [FEED],
+        settings: { ...Fixtures.SUMMARIES_ON, refreshMinutes: 2 },
+      })
       let calls = 0
       let inFlight = 0
       let most = 0
@@ -729,7 +736,7 @@ describe('register', () => {
 
   test('session.start summarizes the page the band shows, once', async ($, on) => {
     const clock = mock.clock(on)
-    const { asked } = Fixtures.bandOn(on, BAND_STORE)
+    const { asked } = Fixtures.bandOn(on, { ...BAND_STORE, settings: Fixtures.SUMMARIES_ON })
 
     await $.session.start(Fixtures.SESSION)
     await clock.settle()
@@ -833,7 +840,7 @@ describe('register', () => {
     expect(await rangeOf(ui)).toBe('4–6 of 7')
   })
 
-  test('/herald reset summarizes the items shown in the default language', async ($, on) => {
+  test('/herald reset turns automatic summaries off: the band drops its summary lines and nothing is asked', async ($, on) => {
     const clock = mock.clock(on)
     const factory = Defaults.FACTORY_SOURCES.find(source => source.isEnabled)
     const id = factory?.id ?? ''
@@ -841,7 +848,7 @@ describe('register', () => {
     const { asked } = Fixtures.bandOn(on, {
       sources: [factory],
       items: { [id]: items },
-      settings: { lang: 'es', rotateSeconds: 600 },
+      settings: { ...Fixtures.SUMMARIES_ON, lang: 'es', rotateSeconds: 600 },
       summaries: items.map(item => ({
         itemId: item.id,
         lang: 'es',
@@ -860,8 +867,10 @@ describe('register', () => {
     await $.command.run(Fixtures.heraldOf('reset'))
     await clock.settle()
 
-    expect([...asked].sort()).toEqual(items.map(item => item.title).sort())
-    expect(await ui.find({ type: 'Text', text: `Summary of ${items[1]?.title}.` })).toBeDefined()
+    expect(asked).toEqual([])
+    expect(await ui.find({ type: 'Text', text: /^Corto\.$/ })).toBeUndefined()
+    expect(await ui.find({ type: 'Text', text: /^…$/ })).toBeUndefined()
+    expect((await ui.findAll({ type: 'Link' })).length).toBe(3)
   })
 
   test('/herald disable summarizes the page the band shows now, once per item', async ($, on) => {
@@ -870,6 +879,7 @@ describe('register', () => {
     const { asked } = Fixtures.bandOn(on, {
       sources: [Fixtures.sourceAt('old'), Fixtures.sourceAt('new')],
       items: { old: Fixtures.datedItemsOf('old', 5, 10), new: Fixtures.datedItemsOf('new', 2) },
+      settings: Fixtures.SUMMARIES_ON,
       summaries: shown.map(itemId => ({
         itemId,
         lang: 'feed',
@@ -899,6 +909,7 @@ describe('register', () => {
     const clock = mock.clock(on)
     const { asked } = Fixtures.bandOn(on, {
       ...BAND_STORE,
+      settings: Fixtures.SUMMARIES_ON,
       summaries: ['src:1', 'src:2', 'src:3'].map(itemId => ({
         itemId,
         lang: 'feed',
@@ -1555,7 +1566,7 @@ describe('register', () => {
       const { asked } = Fixtures.bandOn(on, {
         sources: [Fixtures.sourceAt('a'), Fixtures.sourceAt('b')],
         items: { a: Fixtures.datedItemsOf('a', 2, 100), b: Fixtures.datedItemsOf('b', 12) },
-        settings: { rotateSeconds: 20 },
+        settings: { ...Fixtures.SUMMARIES_ON, rotateSeconds: 20 },
       })
 
       Fixtures.panesOn(on, ['terminal'])
@@ -1595,6 +1606,99 @@ describe('register', () => {
       ])
 
       await ui.unmount()
+    },
+  )
+  test(
+    'with automatic summaries off, no refresh, band turn, rotation, pane move or pane open and close asks for a one-line summary; Summarize still asks; on asks again',
+    { plugins: [Fixtures.PANE_CLOSER], timeoutMs: 30_000 },
+    async ($, on) => {
+      const clock = mock.clock(on)
+      const pages = new Map([[FEED.url, Feeds.rssWithItems(7)]])
+      const short: string[] = []
+      const long: string[] = []
+      const transcript: string[] = []
+
+      Fixtures.storeOn(on, { sources: [FEED], settings: { refreshMinutes: 2, rotateSeconds: 20 } })
+      Fixtures.registerOn(on)
+      Fixtures.fsOn(on, {})
+      Fixtures.panesOn(on, ['terminal'])
+      webOn(on, pages)
+      on('ui.render', () => Fixtures.BELOW_BAND)
+      on('ui.toast', () => ({ value: undefined }))
+      on('ui.log', ($, e) => {
+        if (e.to !== 'debug') {
+          transcript.push(e.text)
+        }
+
+        return { value: undefined }
+      })
+      on('model.complete', ($, e) => {
+        const title = /^Title: (.*)$/m.exec(e.prompt)?.[1] ?? ''
+
+        if (/Write exactly one sentence/.test(e.system ?? '')) {
+          short.push(title)
+        } else if (/Write \d+ to \d+ lines/.test(e.system ?? '')) {
+          long.push(title)
+        }
+
+        return { value: Fixtures.answerOf('First.\nSecond.\nThird.') }
+      })
+      on('session.start', () => ({ cwd: '/work' }))
+
+      await $.session.start(Fixtures.SESSION)
+      await clock.settle()
+
+      const band = await $.ui.mount({
+        plugin: 'herald',
+        component: 'AbovePrompt',
+        surface: 'terminal',
+        props: Fixtures.BAND_PROPS,
+      })
+
+      // A later run finds two new items with text.
+      pages.set(FEED.url, Feeds.rssWithItems(9))
+      await clock.advance(PERIOD)
+      await band.press({ key: 'next' })
+      await band.press({ key: 'down' })
+      await band.press({ key: 'auto' })
+      await clock.advance(3 * 20_000)
+      await clock.settle()
+
+      await $.command.run(Fixtures.heraldOf(''))
+      await clock.settle()
+
+      const pane = await $.ui.mount({
+        plugin: 'herald',
+        component: 'Pane',
+        requestId: Names.PANE_ID,
+        surface: 'terminal',
+        props: Fixtures.PANE_PROPS,
+      })
+
+      await pane.press({ key: 'down' })
+      await pane.press({ key: 'down' })
+      await clock.settle()
+      await pane.unmount()
+      await $.command.run(Fixtures.CLOSE_PANE)
+      await clock.settle()
+
+      expect(short).toEqual([])
+      expect(long).toEqual([])
+
+      await band.press({ key: 'summarize' })
+      await clock.settle()
+
+      expect(short).toEqual([])
+      expect(long.length).toBe(1)
+      expect(transcript.slice(-3)).toEqual(['First.', 'Second.', 'Third.'])
+
+      await $.command.run(Fixtures.heraldOf('summaries on'))
+      await clock.settle()
+
+      // The band's page and the pane's last window.
+      expect(short.length).toBeGreaterThanOrEqual(3)
+
+      await band.unmount()
     },
   )
 })

@@ -9,6 +9,7 @@ import { setEnabled } from './set-enabled.js'
 import { setLang } from './set-lang.js'
 import { setRefreshInterval } from './set-refresh-interval.js'
 import { setRotate } from './set-rotate.js'
+import { setSummaries } from './set-summaries.js'
 import { setTemplate } from './set-template.js'
 import type { Subcommand } from './subcommand.js'
 
@@ -63,6 +64,12 @@ export const SUBCOMMANDS: Readonly<Record<string, Subcommand>> = {
     summary: 'seconds between band pages, 5 to 3600 (default 20)',
     needsArgument: true,
     run: setRotate,
+  },
+  summaries: {
+    usage: 'summaries [on|off]',
+    summary: 'one-line Haiku summaries on their own, or only on s (default off)',
+    needsArgument: false,
+    run: setSummaries,
   },
   lang: {
     usage: 'lang <feed|user|code>',

@@ -18,5 +18,7 @@ export type BandRow = {
   readonly summary?: string
   /** Present, true, when the item gets no summary line and no placeholder: it has no usable text, or its summary replies were rejected for now. */
   readonly hasNoSummary?: true
+  /** A stack row's ecosystem, level and flags drawn dim after its headline, while rows take one line. */
+  readonly note?: string
   readonly isSelected: boolean
 }

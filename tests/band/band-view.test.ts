@@ -120,6 +120,7 @@ describe('band-view', () => {
       async ($, on) => {
         mock.clock(on)
         Fixtures.bandOn(on, {
+          settings: Fixtures.SUMMARIES_ON,
           ...STORE,
           summaries: [
             {
@@ -246,6 +247,7 @@ describe('band-view', () => {
         const ids = ['a', 'b', 'c', 'd', 'e', 'f']
 
         Fixtures.bandOn(on, {
+          settings: Fixtures.SUMMARIES_ON,
           sources: ids.map(id => Fixtures.sourceAt(id, { name: id })),
           items: Object.fromEntries(ids.map(id => [id, Fixtures.datedItemsOf(id, 28)])),
         })
@@ -382,6 +384,7 @@ describe('band-view', () => {
         ]
 
         Fixtures.bandOn(on, {
+          settings: Fixtures.SUMMARIES_ON,
           sources,
           items: {
             hn: Fixtures.datedItemsOf('hn', 1),
@@ -642,7 +645,7 @@ describe('band-view', () => {
       { timeoutMs: 20_000 },
       async ($, on) => {
         const clock = mock.clock(on)
-        const { asked } = Fixtures.bandOn(on, STORE)
+        const { asked } = Fixtures.bandOn(on, { ...STORE, settings: Fixtures.SUMMARIES_ON })
 
         await $.classic.SessionStart({ source: 'clear' })
 
@@ -676,6 +679,7 @@ describe('band-view', () => {
     test(`on ${surface}: long titles and summaries are cut to the band's width, wide characters as two cells`, async ($, on) => {
       mock.clock(on)
       Fixtures.bandOn(on, {
+        settings: Fixtures.SUMMARIES_ON,
         sources: [SOURCE],
         items: {
           src: Fixtures.datedItemsOf('src', 2).map((item, index) => ({
@@ -802,6 +806,104 @@ describe('band-view', () => {
     }
 
     return names
+  }
+
+  for (const surface of SURFACES) {
+    test(
+      `on ${surface}: with automatic summaries off every row is one line, with no summary or placeholder even when one is cached; the height holds across pages and selection, nothing is asked, and Summarize still asks`,
+      { timeoutMs: 20_000 },
+      async ($, on) => {
+        const clock = mock.clock(on)
+        // Six items, so every page is full.
+        const items = Fixtures.datedItemsOf('src', 6).map(item =>
+          item.id === 'src:2' ? { ...item, text: '' } : item,
+        )
+        const { asked, logs } = Fixtures.bandOn(on, {
+          sources: [SOURCE],
+          items: { src: items },
+          summaries: [
+            {
+              itemId: 'src:1',
+              lang: 'feed',
+              kind: 'short',
+              version: Summaries.SUMMARY_PROMPT_VERSION,
+              text: 'First, in short.',
+            },
+          ],
+        })
+
+        await $.classic.SessionStart({ source: 'clear' })
+
+        const ui = await $.ui.mount({ ...BAND, surface })
+        const heights: number[] = []
+        const look = async () => {
+          expect(await ui.find({ type: 'Text', text: /^…$/ })).toBeUndefined()
+          expect(await ui.find({ type: 'Text', text: 'First, in short.' })).toBeUndefined()
+          expect(
+            (await ui.findAll({ type: 'Box' })).filter(
+              box => box.props.height === 1 || box.props.paddingLeft !== undefined,
+            ),
+          ).toEqual([])
+          expect((await linksOf(ui)).length).toBe(3)
+          heights.push(Fixtures.rowsOf((await partsOf(ui)).root, Fixtures.BAND_PROPS.bodyColumns))
+        }
+
+        await look()
+        await ui.press({ key: 'down' })
+        await look()
+        await ui.press({ key: 'next' })
+        await clock.settle()
+        await look()
+        await ui.press({ key: 'next' })
+        await clock.settle()
+        await look()
+        await ui.press({ key: 'auto' })
+        await clock.advance(3 * 20_000)
+        await clock.settle()
+        await look()
+
+        // The header, three one-line items, the actions, then what the mods below drew.
+        expect(heights).toEqual(heights.map(() => 1 + 3 + 1 + 1))
+        expect(asked).toEqual([])
+
+        await ui.press({ key: 'prev' })
+        await ui.press({ key: 'summarize' })
+        await clock.settle()
+
+        const selected = String(await selectedOf(ui)).replace('https://example.com/src/', 'src ')
+
+        expect(asked).toEqual([selected])
+        expect(logs.filter(line => line.startsWith('transcript: '))).toEqual([
+          `transcript: ${selected}`,
+          `transcript: ${selected} one.`,
+          `transcript: ${selected} two.`,
+          `transcript: ${selected} three.`,
+        ])
+        expect(await ui.find({ type: 'Text', text: /^…$/ })).toBeUndefined()
+      },
+    )
+
+    test(
+      `on ${surface}: with automatic summaries off a stack row draws its ecosystem, level and flags dim after its headline on its one line`,
+      { timeoutMs: 20_000 },
+      async ($, on) => {
+        const clock = mock.clock(on)
+
+        stackBandOn(on, { showLevel: 'all' })
+
+        await $.session.start(Fixtures.SESSION)
+        await clock.settle()
+
+        const ui = await $.ui.mount({ ...BAND, surface })
+        const [react] = await headlineLinesOf(ui)
+        const note = react?.children.at(-1) as FoundElement | undefined
+
+        expect(note?.props.dimColor).toBe(true)
+        expect(textOf(note)).toBe('npm · major · breaking')
+        expect(Fixtures.rowsOf((await partsOf(ui)).root, Fixtures.BAND_PROPS.bodyColumns)).toBe(6)
+        expect(await ui.find({ type: 'Text', text: /^…$/ })).toBeUndefined()
+      },
+    )
   }
 
   const SHOWN = {
@@ -994,6 +1096,7 @@ describe('band-view', () => {
           item.id === 'src:2' || item.id === 'src:5' ? { ...item, text: '' } : item,
         )
         const { asked, logs } = Fixtures.bandOn(on, {
+          settings: Fixtures.SUMMARIES_ON,
           sources: [SOURCE],
           items: { src: items },
           summaries: [
@@ -1054,7 +1157,7 @@ describe('band-view', () => {
         Fixtures.storeOn(on, {
           sources: [Fixtures.sourceAt(id)],
           items: { [id]: Fixtures.datedItemsOf(id, 7) },
-          settings: { rotateSeconds: 3600 },
+          settings: { ...Fixtures.SUMMARIES_ON, rotateSeconds: 3600 },
         })
         Fixtures.registerOn(on)
         on('ui.render', () => Fixtures.BELOW_BAND)

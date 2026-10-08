@@ -1,6 +1,7 @@
 export * from './current-summary-lang.js'
 export * from './ensure-visible-summaries.js'
 export * from './excerpt-of.js'
+export * from './is-auto-summarizing.js'
 export * from './is-meta-reply.js'
 export * from './is-muted.js'
 export type * from './limiter.js'

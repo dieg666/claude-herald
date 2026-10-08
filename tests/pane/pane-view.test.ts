@@ -123,12 +123,72 @@ describe('pane-view', () => {
 
   for (const surface of SURFACES) {
     test(
+      `on ${surface}: with automatic summaries off the selected item draws no summary or placeholder, even one cached; moves and tab switches ask nothing, and Summarize still asks`,
+      { timeoutMs: 20_000 },
+      async ($, on) => {
+        const clock = mock.clock(on)
+        const { asked, logs } = Fixtures.bandOn(on, {
+          ...STORE,
+          summaries: [
+            {
+              itemId: 'a:2',
+              lang: 'feed',
+              kind: 'short',
+              version: Summaries.SUMMARY_PROMPT_VERSION,
+              text: 'Second, in short.',
+            },
+          ],
+        })
+
+        await $.classic.SessionStart({ source: 'clear' })
+
+        const ui = await $.ui.mount({ ...PANE, surface })
+        const shown = async () => {
+          expect(await summariesOf(ui)).toEqual([])
+          expect(await ui.find({ type: 'Text', text: /^…$/ })).toBeUndefined()
+          expect(await ui.find({ type: 'Text', text: 'Second, in short.' })).toBeUndefined()
+
+          return (await newsRowsOf(ui)).length
+        }
+
+        expect(await shown()).toBe(3)
+
+        await ui.press({ key: 'down' })
+        await clock.settle()
+
+        expect(await selectedOf(ui)).toBe('https://example.com/a/2')
+        expect(await shown()).toBe(3)
+
+        await ui.press({ key: 'tab-b' })
+        await clock.settle()
+
+        expect(await shown()).toBe(2)
+        expect(asked).toEqual([])
+
+        await ui.press({ key: 'summarize' })
+        await clock.settle()
+
+        expect(asked).toEqual(['b 1'])
+        expect(logs.filter(line => line.startsWith('transcript: '))).toEqual([
+          'transcript: b 1',
+          'transcript: b 1 one.',
+          'transcript: b 1 two.',
+          'transcript: b 1 three.',
+        ])
+        expect(await shown()).toBe(2)
+      },
+    )
+  }
+
+  for (const surface of SURFACES) {
+    test(
       `on ${surface}: a tab per enabled source then Saved, the first active; its items one line each, linked and dated; the selected one's summary under it, pending or summarized`,
       { timeoutMs: 20_000 },
       async ($, on) => {
         mock.clock(on)
 
         const { asked } = Fixtures.bandOn(on, {
+          settings: Fixtures.SUMMARIES_ON,
           ...STORE,
           summaries: [
             {
@@ -190,6 +250,7 @@ describe('pane-view', () => {
       async ($, on) => {
         const clock = mock.clock(on)
         const { asked, logs } = Fixtures.bandOn(on, {
+          settings: Fixtures.SUMMARIES_ON,
           ...STORE,
           items: {
             ...STORE.items,
@@ -647,6 +708,7 @@ describe('pane-view', () => {
         const clock = mock.clock(on)
         const long = Array.from({ length: 14 }, (_, index) => `word${index + 1}`).join(' ')
         const { asked } = Fixtures.bandOn(on, {
+          settings: Fixtures.SUMMARIES_ON,
           sources: [ALPHA],
           items: {
             a: Fixtures.datedItemsOf('a', 10).map(item =>
@@ -736,6 +798,7 @@ describe('pane-view', () => {
         const clock = mock.clock(on)
         const gone = { ...Fixtures.datedItemsOf('gone', 1)[0], savedAt: 1 }
         const { asked } = Fixtures.bandOn(on, {
+          settings: Fixtures.SUMMARIES_ON,
           sources: [ALPHA, BETA],
           items: { a: Fixtures.datedItemsOf('a', 10), b: Fixtures.datedItemsOf('b', 2) },
           saved: [gone],
@@ -819,6 +882,7 @@ describe('pane-view', () => {
       async ($, on) => {
         const clock = mock.clock(on)
         const { asked } = Fixtures.bandOn(on, {
+          settings: Fixtures.SUMMARIES_ON,
           sources: [ALPHA],
           items: { a: Fixtures.datedItemsOf('a', 30) },
         })
@@ -859,6 +923,7 @@ describe('pane-view', () => {
         const clock = mock.clock(on)
         const items = Fixtures.datedItemsOf('a', 6)
         const { asked } = Fixtures.bandOn(on, {
+          settings: Fixtures.SUMMARIES_ON,
           sources: [ALPHA],
           items: { a: items },
           summaries: items.map(item => ({
@@ -1652,6 +1717,7 @@ describe('pane-view', () => {
   test('on mobile the news tabs draw the same one-line rows, the date at the right end, and the selected summary only', async ($, on) => {
     mock.clock(on)
     Fixtures.bandOn(on, {
+      settings: Fixtures.SUMMARIES_ON,
       ...STORE,
       summaries: [
         {
@@ -1805,7 +1871,7 @@ describe('pane-view', () => {
   for (const surface of SURFACES) {
     test(`on ${surface}: the selected news row is filled and its Texts inverse across headline and date, the summary stays dim, and moving the selection moves the highlight`, async ($, on) => {
       mock.clock(on)
-      Fixtures.bandOn(on, STORE)
+      Fixtures.bandOn(on, { ...STORE, settings: Fixtures.SUMMARIES_ON })
 
       await $.classic.SessionStart({ source: 'clear' })
 

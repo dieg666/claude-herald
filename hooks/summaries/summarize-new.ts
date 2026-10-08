@@ -6,7 +6,7 @@ import { SUMMARY_LIMITS } from './summary-limits.js'
 import { summaryTextOf } from './summary-text-of.js'
 
 /**
- * One-line summaries for the items a refresh run reports as new (none on a first load), the newest few with usable text only; never throws.
+ * One-line summaries for the items a refresh run reports as new (none on a first load), the newest few with usable text only, while automatic summaries are on; never throws.
  *
  * @param host the engine
  * @param jobs the limiter and write queue

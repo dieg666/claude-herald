@@ -62,7 +62,7 @@ describe('show-herald', () => {
     { timeoutMs: 20_000 },
     async ($, on) => {
       const clock = mock.clock(on)
-      const { asked } = Fixtures.bandOn(on, STORE)
+      const { asked } = Fixtures.bandOn(on, { ...STORE, settings: Fixtures.SUMMARIES_ON })
       const surfaces: RenderSurface[] = []
 
       on('session.surfaces', () => ({ value: [...surfaces] }))

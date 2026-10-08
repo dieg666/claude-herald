@@ -28,6 +28,17 @@ describe('settings-of', () => {
     ).toEqual(Defaults.DEFAULT_SETTINGS)
   })
 
+  test('automatic summaries are on only when stored as true; a store without the key reads as off', () => {
+    const before = { refreshMinutes: 10, rotateSeconds: 30, lang: 'es', template: '{url}' }
+
+    expect(Store.settingsOf(before).autoSummaries).toBe(false)
+    expect(Store.settingsOf({ autoSummaries: true }).autoSummaries).toBe(true)
+
+    for (const value of [false, 'true', 1, null, 'on']) {
+      expect(Store.settingsOf({ autoSummaries: value }).autoSummaries).toBe(false)
+    }
+  })
+
   test('a stored template is kept, not replaced by the default', () => {
     const stored = '{title} {url}'
 
@@ -39,6 +50,7 @@ describe('settings-of', () => {
       refreshMinutes: 10,
       rotateSeconds: 30,
       lang: 'user',
+      autoSummaries: true,
       template: '{url}',
       depsTemplate: '{pkg} {new}',
     }

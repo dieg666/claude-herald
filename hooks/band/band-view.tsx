@@ -17,12 +17,13 @@ import { LEAD_COLUMNS } from './lead-columns.js'
 import { SUMMARY_PLACEHOLDER } from './summary-placeholder.js'
 
 /**
- * One item: the selection mark, the source column (a news item's source name, dim, or in the release color for a release; a release of the stack's glyph and package), the headline, then the summary dim beneath it, starting in the headline's column, or an empty line for an item without one (no text, or replies rejected for now) so the band keeps its height as it turns.
+ * One item: the selection mark, the source column (a news item's source name, dim, or in the release color for a release; a release of the stack's glyph and package), the headline and a stack row's note dim after it, then, while rows take two lines, the summary dim beneath it, starting in the headline's column, or an empty line for an item without one (no text, or replies rejected for now) so the band keeps its height as it turns.
  *
  * @param ui the elements
  * @param row the item as drawn
+ * @param hasSummaries whether the row takes a second line for its summary
  */
-function rowView(ui: BandUi, row: BandRow): RenderElement {
+function rowView(ui: BandUi, row: BandRow, hasSummaries: boolean): RenderElement {
   const { Box, Text, Link } = ui
   const label =
     row.source === ''
@@ -47,8 +48,13 @@ function rowView(ui: BandUi, row: BandRow): RenderElement {
         <Text bold={row.isSelected}>
           {row.href === undefined ? row.title : <Link href={row.href}>{row.title}</Link>}
         </Text>
+        {row.note === undefined
+          ? []
+          : [' '.repeat(GROUP_GAP_COLUMNS), <Text dimColor>{row.note}</Text>]}
       </Text>
-      {row.hasNoSummary === true ? (
+      {!hasSummaries ? (
+        []
+      ) : row.hasNoSummary === true ? (
         <Box height={1} />
       ) : (
         <Box paddingLeft={LEAD_COLUMNS}>
@@ -129,7 +135,7 @@ export function bandView(
         {title}
         {pages}
       </Box>
-      {model.rows.map(row => rowView(ui, row))}
+      {model.rows.map(row => rowView(ui, row, model.hasSummaries))}
       {actionRowView(ui, model.isSelectedSaved, handlers, [selection])}
       {below}
     </Box>

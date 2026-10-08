@@ -32,6 +32,8 @@ export function settingsOf(value: unknown): Settings {
     refreshMinutes: positiveOf(stored.refreshMinutes) ?? DEFAULT_SETTINGS.refreshMinutes,
     rotateSeconds: positiveOf(stored.rotateSeconds) ?? DEFAULT_SETTINGS.rotateSeconds,
     lang: filledOf(stored.lang)?.trim() ?? DEFAULT_SETTINGS.lang,
+    // Only a stored true turns them on, so a store from before the setting reads as off.
+    autoSummaries: stored.autoSummaries === true,
     template: filledOf(stored.template) ?? DEFAULT_SETTINGS.template,
     depsTemplate: filledOf(stored.depsTemplate) ?? DEFAULT_SETTINGS.depsTemplate,
   }

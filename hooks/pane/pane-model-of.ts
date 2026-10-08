@@ -51,7 +51,7 @@ function newsLineOf(title: string, name: string | undefined, columns: number) {
 }
 
 /**
- * One item as the pane draws it, every line fitted to `columns` cells, the selected one with its summary wrapped onto at most `PANE_SUMMARY_LINES` lines; a news item has the source name after its headline when `sourceName` is given (the saved tab), before its date column; a stack item shows 📦 (⚠ when breaking or security), `pkg current → new` and its ecosystem, level and flags; a news item without usable text, or with an empty summary (replies rejected for now), shows no summary.
+ * One item as the pane draws it, every line fitted to `columns` cells, the selected one with its summary wrapped onto at most `PANE_SUMMARY_LINES` lines; a news item has the source name after its headline when `sourceName` is given (the saved tab), before its date column; a stack item shows 📦 (⚠ when breaking or security), `pkg current → new` and its ecosystem, level and flags; a news item without usable text, with an empty summary (replies rejected for now), or with automatic summaries off, shows no summary.
  *
  * @param item the item
  * @param summary its one-line summary, when there is one
@@ -59,6 +59,7 @@ function newsLineOf(title: string, name: string | undefined, columns: number) {
  * @param columns the cells the pane's body has
  * @param sourceName the source's name when the tab mixes sources, drawn after the headline before the date, or leading a version-only title
  * @param isRead whether the item was opened or copied for Claude
+ * @param autoSummaries whether a news item's one-line summary is drawn
  */
 function rowOf(
   item: Item,
@@ -67,9 +68,11 @@ function rowOf(
   columns: number,
   sourceName?: string,
   isRead = false,
+  autoSummaries = true,
 ): PaneRow {
   const stack = isStackItem(item) ? item : undefined
-  const hasNoSummary = stack === undefined && (summary === '' || summaryTextOf(item) === '')
+  const hasNoSummary =
+    stack === undefined && (!autoSummaries || summary === '' || summaryTextOf(item) === '')
   const note = stack !== undefined ? stackNoteOf(stack.release) : hasNoSummary ? undefined : summary
   const href = httpUrlOf(item.url)?.href
   const date = shortDateOf(item.publishedAt)
@@ -107,6 +110,7 @@ function rowOf(
  * @param filter the stack tab's filter
  * @param isFocused whether the pane holds the keyboard
  * @param read the read item ids by source id
+ * @param autoSummaries whether the selected news item's one-line summary is drawn; a stack item's note is drawn either way
  */
 export function paneModelOf(
   page: PanePage,
@@ -117,6 +121,7 @@ export function paneModelOf(
   filter = '',
   isFocused = true,
   read: Readonly<IdsBySource> = {},
+  autoSummaries = true,
 ): PaneModel {
   const names = new Map(sources.map(source => [source.id, lineOf(source.name)]))
   const isSavedTab = page.tab.id === SAVED_TAB
@@ -133,6 +138,7 @@ export function paneModelOf(
             columns,
             isSavedTab ? names.get(item.sourceId) : undefined,
             Object.hasOwn(read, item.sourceId) && read[item.sourceId]?.includes(item.id) === true,
+            autoSummaries,
           ),
         )
       : paneStackRowsOf(page.stack, page.span.selected, columns)

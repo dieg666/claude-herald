@@ -39,7 +39,7 @@ const SUMMARY_JOBS = Summaries.summaryJobsOf(MODEL_LIMITER)
 const STACK = Stack.stackLoopOf()
 
 /**
- * What the band and the pane run for the items they show: one-line summaries for news items, the model's flag check for stack items.
+ * What the band and the pane run for the items they show: one-line summaries for news items while automatic summaries are on, the model's flag check for stack items.
  *
  * @param host the engine
  * @param items the items shown
@@ -57,10 +57,10 @@ function showItems(host: Host, items: readonly Item[], signal?: AbortSignal): Pr
   ])
 }
 
-// The band's rotation timer, for this load of the module; each page the band turns to gets one-line summaries, its stack items the flag check.
+// The band's rotation timer, for this load of the module; each page the band turns to gets one-line summaries while they are on, its stack items the flag check.
 const ROTATION = Band.rotationOf(showItems)
 
-// The refresh timer and the run in flight, for this load of the module; new items and the page the band shows get one-line summaries, then the stack's releases are refreshed.
+// The refresh timer and the run in flight, for this load of the module; new items and the page the band shows get one-line summaries while they are on, then the stack's releases are refreshed.
 const REFRESH = Refresh.refreshLoopOf(async (host, run, signal) => {
   await Summaries.summarizeNew(host, SUMMARY_JOBS, run.newItems, signal)
   await Band.handShownPage(host, ROTATION, signal)
@@ -387,7 +387,14 @@ export const register: Register = on => {
 
     return Band.bandView(
       { Box, Text, Button, Link },
-      Band.bandModelOf(page, sources, await read($, SUMMARIES), await read($, SAVED), columns),
+      Band.bandModelOf(
+        page,
+        sources,
+        await read($, SUMMARIES),
+        await read($, SAVED),
+        columns,
+        (await read($, SETTINGS)).autoSummaries === true,
+      ),
       handlers,
       await next(e),
     )
@@ -420,9 +427,10 @@ export const register: Register = on => {
     const saved = await read($, SAVED)
     const stack = Pane.paneStackOf(await read($, STACK_STATE))
     const newCounts = Pane.paneNewCountsOf(items, await read($, VIEWED))
+    const settings = await read($, SETTINGS)
     const health = {
       ...(await read($, STATUS)),
-      refreshMinutes: (await read($, SETTINGS)).refreshMinutes,
+      refreshMinutes: settings.refreshMinutes,
       now: await $.clock.now(),
     }
     const page = Pane.panePageOf(
@@ -461,6 +469,7 @@ export const register: Register = on => {
         // A phone taps the Buttons, so it never needs the focus chord.
         e.props.isFocused || e.surface === 'mobile',
         await read($, READ),
+        settings.autoSummaries === true,
       ),
       paneHandlersOf($, page.items[page.selected], page.size),
       e.surface,

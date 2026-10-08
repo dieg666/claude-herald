@@ -32,6 +32,7 @@ describe('run-herald', () => {
       'disable',
       'interval',
       'rotate',
+      'summaries',
       'lang',
       'template',
       'reset',
