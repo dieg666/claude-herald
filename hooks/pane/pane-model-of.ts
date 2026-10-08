@@ -38,7 +38,7 @@ function lineOf(text: string): string {
 }
 
 /**
- * A news headline and its source name fitted to `columns` cells as the band fits them, without the band's padding: the pane's layout puts the name before the date column.
+ * A news headline and its source name fitted to `columns` cells, the name cut first and dropped before the headline is, without the padding to the right end: the pane's layout puts the name before the date column.
  *
  * @param title the headline, one line
  * @param name the source's name, undefined to draw none

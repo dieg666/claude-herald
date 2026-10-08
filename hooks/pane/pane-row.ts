@@ -2,9 +2,11 @@ import type { BandRow } from '../band/band-row.js'
 import type { PaneCell } from './pane-cell.js'
 
 /**
- * One item as the pane draws it: the band's row (its one-line summary and source gap unused) plus the item's short date when it has one, the selected item's summary lines, and on the stack tab the ecosystem heading drawn above the first row of each group, the columns after the title and whether it is a release listed under its package; and whether a news item was read.
+ * One item as the pane draws it: the band's row without its source column (its one-line summary unused), the source's name on the saved tab, plus the item's short date when it has one, the selected item's summary lines, and on the stack tab the ecosystem heading drawn above the first row of each group, the columns after the title and whether it is a release listed under its package; and whether a news item was read.
  */
-export type PaneRow = BandRow & {
+export type PaneRow = Omit<BandRow, 'source' | 'sourceGap' | 'isRelease'> & {
+  /** On the saved tab, the source's name cut to the room left after the headline; absent elsewhere, when the source is gone or there is no room. */
+  readonly source?: string
   readonly date?: string
   /** The selected item's summary wrapped to the pane's width, at most three lines; absent on every other row and while pending. */
   readonly summaryLines?: readonly string[]

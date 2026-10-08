@@ -978,7 +978,8 @@ describe('register', () => {
 
     const ui = await $.ui.mount(STACK_BAND)
 
-    expect(await ui.find({ type: 'Link', text: 'react 18.2.0 → 19.0.0' })).toBeDefined()
+    expect(await ui.find({ type: 'Link', text: '18.2.0 → 19.0.0' })).toBeDefined()
+    expect(await ui.find({ type: 'Text', text: /^react$/ })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: '⚠' })).toBeDefined()
   })
 
@@ -999,7 +1000,8 @@ describe('register', () => {
     const ui = await $.ui.mount(STACK_BAND)
 
     expect(notes.length > 500).toBe(true)
-    expect(await ui.find({ type: 'Link', text: 'react 18.2.0 → 18.2.1' })).toBeDefined()
+    expect(await ui.find({ type: 'Link', text: '18.2.0 → 18.2.1' })).toBeDefined()
+    expect(await ui.find({ type: 'Text', text: /^react$/ })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: 'npm · patch · security' })).toBeDefined()
   })
 
@@ -1243,12 +1245,15 @@ describe('register', () => {
     const links = async () =>
       (await ui.findAll({ type: 'Link' })).map(link => link.children.join(''))
 
-    expect(await links()).toEqual(['react 18.2.0 → 19.0.0 · React 19'])
+    expect(await links()).toEqual(['18.2.0 → 19.0.0 · React 19'])
+    expect(
+      (await ui.findAll({ type: 'Text', text: /^(react|vite)$/ })).map(text => text.text),
+    ).toEqual(['react'])
 
     await $.classic.SessionStart({ source: 'clear' })
     await ui.redraw()
 
-    expect(await links()).toEqual(['react 18.2.0 → 19.0.0 · React 19'])
+    expect(await links()).toEqual(['18.2.0 → 19.0.0 · React 19'])
   })
 
   test('while the model is down, turning back to a page of stack releases asks about them once', async ($, on) => {
@@ -1375,7 +1380,8 @@ describe('register', () => {
 
     const ui = await $.ui.mount(STACK_BAND)
 
-    expect(await linksOf(ui)).toEqual(['react 18.2.0 → 19.0.0', 'src 1'])
+    expect(await linksOf(ui)).toEqual(['18.2.0 → 19.0.0', 'src 1'])
+    expect(await ui.find({ type: 'Text', text: /^react$/ })).toBeDefined()
 
     const reads = manifestReads()
 

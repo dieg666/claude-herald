@@ -10,12 +10,16 @@ export type CompactBandModel = {
 }
 
 /**
- * The compact band's one item: its headline fitted to the room left (a link when the address is http(s)), with a release's glyph before it.
+ * The compact band's one item: its headline fitted to the room left (a link when the address is http(s)), with a release's glyph before it, or a news item's source name when there is room.
  */
 export type CompactHeadline = {
   readonly id: string
   /** The release glyph of a stack item; a news item has none. */
   readonly icon?: string
+  /** A news item's source name cut to the source column, drawn before the headline where the room holds it. */
+  readonly source?: string
+  /** Present, true, when `source` is a release's: it takes the release color instead of dim. */
+  readonly isRelease?: true
   readonly title: string
   /** The item's address, only when it is http(s). */
   readonly href?: string

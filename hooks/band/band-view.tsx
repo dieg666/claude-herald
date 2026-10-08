@@ -13,17 +13,27 @@ import type { BandHandlers } from './band-handlers.js'
 import type { BandModel } from './band-model.js'
 import type { BandRow } from './band-row.js'
 import type { BandUi } from './band-ui.js'
-import { SUMMARY_INDENT } from './summary-indent.js'
+import { LEAD_COLUMNS } from './lead-columns.js'
 import { SUMMARY_PLACEHOLDER } from './summary-placeholder.js'
 
 /**
- * One item: the selection mark and the headline, the source name dim at the right end (a release row has its glyph before the headline instead), then the summary dim beneath, or an empty line for an item without one (no text, or replies rejected for now) so the band keeps its height as it turns.
+ * One item: the selection mark, the source column (a news item's source name, dim, or in the release color for a release; a release of the stack's glyph and package), the headline, then the summary dim beneath it, starting in the headline's column, or an empty line for an item without one (no text, or replies rejected for now) so the band keeps its height as it turns.
  *
  * @param ui the elements
  * @param row the item as drawn
  */
 function rowView(ui: BandUi, row: BandRow): RenderElement {
   const { Box, Text, Link } = ui
+  const label =
+    row.source === ''
+      ? []
+      : [
+          row.isRelease === true ? (
+            <Text color="claude">{row.source}</Text>
+          ) : (
+            <Text dimColor>{row.source}</Text>
+          ),
+        ]
 
   return (
     <Box flexDirection="column">
@@ -32,15 +42,16 @@ function rowView(ui: BandUi, row: BandRow): RenderElement {
         {row.icon === undefined
           ? []
           : [<Text color="claude">{row.icon}</Text>, iconGapOf(row.icon)]}
+        {label}
+        {row.sourceGap}
         <Text bold={row.isSelected}>
           {row.href === undefined ? row.title : <Link href={row.href}>{row.title}</Link>}
         </Text>
-        {row.source === undefined ? [] : [row.sourceGap, <Text dimColor>{row.source}</Text>]}
       </Text>
       {row.hasNoSummary === true ? (
         <Box height={1} />
       ) : (
-        <Box paddingLeft={SUMMARY_INDENT}>
+        <Box paddingLeft={LEAD_COLUMNS}>
           <Text dimColor wrap="truncate-end">
             {row.summary ?? SUMMARY_PLACEHOLDER}
           </Text>

@@ -55,6 +55,33 @@ describe('band-view', () => {
   const linksOf = async (ui: Drawing) =>
     (await ui.findAll({ type: 'Link' })).map(link => [link.props.href, link.children.join('')])
 
+  // The text of a drawn child, a string or an element's strings.
+  const textOf = (child: unknown): string =>
+    typeof child === 'string'
+      ? child
+      : ((child as Partial<FoundElement>).children ?? []).map(textOf).join('')
+
+  // Each item's headline line, as its children: the Text that holds the mark first.
+  const headlineLinesOf = async (ui: Drawing) =>
+    (await ui.findAll({ type: 'Text' })).filter(
+      text =>
+        text.props.wrap === 'truncate-end' &&
+        (text.children as Partial<FoundElement>[]).some(child => child.props?.bold !== undefined),
+    )
+
+  const headlineIndexOf = (line: FoundElement) =>
+    (line.children as Partial<FoundElement>[]).findIndex(child => child.props?.bold !== undefined)
+
+  // The cells before each headline: the mark, a space, the glyph and its gap, the label and its gap.
+  const leadsOf = async (ui: Drawing) =>
+    (await headlineLinesOf(ui)).map(line =>
+      Band.displayWidthOf(line.children.slice(0, headlineIndexOf(line)).map(textOf).join('')),
+    )
+
+  // How many children follow each headline on its line.
+  const trailsOf = async (ui: Drawing) =>
+    (await headlineLinesOf(ui)).map(line => line.children.length - headlineIndexOf(line) - 1)
+
   // A drawn tree without its press handles, which differ from one drawing to the next.
   const shapeOf = (tree: unknown) =>
     JSON.parse(JSON.stringify(tree, (key, value: unknown) => (key === 'press' ? undefined : value)))
@@ -118,7 +145,7 @@ describe('band-view', () => {
         ])
         expect(await ui.find({ type: 'Text', text: 'First, in short.' })).toBeDefined()
         expect((await ui.findAll({ type: 'Text', text: /^…$/ })).length).toBe(2)
-        // The source name, dim, at the right end of each headline line; no glyph column.
+        // The source name, dim, in the column before each headline; no glyph.
         expect(
           (await ui.findAll({ type: 'Text', text: /^Hacker News$/ })).map(
             name => name.props.dimColor,
@@ -279,7 +306,7 @@ describe('band-view', () => {
       },
     )
 
-    test(`on ${surface}: a bare version tag is drawn with its source's name, a headline as it is, the stored title unchanged`, async ($, on) => {
+    test(`on ${surface}: a bare version tag is drawn bare after its source's name, never repeating it, the stored title unchanged`, async ($, on) => {
       mock.clock(on)
 
       const source = Fixtures.sourceAt('rel', { name: 'Claude Code' })
@@ -292,32 +319,99 @@ describe('band-view', () => {
       const ui = await $.ui.mount({ ...BAND, surface })
 
       expect((await linksOf(ui)).map(([, text]) => text)).toEqual([
-        'Claude Code v2.1.293',
+        'v2.1.293',
         'Claude Code v2.1.292 adds',
+      ])
+      // One name a row, in the column; the bare tag is a release, the headline of a news feed is not.
+      expect(
+        (await ui.findAll({ type: 'Text', text: /^Claude Code$/ })).map(name => [
+          name.props.color,
+          name.props.dimColor,
+        ]),
+      ).toEqual([
+        ['claude', undefined],
+        [undefined, true],
       ])
       expect(stored.get('items')).toEqual({ rel: [tag, headline] })
 
       await ui.unmount()
     })
 
-    test(`on ${surface}: a bare version tag draws no name at the right end, a headline does`, async ($, on) => {
+    test(`on ${surface}: a release feed's names take the release color, a news feed's stay dim`, async ($, on) => {
       mock.clock(on)
 
-      const source = Fixtures.sourceAt('rel', { name: 'Claude Code' })
-      const tag = { ...Fixtures.datedItemsOf('rel', 2)[0], title: 'v2.1.293' }
-      const headline = { ...Fixtures.datedItemsOf('rel', 2)[1], title: 'Claude Code v2.1.292 adds' }
+      const releases = Fixtures.sourceAt('rel', {
+        name: 'Claude Code releases',
+        url: 'https://github.com/anthropics/claude-code/releases.atom',
+      })
+      const news = Fixtures.sourceAt('hn', { name: 'HN' })
 
-      Fixtures.bandOn(on, { sources: [source], items: { rel: [tag, headline] } })
+      Fixtures.bandOn(on, {
+        sources: [releases, news],
+        items: {
+          rel: [{ ...Fixtures.datedItemsOf('rel', 1)[0], title: 'Claude Code 2.1.294 is out' }],
+          hn: Fixtures.datedItemsOf('hn', 1, 1),
+        },
+      })
 
       await $.classic.SessionStart({ source: 'clear' })
 
       const ui = await $.ui.mount({ ...BAND, surface })
+      const labelOf = async (text: RegExp) => {
+        const found = await ui.find({ type: 'Text', text })
 
-      // Only the second row draws the name; the first leads with it already.
-      expect((await ui.findAll({ type: 'Text', text: /^Claude Code$/ })).length).toBe(1)
+        return [found?.props.color, found?.props.dimColor]
+      }
+
+      expect(await labelOf(/^Claude Code…$/)).toEqual(['claude', undefined])
+      expect(await labelOf(/^HN$/)).toEqual([undefined, true])
 
       await ui.unmount()
     })
+
+    test(
+      `on ${surface}: at 174, 120 and 80 columns every headline and summary starts at cell 16, after the twelve-cell column and its gap, and nothing follows the headline`,
+      { timeoutMs: 20_000 },
+      async ($, on) => {
+        mock.clock(on)
+
+        const sources = [
+          Fixtures.sourceAt('hn', { name: 'HN' }),
+          Fixtures.sourceAt('sw', { name: 'Simon Willison' }),
+          Fixtures.sourceAt('src', { name: 'Hacker News' }),
+        ]
+
+        Fixtures.bandOn(on, {
+          sources,
+          items: {
+            hn: Fixtures.datedItemsOf('hn', 1),
+            sw: Fixtures.datedItemsOf('sw', 1, 1),
+            src: Fixtures.datedItemsOf('src', 1, 2),
+          },
+        })
+
+        await $.classic.SessionStart({ source: 'clear' })
+
+        for (const columns of [174, 120, 80]) {
+          const ui = await $.ui.mount({
+            ...BAND,
+            surface,
+            props: { ...Fixtures.BAND_PROPS, bodyColumns: columns },
+          })
+
+          expect(await leadsOf(ui)).toEqual([16, 16, 16])
+          expect(await trailsOf(ui)).toEqual([0, 0, 0])
+          expect(
+            (await ui.findAll({ type: 'Box' }))
+              .map(box => box.props.paddingLeft)
+              .filter(padding => padding !== undefined),
+          ).toEqual([16, 16, 16])
+          expect(await ui.find({ type: 'Text', text: /^Simon Willi…$/ })).toBeDefined()
+
+          await ui.unmount()
+        }
+      },
+    )
 
     test(`on ${surface}: every color is a theme key and every hotkey one distinct lowercase letter`, async ($, on) => {
       mock.clock(on)
@@ -608,12 +702,12 @@ describe('band-view', () => {
         props: { ...Fixtures.BAND_PROPS, bodyColumns: 70 },
       })
 
-      // Seventy cells less the mark and a space leave sixty-eight for a headline, and none for a name.
+      // Seventy cells less the sixteen before the headline leave fifty-four, for the headline and the summary alike.
       expect((await linksOf(ui)).map(([, text]) => text)).toEqual([
-        `${'a'.repeat(67)}…`,
-        `${'漢'.repeat(33)}…`,
+        `${'a'.repeat(53)}…`,
+        `${'漢'.repeat(26)}…`,
       ])
-      expect(await ui.find({ type: 'Text', text: `${'b'.repeat(65)}…` })).toBeDefined()
+      expect(await ui.find({ type: 'Text', text: `${'b'.repeat(53)}…` })).toBeDefined()
     })
 
     test(`on ${surface}: an address that is not http(s) draws its title as plain text`, async ($, on) => {
@@ -737,7 +831,7 @@ describe('band-view', () => {
     }
 
     test(
-      `on ${surface}: a stack row shows ⚠ or 📦, links "pkg current → new" to the release and shows its level beneath`,
+      `on ${surface}: a stack row shows ⚠ or 📦 and its package, links "current → new" to the release and shows its level beneath`,
       { timeoutMs: 20_000 },
       async ($, on) => {
         const clock = mock.clock(on)
@@ -750,16 +844,15 @@ describe('band-view', () => {
         const ui = await $.ui.mount({ ...BAND, surface })
 
         expect(await linksOf(ui)).toEqual([
-          [
-            'https://github.com/owner/react/releases/tag/v19.0.0',
-            'react 18.2.0 → 19.0.0 · React 19',
-          ],
-          ['https://github.com/owner/vite/releases/tag/v5.1.0', 'vite 5.0.0 → 5.1.0'],
-          ['https://github.com/owner/lodash/releases/tag/v4.17.21', 'lodash 4.17.20 → 4.17.21'],
+          ['https://github.com/owner/react/releases/tag/v19.0.0', '18.2.0 → 19.0.0 · React 19'],
+          ['https://github.com/owner/vite/releases/tag/v5.1.0', '5.0.0 → 5.1.0'],
+          ['https://github.com/owner/lodash/releases/tag/v4.17.21', '4.17.20 → 4.17.21'],
         ])
         expect(
-          (await ui.findAll({ type: 'Text', text: /^(⚠|📦)$/ })).map(icon => icon.text),
-        ).toEqual(['⚠', '📦', '📦'])
+          (await ui.findAll({ type: 'Text', text: /^(⚠|📦|react|vite|lodash)$/ })).map(
+            text => text.text,
+          ),
+        ).toEqual(['⚠', 'react', '📦', 'vite', '📦', 'lodash'])
         expect(await ui.find({ type: 'Text', text: 'npm · major · breaking' })).toBeDefined()
         expect(await ui.find({ type: 'Text', text: /^…$/ })).toBeUndefined()
       },
@@ -808,32 +901,40 @@ describe('band-view', () => {
   }
 
   for (const surface of SURFACES) {
-    test(`on ${surface}: ⚠ and 📦 rows start their headlines in the same column`, async ($, on) => {
-      const clock = mock.clock(on)
+    test(
+      `on ${surface}: ⚠ and 📦 rows show their package in the source column, and start their headlines in the news rows' column`,
+      { timeoutMs: 20_000 },
+      async ($, on) => {
+        const clock = mock.clock(on)
+        const news = { sources: [SOURCE], items: { src: Fixtures.datedItemsOf('src', 3) } }
 
-      stackBandOn(on, { showLevel: 'all' })
+        stackBandOn(on, { showLevel: 'all' }, news)
 
-      await $.session.start(Fixtures.SESSION)
-      await clock.settle()
+        await $.session.start(Fixtures.SESSION)
+        await clock.settle()
 
-      const ui = await $.ui.mount({ ...BAND, surface })
-      // The cells before each headline: the mark, a space, the glyph and its gap.
-      const leads = (await ui.findAll({ type: 'Text' }))
-        .filter(text => text.props.wrap === 'truncate-end' && text.children.length > 3)
-        .map(text =>
-          text.children
-            .slice(0, 4)
-            .map(child =>
-              typeof child === 'string'
-                ? child
-                : (child as { children: string[] }).children.join(''),
-            )
-            .join(''),
-        )
+        const ui = await $.ui.mount({ ...BAND, surface })
+        const leads: number[] = []
 
-      expect(leads.length).toBe(3)
-      expect(leads.map(lead => Band.displayWidthOf(lead))).toEqual([5, 5, 5])
-    })
+        for (let page = 0; page < 3; page += 1) {
+          leads.push(...(await leadsOf(ui)))
+          await ui.press({ key: 'next' })
+        }
+
+        // Three pages turned, the first is back.
+        expect(leads).toEqual(Array.from({ length: 9 }, () => 16))
+        expect(
+          (await ui.findAll({ type: 'Text', text: /^(react|vite|lodash)$/ })).map(name => [
+            name.text,
+            name.props.color,
+          ]),
+        ).toEqual([
+          ['react', 'claude'],
+          ['vite', 'claude'],
+          ['lodash', 'claude'],
+        ])
+      },
+    )
   }
 
   for (const surface of SURFACES) {

@@ -12,9 +12,10 @@ import type { CompactBandModel } from './compact-band-model.js'
 import { COMPACT_GAP_COLUMNS } from './compact-gap-columns.js'
 import { GROUP_GAP_COLUMNS } from './group-gap-columns.js'
 import { iconGapOf } from './icon-gap-of.js'
+import { SOURCE_GAP_COLUMNS } from './source-gap-columns.js'
 
 /**
- * The compact band: `Herald 13/156`, the back, next and auto Buttons, then the one item's headline in bold (a link when it has an address), followed by what the mods below drew; on as many rows as the model says, so its height depends on the width and the total only.
+ * The compact band: `Herald 13/156`, the back, next and auto Buttons, then the one item's source name when the model has room for it (dim, or in the release color for a release) and its headline in bold (a link when it has an address), followed by what the mods below drew; on as many rows as the model says, so its height depends on the width and the total only.
  *
  * @param ui the elements
  * @param model what to draw
@@ -65,6 +66,16 @@ export function compactBandView(
       {headline.icon === undefined
         ? []
         : [<Text color="claude">{headline.icon}</Text>, iconGapOf(headline.icon)]}
+      {headline.source === undefined
+        ? []
+        : [
+            headline.isRelease === true ? (
+              <Text color="claude">{headline.source}</Text>
+            ) : (
+              <Text dimColor>{headline.source}</Text>
+            ),
+            ' '.repeat(SOURCE_GAP_COLUMNS),
+          ]}
       <Text bold>
         {headline.href === undefined ? (
           headline.title

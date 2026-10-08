@@ -74,6 +74,59 @@ describe('compact-band-view', () => {
       await ui.unmount()
     })
 
+    test(
+      `on ${surface}: where the room holds it, the source name comes dim before the headline, on one row at 64 cells and on the headline's own row at 40; a release's takes the release color`,
+      { timeoutMs: 20_000 },
+      async ($, on) => {
+        mock.clock(on)
+
+        const releases = Fixtures.sourceAt('rel', {
+          name: 'Claude Code releases',
+          url: 'https://github.com/anthropics/claude-code/releases.atom',
+        })
+
+        Fixtures.bandOn(on, {
+          sources: [SOURCE, releases],
+          items: {
+            src: Fixtures.datedItemsOf('src', 6),
+            rel: [{ ...Fixtures.datedItemsOf('rel', 1, 6)[0], title: 'v2.1.294' }],
+          },
+        })
+
+        await $.classic.SessionStart({ source: 'clear' })
+
+        for (const [columns, rows] of [
+          [64, 1],
+          [40, 2],
+        ] as const) {
+          const ui = await $.ui.mount(at(surface, columns))
+          const root = await rootOf(ui)
+          const name = await ui.find({ type: 'Text', text: /^Hacker News$/ })
+
+          expect([columns, name?.props.dimColor, Fixtures.rowsOf(root, columns)]).toEqual([
+            columns,
+            true,
+            rows + 1,
+          ])
+          expect((await linksOf(ui)).map(([, text]) => text)).toEqual(['src 1'])
+
+          await ui.press({ key: 'prev' })
+
+          const release = await ui.find({ type: 'Text', text: /^Claude Code…$/ })
+
+          expect([release?.props.color, (await linksOf(ui)).map(([, text]) => text)]).toEqual([
+            'claude',
+            ['v2.1.294'],
+          ])
+          expect(Fixtures.rowsOf(await rootOf(ui), columns)).toBe(rows + 1)
+
+          // Back to the first item for the next width.
+          await ui.press({ key: 'next' })
+          await ui.unmount()
+        }
+      },
+    )
+
     test(`on ${surface}: compact at 64 cells, the full band of three at 65`, async ($, on) => {
       mock.clock(on)
       Fixtures.bandOn(on, STORE)
