@@ -118,4 +118,71 @@ describe('band-items-of', () => {
     expect(list.slice(-2).map(item => item.id)).toEqual(['hn:x', 'willison:y'])
     expect(Fixtures.pageRepeatsOf(list.slice(0, -2).map(item => item.sourceId))).toEqual([])
   })
+
+  test('a release feed gives only its newest release by date, older ones left out; other sources keep all', () => {
+    const { sources, items, stack } = Fixtures.RELEASE_BAND
+    const list = Band.bandItemsOf(sources, items, stack)
+    const idsOf = (sourceId: string) =>
+      list.filter(item => item.sourceId === sourceId).map(item => item.id)
+
+    expect(list).toHaveLength(15)
+    expect(idsOf('code')).toEqual(['code:v2.1.294'])
+    expect(idsOf('sdk')).toEqual(['sdk:v0.3.294'])
+    expect(idsOf('mcp')).toEqual(['mcp:v1.2.0'])
+    expect(idsOf('py')).toEqual(['py:v1.0.1'])
+    expect(idsOf('hn')).toEqual(items.hn.map(item => item.id))
+    expect(idsOf('willison')).toEqual(['willison:1', 'willison:2'])
+    expect(idsOf('@stack')).toEqual([stack[0]?.id])
+    expect(list.at(-1)?.id).toBe('py:v1.0.1')
+    expect(Fixtures.pageRepeatsOf(list.slice(0, -1).map(item => item.sourceId))).toEqual([])
+  })
+
+  test('a read newest release leaves its source out of the band, never falling back to an older release', () => {
+    const { sources, items, stack } = Fixtures.RELEASE_BAND
+    const read = { code: ['code:v2.1.294'], py: ['py:v1.0.1'], sdk: ['sdk:v0.3.293'] }
+    const list = Band.bandItemsOf(sources, items, stack, read)
+    const sourceIds = list.map(item => item.sourceId)
+
+    expect(list).toHaveLength(13)
+    expect(sourceIds).not.toContain('code')
+    expect(sourceIds).not.toContain('py')
+    expect(list.filter(item => item.sourceId === 'sdk').map(item => item.id)).toEqual([
+      'sdk:v0.3.294',
+    ])
+  })
+
+  test('a read older release changes nothing; a disabled release feed gives nothing', () => {
+    const { sources, items } = Fixtures.RELEASE_BAND
+    const ids = (list: readonly { id: string }[]) => list.map(item => item.id)
+
+    expect(ids(Band.bandItemsOf(sources, items, [], { code: ['code:v2.1.293'] }))).toEqual(
+      ids(Band.bandItemsOf(sources, items)),
+    )
+    expect(
+      Band.bandItemsOf(
+        sources.map(source => (source.id === 'code' ? { ...source, isEnabled: false } : source)),
+        items,
+      ).some(item => item.sourceId === 'code'),
+    ).toBe(false)
+  })
+
+  test('a source that is not a release feed keeps every item, even titled as bare versions', () => {
+    const { items } = Fixtures.RELEASE_BAND
+    const list = Band.bandItemsOf([Fixtures.sourceAt('code', { name: 'Claude Code' })], items)
+
+    expect(list.map(item => item.id)).toEqual([
+      'code:v2.1.294',
+      'code:v2.1.293',
+      'code:v2.1.292',
+      'code:v2.1.291',
+    ])
+  })
+
+  test('only the newest release is left when every item is read', () => {
+    const { sources, items } = Fixtures.RELEASE_BAND
+    const code = sources.filter(source => source.id === 'code')
+    const read = { code: items.code.map(item => item.id) }
+
+    expect(Band.bandItemsOf(code, items, [], read).map(item => item.id)).toEqual(['code:v2.1.294'])
+  })
 })

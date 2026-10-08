@@ -1086,6 +1086,98 @@ describe('band-view', () => {
     )
   }
 
+  const releaseBandOn = (on: Parameters<typeof Fixtures.bandOn>[0], read = {}) => {
+    const { sources, items, stack } = Fixtures.RELEASE_BAND
+
+    return Fixtures.bandOn(
+      on,
+      { sources, items, read, ...Fixtures.stackStoreOf(stack, { showLevel: 'all' }) },
+      Fixtures.stackTreeOf(stack),
+    )
+  }
+
+  // Every page's position and the links it draws, turning with `n` until the band wraps.
+  const releasePagesOf = async (
+    ui: Drawing & { press: (target: { key: string }) => Promise<unknown> },
+  ) => {
+    const pages: [string | undefined, string[]][] = []
+
+    for (let page = 0; page < 6; page += 1) {
+      pages.push([await rangeOf(ui), (await linksOf(ui)).map(([href]) => String(href))])
+      await ui.press({ key: 'next' })
+    }
+
+    return pages
+  }
+
+  for (const surface of SURFACES) {
+    test(
+      `on ${surface}: a release feed shows only its newest release, the position counting it once`,
+      { timeoutMs: 20_000 },
+      async ($, on) => {
+        const clock = mock.clock(on)
+
+        releaseBandOn(on)
+
+        await $.session.start(Fixtures.SESSION)
+        await clock.settle()
+
+        const ui = await $.ui.mount({ ...BAND, surface })
+        const pages = await releasePagesOf(ui)
+        const hrefs = pages.slice(0, 5).flatMap(([, links]) => links)
+        const releasesOf = (sourceId: string) =>
+          hrefs.filter(href => href.startsWith(`https://example.com/${sourceId}/`))
+
+        expect(pages.map(([range]) => range)).toEqual([
+          '1–3 of 15',
+          '4–6 of 15',
+          '7–9 of 15',
+          '10–12 of 15',
+          '13–15 of 15',
+          '1–3 of 15',
+        ])
+        expect(hrefs).toHaveLength(15)
+        expect(new Set(hrefs).size).toBe(15)
+        expect(releasesOf('code')).toEqual(['https://example.com/code/v2.1.294'])
+        expect(releasesOf('sdk')).toEqual(['https://example.com/sdk/v0.3.294'])
+        expect(releasesOf('mcp')).toEqual(['https://example.com/mcp/v1.2.0'])
+        expect(releasesOf('py')).toEqual(['https://example.com/py/v1.0.1'])
+        expect(releasesOf('hn')).toHaveLength(8)
+        expect(releasesOf('willison')).toHaveLength(2)
+      },
+    )
+  }
+
+  for (const surface of SURFACES) {
+    test(
+      `on ${surface}: a read newest release leaves its source out of the band and the position`,
+      { timeoutMs: 20_000 },
+      async ($, on) => {
+        const clock = mock.clock(on)
+
+        releaseBandOn(on, { code: ['code:v2.1.294'] })
+
+        await $.session.start(Fixtures.SESSION)
+        await clock.settle()
+
+        const ui = await $.ui.mount({ ...BAND, surface })
+        const pages = await releasePagesOf(ui)
+        const hrefs = pages.slice(0, 5).flatMap(([, links]) => links)
+
+        expect(pages.map(([range]) => range)).toEqual([
+          '1–3 of 14',
+          '4–6 of 14',
+          '7–9 of 14',
+          '10–12 of 14',
+          '13–14 of 14',
+          '1–3 of 14',
+        ])
+        expect(hrefs).toHaveLength(14)
+        expect(hrefs.filter(href => href.startsWith('https://example.com/code/'))).toEqual([])
+      },
+    )
+  }
+
   for (const surface of SURFACES) {
     test(
       `on ${surface}: an item without text draws no summary and no placeholder, keeps its second line empty, and is never sent to the model`,

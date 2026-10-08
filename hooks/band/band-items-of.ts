@@ -1,9 +1,11 @@
 import type { IdsBySource, Item, ItemsBySource, Source } from '../../types/index.js'
+import { isReleaseFeed } from '../items/is-release-feed.js'
 import { timeOf } from '../items/time-of.js'
+import { newestItemOf } from './newest-item-of.js'
 import { sourceMixOf } from './source-mix-of.js'
 
 /**
- * What the band pages through: every enabled source's items and the stack items shown in one list; items read are left out first while any unread one remains (all kept once every one is read), then the dated ones are mixed by source (the stack counts as one) so no page repeats a source while others have items, and the undated ones follow in source order, stack items last.
+ * What the band pages through: every enabled source's items, only the newest of a release feed's, and the stack items shown in one list; items read are left out first while any unread one remains (all kept once every one is read), then the dated ones are mixed by source (the stack counts as one) so no page repeats a source while others have items, and the undated ones follow in source order, stack items last.
  *
  * @param sources every source, in order
  * @param items the kept items by source id, newest first
@@ -19,7 +21,12 @@ export function bandItemsOf(
   const all = [
     ...sources
       .filter(source => source.isEnabled)
-      .flatMap(source => (Object.hasOwn(items, source.id) ? (items[source.id] ?? []) : [])),
+      .flatMap(source => {
+        const own = Object.hasOwn(items, source.id) ? (items[source.id] ?? []) : []
+        const newest = isReleaseFeed(source.url) ? newestItemOf(own) : undefined
+
+        return newest === undefined ? own : [newest]
+      }),
     ...stack,
   ]
   const isRead = (item: Item) =>
