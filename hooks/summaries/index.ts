@@ -1,5 +1,6 @@
 export * from './current-summary-lang.js'
 export * from './ensure-visible-summaries.js'
+export * from './excerpt-of.js'
 export type * from './limiter.js'
 export * from './limiter-of.js'
 export * from './long-summary-of.js'

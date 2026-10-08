@@ -1,0 +1,7 @@
+/** One Ask HN entry in the shape hnrss serves: the post's own text first, then the same link and counter paragraphs as a link post (text written for this test). */
+export const HNRSS_ASK_HN = `<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Hacker News: Front Page</title><link>https://news.ycombinator.com/</link><description>Hacker News RSS</description><atom:link href="https://hnrss.org/frontpage" rel="self" type="application/rss+xml"></atom:link><item><title><![CDATA[Ask HN: How do you keep long-running Postgres migrations safe?]]></title><description><![CDATA[<p>Our migrations lock the orders table for minutes during deploys. We are looking at online schema changes and expand-contract patterns, and would like to hear what has worked for teams running them on busy tables.</p>
+<p>Article URL: <a href="https://news.ycombinator.com/item?id=49990001">https://news.ycombinator.com/item?id=49990001</a></p>
+<p>Comments URL: <a href="https://news.ycombinator.com/item?id=49990001">https://news.ycombinator.com/item?id=49990001</a></p>
+<p>Points: 87</p>
+<p># Comments: 61</p>
+]]></description><pubDate>Wed, 07 Oct 2026 18:12:00 +0000</pubDate><link>https://news.ycombinator.com/item?id=49990001</link><dc:creator>someone</dc:creator><comments>https://news.ycombinator.com/item?id=49990001</comments><guid isPermaLink="false">https://news.ycombinator.com/item?id=49990001</guid></item></channel></rss>`

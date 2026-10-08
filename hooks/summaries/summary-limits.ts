@@ -21,6 +21,8 @@ export const SUMMARY_LIMITS = {
   longMaxLines: 5,
   /** Characters of an item's text sent to the model. */
   itemTextChars: 4000,
+  /** Letters and digits an excerpt needs, once boilerplate is stripped, to count as text. */
+  minExcerptChars: 16,
   /** Characters of an item's title sent to the model. */
   titleChars: 300,
   /** The most new items one refresh run summarizes, newest first. */
