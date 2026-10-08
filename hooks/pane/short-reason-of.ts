@@ -7,7 +7,7 @@ import { cutTo } from '../page/cut-to.js'
 const REASON_CHARS = 60
 
 /**
- * A refresh failure's reason as one short line, without the engine's `<plugin>: $.<namespace>.<method>(<argument>) failed: ` prefixes and with a code it repeats said once, `…` marking a cut.
+ * A refresh failure's reason as one short line, without the engine's `<plugin>: $.<namespace>.<method>(<argument>) failed: ` prefixes and with a code it repeats said once and no web address, `…` marking a cut.
  *
  * @param reason the reason recorded
  */
@@ -15,6 +15,9 @@ export function shortReasonOf(reason: string): string {
   const line = collapsedTextOf(reason)
     .replace(/[\w-]+: \$\.\w+\.\w+(?:\([^)]*\))?(?: failed)?: /g, '')
     .replace(/\b([\w-]+: )\1+/g, '$1')
+    .replace(/\(?\bhttps?:\/\/(?:[^\s)]*[^\s).,;:])?\)?/gi, '')
+    .replace(/\s+([,;:.])/g, '$1')
+    .replace(/\s{2,}/g, ' ')
     .trim()
 
   return line.length > REASON_CHARS ? `${cutTo(line, REASON_CHARS - 1).trimEnd()}…` : line

@@ -111,7 +111,7 @@ A dim state line says what happened and what changes it. A source whose last ref
 | Your stack, lookups under way | `Checking your stack's releases: 4 of 12 packages so far…`. Lookups and feed reads are spread over refreshes; see [Limits per refresh](#limits-per-refresh). |
 | Your stack, no feed for any package | `No release feed found for any of your 3 packages. /herald deps map <package> <owner/repo> sets one.` |
 | Your stack, releases below the level | `No release at the minor+ level. /herald deps level all shows every release.` |
-| Your stack, nothing new | `Everything in your stack is up to date.`, followed by `· 2 without a release feed, listed by /herald deps` when some packages have no feed |
+| Your stack, nothing new | `Everything in your stack is up to date.`, or, when some packages have no feed, `Everything in your stack is up to date · 2 without a release feed, listed by /herald deps.` |
 
 The band has no state line: with no item from any source or from your stack, it draws nothing of its own, even when every source failed.
 

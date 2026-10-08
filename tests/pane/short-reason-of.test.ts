@@ -22,6 +22,16 @@ describe('short-reason-of', () => {
     ).toBe('fetch failed: ECONNREFUSED: Unable to connect.')
   })
 
+  test('web addresses are left out, with the space before what follows them', () => {
+    expect(Pane.shortReasonOf('fetch failed: no page at https://example.com/a.xml')).toBe(
+      'fetch failed: no page at',
+    )
+    expect(Pane.shortReasonOf('HTTP 301 to HTTP://other.example/x?y=1; fallback: HTTP 404')).toBe(
+      'HTTP 301 to; fallback: HTTP 404',
+    )
+    expect(Pane.shortReasonOf('not a feed (http://x.test/feed) at all')).toBe('not a feed at all')
+  })
+
   test('a longer reason is cut to sixty characters, the ellipsis included', () => {
     const cut = Pane.shortReasonOf(`fetch failed: ${'y'.repeat(100)}`)
 
