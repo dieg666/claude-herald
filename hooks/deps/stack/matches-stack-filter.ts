@@ -1,22 +1,23 @@
-import type { StackItem } from '../../../types/index.js'
 import { ECOSYSTEM_LABELS } from './ecosystem-labels.js'
+import type { StackPackage } from './stack-package.js'
 
 /**
- * Whether a stack item matches the pane's filter: every word of it, ignoring case, is in the package name, the ecosystem, the level or a flag; a blank filter matches everything.
+ * Whether a package matches the pane's filter: every word of it, ignoring case, is in the package name, the ecosystem, the package's level or a flag of any of its releases shown; a blank filter matches everything.
  *
- * @param item the stack item
+ * @param pkg the package
  * @param filter the text typed
  */
-export function matchesStackFilter(item: StackItem, filter: string): boolean {
-  const { release } = item
+export function matchesStackFilter(pkg: StackPackage, filter: string): boolean {
+  const has = (flag: 'isPrerelease' | 'breaking' | 'security') =>
+    pkg.releases.some(item => item.release[flag])
   const haystack = [
-    release.name,
-    release.ecosystem,
-    ECOSYSTEM_LABELS[release.ecosystem],
-    release.level,
-    release.isPrerelease ? 'pre-release' : '',
-    release.breaking ? 'breaking' : '',
-    release.security ? 'security' : '',
+    pkg.name,
+    pkg.ecosystem,
+    ECOSYSTEM_LABELS[pkg.ecosystem],
+    pkg.level,
+    has('isPrerelease') ? 'pre-release' : '',
+    has('breaking') ? 'breaking' : '',
+    has('security') ? 'security' : '',
   ]
     .join(' ')
     .toLowerCase()

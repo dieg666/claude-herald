@@ -3,12 +3,13 @@ import type { UiPressArgument } from 'claude-code'
 import type { ItemActionHandlers } from '../actions/item-action-handlers.js'
 
 /**
- * What each pane Button runs when pressed: a tab's (by the tab's id), the selection moves, mark-as-read, and the selected item's actions; and what typing in the stack tab's filter runs, with the text.
+ * What each pane Button runs when pressed: a tab's (by the tab's id), the selection moves, mark-as-read, the stack tab's releases toggle, and the selected item's actions; and what typing in the stack tab's filter runs, with the text.
  */
 export type PaneHandlers = ItemActionHandlers & {
   readonly tab: (id: string) => (press: UiPressArgument) => void
   readonly up: (press: UiPressArgument) => void
   readonly down: (press: UiPressArgument) => void
   readonly read: (press: UiPressArgument) => void
+  readonly releases: (press: UiPressArgument) => void
   readonly filter: (value: string) => void
 }

@@ -4,18 +4,18 @@ import { depFeedKeyOf } from '../resolve/dep-feed-key-of.js'
 import { STACK_LIMITS } from './stack-limits.js'
 
 /**
- * The stack state of a project: its settings, the kept releases of the dependencies it follows now (newest first, at most `STACK_LIMITS.itemsPerProject`), and the filter kept while the project stays the same.
+ * The stack state of a project: its settings, the kept releases of the dependencies it follows now (newest first, at most `STACK_LIMITS.itemsPerProject`), and the filter and expanded packages kept while the project stays the same.
  *
  * @param root the project root
  * @param project its stack record
  * @param stack its stored releases
- * @param current the stack in state now, whose filter stays for the same project
+ * @param current the stack in state now, whose filter and expanded packages stay for the same project
  */
 export function stackStateOf(
   root: string,
   project: DepsProject,
   stack: StackProject,
-  current: Pick<StackState, 'root' | 'filter'>,
+  current: Pick<StackState, 'root' | 'filter' | 'expanded'>,
 ): StackState {
   const followed = new Set(project.dependencies.map(depFeedKeyOf))
   const items = Object.entries(stack.deps)
@@ -26,10 +26,13 @@ export function stackStateOf(
     .slice(0, STACK_LIMITS.itemsPerProject)
     .map(({ item }) => item)
 
+  const isSame = current.root === root
+
   return {
     root,
     settings: project.settings,
     items,
-    filter: current.root === root ? current.filter : '',
+    filter: isSame ? current.filter : '',
+    ...(isSame && current.expanded !== undefined ? { expanded: current.expanded } : {}),
   }
 }

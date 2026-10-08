@@ -575,7 +575,7 @@ describe('pane-view', () => {
 
   for (const surface of SURFACES) {
     test(
-      `on ${surface}: the Your stack tab on y groups the releases by ecosystem, and its filter narrows them`,
+      `on ${surface}: the Your stack tab on y groups the packages by ecosystem, flagged then by level, and its filter narrows them`,
       { timeoutMs: 30_000 },
       async ($, on) => {
         const clock = mock.clock(on)
@@ -598,7 +598,7 @@ describe('pane-view', () => {
 
         expect(await headingOf(ui)).toBe('Your stack · 1-4 of 4')
         expect(await groupsOf(ui)).toEqual(['npm', 'PyPI'])
-        expect(await packagesOf(ui)).toEqual(['react', 'vite', 'zod', 'requests'])
+        expect(await packagesOf(ui)).toEqual(['react', 'zod', 'vite', 'requests'])
         expect((await ui.find({ key: 'filter' }))?.type).toBe('Input')
 
         await ui.input({ key: 'filter', text: 're', kind: 'change' })
@@ -662,6 +662,295 @@ describe('pane-view', () => {
       },
     )
   }
+
+  const releasesPaneOn = (on: Parameters<typeof Fixtures.bandOn>[0]) =>
+    Fixtures.bandOn(
+      on,
+      { ...STORE, ...Fixtures.stackStoreOf(Fixtures.STACK_RELEASES) },
+      Fixtures.stackTreeOf(Fixtures.STACK_RELEASES),
+    )
+
+  // Every string a drawn element holds, its descendants' included, in document order.
+  const textOf = (node: unknown): string =>
+    typeof node === 'string'
+      ? node
+      : ((node as { children?: unknown[] }).children ?? []).map(textOf).join('')
+
+  // The stack tab's rows as one line each, runs of spaces made one.
+  const rowLinesOf = async (ui: Drawing) =>
+    (await ui.findAll({ type: 'Text' }))
+      .filter(
+        text =>
+          text.props.wrap === 'truncate-end' &&
+          text.props.color === undefined &&
+          text.props.dimColor !== true,
+      )
+      .map(text => textOf(text).replace(/\s+/g, ' ').trim())
+
+  const WIDE = { ...Fixtures.PANE_PROPS, bodyColumns: 120 }
+
+  // The link of the selected stack row: the bold headline, not an ecosystem heading.
+  const selectedRowOf = async (ui: Drawing) => {
+    const [bold] = (await ui.findAll({ type: 'Text' })).filter(
+      text => text.props.bold === true && text.props.color === undefined,
+    )
+    const [child] = bold?.children ?? []
+
+    return typeof child === 'string' ? child : (child as FoundElement | undefined)?.props.href
+  }
+
+  for (const surface of SURFACES) {
+    test(
+      `on ${surface}: one row per package with in-use → newest, highest level, flags naming their release and the release count; flagged first; the summary line; the change colored by level`,
+      { timeoutMs: 30_000 },
+      async ($, on) => {
+        const clock = mock.clock(on)
+
+        releasesPaneOn(on)
+
+        await $.session.start(Fixtures.SESSION)
+        await clock.settle()
+
+        const ui = await $.ui.mount({ ...PANE, surface, props: WIDE })
+
+        await ui.press({ key: 'tab-@stack' })
+
+        expect(await headingOf(ui)).toBe('Your stack · 1-6 of 6')
+        expect(
+          await ui.find({ type: 'Text', text: '6 packages behind · 2 security · 1 breaking' }),
+        ).toBeDefined()
+        expect(await groupsOf(ui)).toEqual(['npm', 'PyPI'])
+        expect(await rowLinesOf(ui)).toEqual([
+          '› ⚠ @astrojs/node 9.5.5 → 11.1.7 major security Oct 6',
+          '⚠ jsdom 25.0.1 → 30.1.2 major breaking in 30.0.0 · 3 releases Oct 5',
+          '📦 astro 5.18.1 → 7.3.7 major Oct 7',
+          '📦 @fortawesome/fontawesome-svg-core 7.1.0 → 7.3.1 minor 2 releases Jul 15',
+          '📦 left-pad 1.0.0 → canary Oct 8',
+          '⚠ requests 2.31.0 → 2.31.1 patch security Apr 1',
+        ])
+
+        const changed = (await ui.findAll({ type: 'Text' }))
+          .filter(text => ['error', 'warning', 'success'].includes(String(text.props.color)))
+          .map(text => [text.text, text.props.color])
+
+        expect(changed).toEqual([
+          ['11.1.7', 'error'],
+          ['30.1.2', 'error'],
+          ['7.3.7', 'error'],
+          ['3.1', 'warning'],
+          ['1', 'success'],
+        ])
+
+        const colors = Fixtures.colorsOf(await ui.drawn())
+        const hotkeys = (await ui.findAll({ type: 'Button' })).map(button => button.props.hotkey)
+
+        expect(colors.filter(color => !Fixtures.THEME_KEYS.includes(color))).toEqual([])
+        expect(new Set(hotkeys).size).toBe(hotkeys.length)
+        expect((await ui.find({ key: 'releases' }))?.props).toMatchObject({
+          label: 'Releases',
+          hotkey: 'e',
+        })
+        expect(await ui.find({ key: 'read' })).toBeUndefined()
+
+        await ui.press({ key: 'tab-a' })
+
+        expect(await ui.find({ key: 'releases' })).toBeUndefined()
+      },
+    )
+
+    test(
+      `on ${surface}: e lists the selected package's releases under it and hides them again; the actions act on the newest release, or on the release selected`,
+      { timeoutMs: 30_000 },
+      async ($, on) => {
+        const clock = mock.clock(on)
+        const runs: (readonly string[])[] = []
+        const copies: string[] = []
+        const { logs, stored } = releasesPaneOn(on)
+
+        on('env.get', () => ({ value: undefined }))
+        on('process.run', ($, e) => {
+          runs.push(e.argv)
+
+          return {
+            value: {
+              exitCode: 0,
+              stdout: e.argv[0] === 'uname' ? 'Darwin\n' : '',
+              stderr: '',
+              isStdoutTruncated: false,
+              isStderrTruncated: false,
+            },
+          }
+        })
+        on('ui.copy', ($, e) => {
+          copies.push(e.text)
+
+          return { value: { isCopied: true } }
+        })
+
+        await $.session.start(Fixtures.SESSION)
+        await clock.settle()
+
+        const ui = await $.ui.mount({ ...PANE, surface, props: WIDE })
+        const url = (version: string) => `https://github.com/owner/jsdom/releases/tag/v${version}`
+
+        await ui.press({ key: 'tab-@stack' })
+        await ui.press({ key: 'down' })
+        await ui.press({ key: 'open' })
+        await ui.press({ key: 'copy' })
+
+        expect(runs.at(-1)).toEqual(['open', url('30.1.2')])
+        expect(copies.at(-1)).toContain(`jsdom 30.1.2 is out: ${url('30.1.2')}`)
+
+        await ui.press({ key: 'releases' })
+
+        expect((await ui.find({ key: 'releases' }))?.props.label).toBe('Hide releases')
+        expect(await headingOf(ui)).toBe('Your stack · 1-9 of 9')
+        expect((await rowLinesOf(ui)).slice(1, 5)).toEqual([
+          '› ⚠ jsdom 25.0.1 → 30.1.2 major breaking in 30.0.0 · 3 releases Oct 5',
+          '📦 30.1.2 major Oct 5',
+          '📦 30.1.1 major Sep 22',
+          '⚠ 30.0.0 · jsdom 30 major breaking Sep 1',
+        ])
+        expect(await selectedRowOf(ui)).toBe(url('30.1.2'))
+
+        await ui.press({ key: 'down' })
+        await ui.press({ key: 'down' })
+
+        expect(await selectedRowOf(ui)).toBe(url('30.1.1'))
+
+        await ui.press({ key: 'open' })
+        await ui.press({ key: 'copy' })
+        await ui.press({ key: 'summarize' })
+        await ui.press({ key: 'save' })
+
+        expect(runs.at(-1)).toEqual(['open', url('30.1.1')])
+        expect(copies.at(-1)).toContain(
+          `We use jsdom 25.0.1. jsdom 30.1.1 is out: ${url('30.1.1')}`,
+        )
+        expect(logs.filter(line => line.startsWith('transcript: '))).toEqual([
+          'transcript: v30.1.1',
+          'transcript: v30.1.1 one.',
+          'transcript: v30.1.1 two.',
+          'transcript: v30.1.1 three.',
+        ])
+        expect((stored.get('saved') as { id: string }[]).map(item => item.id)).toEqual([
+          Fixtures.STACK_RELEASES[4]?.id,
+        ])
+        expect((await ui.find({ key: 'save' }))?.props.label).toBe('Saved')
+
+        await ui.press({ key: 'releases' })
+
+        expect((await ui.find({ key: 'releases' }))?.props.label).toBe('Releases')
+        expect(await headingOf(ui)).toBe('Your stack · 1-6 of 6')
+        expect(await selectedRowOf(ui)).toBe(url('30.1.2'))
+      },
+    )
+
+    test(
+      `on ${surface}: the filter matches packages by name, ecosystem, level or a flag of any release, and keeps an expanded package open`,
+      { timeoutMs: 30_000 },
+      async ($, on) => {
+        const clock = mock.clock(on)
+
+        releasesPaneOn(on)
+
+        await $.session.start(Fixtures.SESSION)
+        await clock.settle()
+
+        const ui = await $.ui.mount({ ...PANE, surface, props: WIDE })
+
+        await ui.press({ key: 'tab-@stack' })
+        await ui.input({ key: 'filter', text: 'breaking' })
+
+        expect(await rowLinesOf(ui)).toEqual([
+          '› ⚠ jsdom 25.0.1 → 30.1.2 major breaking in 30.0.0 · 3 releases Oct 5',
+        ])
+        expect(
+          await ui.find({ type: 'Text', text: '6 packages behind · 2 security · 1 breaking' }),
+        ).toBeDefined()
+
+        await ui.press({ key: 'releases' })
+        await ui.input({ key: 'filter', text: 'npm major' })
+
+        expect((await rowLinesOf(ui)).map(line => line.split(' ').slice(0, 3).join(' '))).toEqual([
+          '› ⚠ @astrojs/node',
+          '⚠ jsdom 25.0.1',
+          '📦 30.1.2 major',
+          '📦 30.1.1 major',
+          '⚠ 30.0.0 ·',
+          '📦 astro 5.18.1',
+        ])
+
+        await ui.input({ key: 'filter', text: 'pypi security' })
+
+        expect(await packagesOf(ui)).toEqual(['requests'])
+        expect(await groupsOf(ui)).toEqual(['PyPI'])
+      },
+    )
+
+    test(
+      `on ${surface}: a stack row takes one line, so a short pane shows twice the rows less its summary, filter and headings; expanded releases share the window`,
+      { timeoutMs: 30_000 },
+      async ($, on) => {
+        const clock = mock.clock(on)
+
+        releasesPaneOn(on)
+
+        await $.session.start(Fixtures.SESSION)
+        await clock.settle()
+
+        // Twelve rows less the tab row, the heading and the action row leave four two-line items: eight lines, four rows past the summary, the filter and two headings.
+        const ui = await $.ui.mount({
+          ...PANE,
+          surface,
+          props: { ...WIDE, scroll: { offset: 0, bodyRows: 12 } },
+        })
+
+        await ui.press({ key: 'tab-@stack' })
+
+        expect(await headingOf(ui)).toBe('Your stack · 1-4 of 6')
+        expect((await rowLinesOf(ui)).length).toBe(4)
+
+        await ui.press({ key: 'down' })
+        await ui.press({ key: 'releases' })
+
+        expect(await headingOf(ui)).toBe('Your stack · 1-4 of 9')
+        expect((await rowLinesOf(ui)).length).toBe(4)
+
+        for (let press = 0; press < 3; press += 1) {
+          await ui.press({ key: 'down' })
+        }
+
+        expect(await headingOf(ui)).toBe('Your stack · 3-6 of 9')
+        expect(await selectedRowOf(ui)).toBe('https://github.com/owner/jsdom/releases/tag/v30.0.0')
+      },
+    )
+  }
+
+  test('on mobile the stack tab draws the same package rows, summary and releases toggle, without a filter field', async ($, on) => {
+    const clock = mock.clock(on)
+
+    releasesPaneOn(on)
+
+    await $.session.start(Fixtures.SESSION)
+    await clock.settle()
+
+    const ui = await $.ui.mount({ ...PANE, surface: 'mobile', props: WIDE })
+
+    await ui.press({ key: 'tab-@stack' })
+
+    expect(await ui.find({ key: 'filter' })).toBeUndefined()
+    expect(
+      await ui.find({ type: 'Text', text: '6 packages behind · 2 security · 1 breaking' }),
+    ).toBeDefined()
+    expect((await rowLinesOf(ui)).length).toBe(6)
+
+    await ui.press({ key: 'down' })
+    await ui.press({ key: 'releases' })
+
+    expect((await rowLinesOf(ui)).length).toBe(9)
+    expect((await ui.find({ key: 'releases' }))?.props.label).toBe('Hide releases')
+  })
 
   test('on mobile, which draws no Input, the stack tab shows the filter in force as text', async ($, on) => {
     const clock = mock.clock(on)

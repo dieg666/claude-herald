@@ -5,14 +5,11 @@ import { PANE_ROW_LINES } from './pane-row-lines.js'
 import { paneTabsOf } from './pane-tabs-of.js'
 
 /**
- * The widest action row the pane draws, as the terminal spells plain Buttons: `<hotkey>: <label>`.
+ * The widest action rows the pane draws, the saved tab's and the stack tab's, as the terminal spells plain Buttons: `<hotkey>: <label>`.
  */
-const ACTION_LABELS = [
-  'o: Open',
-  's: Summarize',
-  'v: Saved',
-  'c: Copy for Claude',
-  'r: Mark as read',
+const ACTION_ROWS = [
+  ['o: Open', 's: Summarize', 'v: Saved', 'c: Copy for Claude', 'r: Mark as read'],
+  ['o: Open', 's: Summarize', 'v: Saved', 'c: Copy for Claude', 'e: Hide releases'],
 ]
 
 /**
@@ -61,7 +58,8 @@ export function paneWindowSizeOf(
   const tabs = paneTabsOf(sources, hasStack).map(tab =>
     tab.hotkey === undefined ? tab.label : `${tab.hotkey}: ${tab.label}`,
   )
-  const chrome = linesOf(tabs, width) + 1 + linesOf(ACTION_LABELS, width)
+  const chrome =
+    linesOf(tabs, width) + 1 + Math.max(...ACTION_ROWS.map(labels => linesOf(labels, width)))
 
   return Math.max(1, Math.floor((bodyRows - chrome) / PANE_ROW_LINES))
 }

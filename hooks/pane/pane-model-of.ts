@@ -5,7 +5,6 @@ import { ICON_COLUMNS } from '../band/icon-columns.js'
 import { rangeLabelOf } from '../band/range-label-of.js'
 import { SUMMARY_INDENT } from '../band/summary-indent.js'
 import { httpUrlOf } from '../commands/http-url-of.js'
-import { ECOSYSTEM_LABELS } from '../deps/stack/ecosystem-labels.js'
 import { isStackItem } from '../deps/stack/is-stack-item.js'
 import { stackIconOf } from '../deps/stack/stack-icon-of.js'
 import { stackLineOf } from '../deps/stack/stack-line-of.js'
@@ -17,6 +16,7 @@ import { PANE_HEADING_RESERVE } from './pane-heading-reserve.js'
 import type { PaneModel } from './pane-model.js'
 import type { PanePage } from './pane-page.js'
 import type { PaneRow } from './pane-row.js'
+import { paneStackRowsOf } from './pane-stack-rows-of.js'
 import { shortDateOf } from './short-date-of.js'
 
 /**
@@ -64,27 +64,6 @@ function rowOf(
 }
 
 /**
- * The stack tab's rows with the ecosystem heading on the first row of each group in the window.
- *
- * @param rows the rows shown
- * @param shown the items they draw
- * @param columns the cells the pane's body has
- */
-function withHeadings(rows: PaneRow[], shown: readonly Item[], columns: number): PaneRow[] {
-  return rows.map((row, index) => {
-    const item = shown[index]
-    const before = shown[index - 1]
-    const ecosystem = item !== undefined && isStackItem(item) ? item.release.ecosystem : undefined
-    const previous =
-      before !== undefined && isStackItem(before) ? before.release.ecosystem : undefined
-
-    return ecosystem === undefined || ecosystem === previous
-      ? row
-      : { ...row, heading: fitColumns(ECOSYSTEM_LABELS[ecosystem], columns) }
-  })
-}
-
-/**
  * What an empty tab says.
  *
  * @param tab which tab
@@ -106,7 +85,7 @@ function emptyOf(tab: string, name: string, filter: string): string {
 }
 
 /**
- * What the pane draws for a page, every line fitted to `columns` cells; the stack tab adds its filter and a heading per ecosystem.
+ * What the pane draws for a page, every line fitted to `columns` cells; the stack tab draws a one-line row per package (and per release of an expanded one) under a heading per ecosystem, with its summary line and its filter.
  *
  * @param page the page shown
  * @param sources every source, for the names and glyphs
@@ -133,16 +112,19 @@ export function paneModelOf(
       : lineOf(sources.find(source => source.id === page.tab.id)?.name ?? page.tab.label)
   const selected = page.items[page.selected]
 
-  const drawn = page.shown.map((item, index) =>
-    rowOf(
-      item,
-      fitColumns(icons.get(item.sourceId) || '*', ICON_COLUMNS),
-      Object.hasOwn(summaries, item.id) ? summaries[item.id] : undefined,
-      index === page.span.selected,
-      columns,
-    ),
-  )
-  const rows = isStackTab ? withHeadings(drawn, page.shown, columns) : drawn
+  const rows =
+    page.stack === undefined
+      ? page.shown.map((item, index) =>
+          rowOf(
+            item,
+            fitColumns(icons.get(item.sourceId) || '*', ICON_COLUMNS),
+            Object.hasOwn(summaries, item.id) ? summaries[item.id] : undefined,
+            index === page.span.selected,
+            columns,
+          ),
+        )
+      : paneStackRowsOf(page.stack, page.span.selected, columns)
+  const selectedRow = page.stack?.rows[page.selected]
 
   const heading =
     page.items.length === 0 ? name : `${name} · ${rangeLabelOf(page.span, page.items.length)}`
@@ -154,6 +136,12 @@ export function paneModelOf(
     empty: fitColumns(emptyOf(page.tab.id, name, filter), columns),
     isSavedTab,
     ...(isStackTab ? { filter } : {}),
+    ...(page.stack === undefined || page.stack.summary === ''
+      ? {}
+      : { summary: fitColumns(page.stack.summary, columns) }),
+    ...(selectedRow === undefined
+      ? {}
+      : { isExpanded: page.stack?.expanded.includes(selectedRow.pkg.key) === true }),
     isSelectedSaved: selected !== undefined && saved.some(entry => entry.id === selected.id),
   }
 }

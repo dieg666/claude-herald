@@ -94,4 +94,40 @@ describe('pane-model-of', () => {
     expect(model.rows[0]?.title).toBe('one two')
     expect(model.rows[0]?.summary).toBe(`x${'y'.repeat(24)}…`)
   })
+
+  test('on the stack tab: one-line rows under ecosystem headings, the summary line, the filter and whether the selected package is expanded', () => {
+    const stack = { items: Fixtures.STACK_RELEASES, filter: '', expanded: ['npm:jsdom'] }
+    const pageAt = (selected: number) =>
+      Pane.panePageOf({ tab: '@stack', selected }, SOURCES, ITEMS, [], 20, stack)
+    const model = Pane.paneModelOf(pageAt(2), SOURCES, {}, [], 80, '')
+
+    expect(model.heading).toBe('Your stack · 1-10 of 10')
+    expect(model.summary).toBe('7 packages behind · 2 security · 1 breaking')
+    expect(model.filter).toBe('')
+    expect(model.isExpanded).toBe(true)
+    expect(model.rows.map(row => row.heading).filter(Boolean)).toEqual(['npm', 'PyPI'])
+    expect(model.rows.every(row => row.cells !== undefined && row.summary === undefined)).toBe(true)
+    expect(Pane.paneModelOf(pageAt(0), SOURCES, {}, [], 80, '').isExpanded).toBe(false)
+    expect(Pane.paneModelOf(pageAt(0), SOURCES, {}, [], 20, '').summary).toBe(
+      '7 packages behind ·…',
+    )
+
+    const empty = Pane.paneModelOf(
+      Pane.panePageOf({ tab: '@stack', selected: 0 }, SOURCES, ITEMS, [], 20, {
+        ...stack,
+        items: [],
+      }),
+      SOURCES,
+      {},
+      [],
+      80,
+      '',
+    )
+
+    expect([empty.summary, empty.isExpanded, empty.empty]).toEqual([
+      undefined,
+      undefined,
+      'No new release of your dependencies at this level.',
+    ])
+  })
 })

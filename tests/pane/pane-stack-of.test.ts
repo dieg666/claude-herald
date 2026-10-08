@@ -13,13 +13,15 @@ describe('pane-stack-of', () => {
     filter: 're',
   }
 
-  test('the items shown at the project level and the filter', () => {
+  test('the items shown at the project level, the filter and the packages expanded', () => {
     expect(Pane.paneStackOf(STATE)).toEqual({
       items: Fixtures.STACK_SAMPLE.filter(item =>
         ['react', 'vite', 'requests', 'zod'].includes(item.release.name),
       ),
       filter: 're',
+      expanded: [],
     })
+    expect(Pane.paneStackOf({ ...STATE, expanded: ['npm:react'] })?.expanded).toEqual(['npm:react'])
   })
 
   test('no stack tab before the project is known or while its stack is off', () => {

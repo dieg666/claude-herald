@@ -34,4 +34,19 @@ describe('stack-state-of', () => {
       '',
     )
   })
+
+  test('the packages expanded stay for the same project only', () => {
+    const same = Stack.stackStateOf('/repo', project, stack, {
+      root: '/repo',
+      filter: '',
+      expanded: ['npm:react'],
+    })
+    const other = Stack.stackStateOf('/repo', project, stack, {
+      root: '/other',
+      filter: '',
+      expanded: ['npm:react'],
+    })
+
+    expect([same.expanded, other.expanded]).toEqual([['npm:react'], undefined])
+  })
 })

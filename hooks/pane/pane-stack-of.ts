@@ -10,5 +10,5 @@ import type { PaneStack } from './pane-stack.js'
 export function paneStackOf(stack: StackState): PaneStack | undefined {
   return stack.root === null || !stack.settings.isEnabled
     ? undefined
-    : { items: shownStackItemsOf(stack), filter: stack.filter }
+    : { items: shownStackItemsOf(stack), filter: stack.filter, expanded: stack.expanded ?? [] }
 }

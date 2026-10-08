@@ -21,6 +21,11 @@ describe('pane-window-size-of', () => {
     expect(Pane.paneWindowSizeOf(many, 30, 40)).toBe(15)
   })
 
+  test("the action row counts as the widest a tab draws, the stack tab's releases toggle included", () => {
+    // At 35 cells `r: Mark as read` still fits on the second action line, `e: Hide releases` wraps to a third.
+    expect(Pane.paneWindowSizeOf(ONE, 35, 12)).toBe(3)
+  })
+
   test('at least one item, however little room', () => {
     expect(Pane.paneWindowSizeOf(ONE, 80, 0)).toBe(1)
   })

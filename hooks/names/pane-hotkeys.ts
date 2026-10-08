@@ -5,6 +5,7 @@ export const PANE_HOTKEYS = {
   up: 'k',
   down: 'j',
   read: 'r',
+  releases: 'e',
   stack: 'y',
   saved: '0',
 } as const

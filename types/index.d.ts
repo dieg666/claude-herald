@@ -311,7 +311,7 @@ export type StackProject = {
 }
 
 /**
- * The stack as the band and the pane draw it: the project, its settings, its releases, and the pane's filter.
+ * The stack as the band and the pane draw it: the project, its settings, its releases, the pane's filter and the packages it shows expanded.
  */
 export type StackState = {
   /** The project root the releases belong to; null before the first look. */
@@ -321,6 +321,8 @@ export type StackState = {
   items: StackItem[]
   /** The text the pane's stack tab filters by. */
   filter: string
+  /** The packages whose releases the pane's stack tab lists under them, `<ecosystem>:<name>`; absent when none. */
+  expanded?: string[]
 }
 
 declare module 'claude-code' {

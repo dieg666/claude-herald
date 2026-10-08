@@ -15,7 +15,7 @@ import type { PaneRow } from './pane-row.js'
 import type { PaneUi } from './pane-ui.js'
 
 /**
- * One item: the selection mark, the source glyph, the headline and its date, then the summary dim beneath.
+ * One item: the selection mark, the source glyph, the headline and its date, then the summary dim beneath; a stack tab row is one line, its columns after the headline, a release under its package indented.
  *
  * @param ui the elements
  * @param row the item as drawn
@@ -23,17 +23,29 @@ import type { PaneUi } from './pane-ui.js'
 function rowView(ui: BandUi, row: PaneRow): RenderElement {
   const { Box, Text, Link } = ui
 
+  const line = (
+    <Text wrap="truncate-end">
+      <Text color={row.isSelected ? 'suggestion' : 'inactive'}>{row.isSelected ? '›' : ' '}</Text>
+      {row.isIndented === true ? '   ' : ' '}
+      <Text color="claude">{row.icon}</Text>
+      {iconGapOf(row.icon)}
+      <Text bold={row.isSelected}>
+        {row.href === undefined ? row.title : <Link href={row.href}>{row.title}</Link>}
+      </Text>
+      {(row.cells ?? []).map(cell =>
+        cell.color === undefined ? cell.text : <Text color={cell.color}>{cell.text}</Text>,
+      )}
+      {row.date === undefined ? [] : [' ', <Text dimColor>{row.date}</Text>]}
+    </Text>
+  )
+
+  if (row.cells !== undefined) {
+    return line
+  }
+
   return (
     <Box flexDirection="column">
-      <Text wrap="truncate-end">
-        <Text color={row.isSelected ? 'suggestion' : 'inactive'}>{row.isSelected ? '›' : ' '}</Text>{' '}
-        <Text color="claude">{row.icon}</Text>
-        {iconGapOf(row.icon)}
-        <Text bold={row.isSelected}>
-          {row.href === undefined ? row.title : <Link href={row.href}>{row.title}</Link>}
-        </Text>
-        {row.date === undefined ? [] : [' ', <Text dimColor>{row.date}</Text>]}
-      </Text>
+      {line}
       <Box paddingLeft={SUMMARY_INDENT}>
         <Text dimColor wrap="truncate-end">
           {row.summary ?? SUMMARY_PLACEHOLDER}
@@ -71,7 +83,7 @@ function filterView(ui: PaneUi, filter: string, handlers: PaneHandlers): RenderE
 }
 
 /**
- * The pane: the tab row (the active tab undimmed), the heading with the selection Buttons, the stack tab's filter, the window of items (the stack tab's under ecosystem headings) or what an empty tab says, then the selected item's actions, with mark-as-read on the saved tab.
+ * The pane: the tab row (the active tab undimmed), the heading with the selection Buttons, the stack tab's summary line and filter, the window of items (the stack tab's under ecosystem headings) or what an empty tab says, then the selected item's actions, with mark-as-read on the saved tab and the releases toggle on the stack tab.
  *
  * @param ui the elements, `Input` among them where the surface has one
  * @param model what to draw
@@ -91,6 +103,18 @@ export function paneView(ui: PaneUi, model: PaneModel, handlers: PaneHandlers): 
         />,
       ]
     : []
+  const releases =
+    model.isExpanded === undefined
+      ? []
+      : [
+          <Button
+            key="releases"
+            label={model.isExpanded ? 'Hide releases' : 'Releases'}
+            hotkey={PANE_HOTKEYS.releases}
+            plain
+            onPress={handlers.releases}
+          />,
+        ]
 
   const body =
     model.rows.length === 0
@@ -106,7 +130,7 @@ export function paneView(ui: PaneUi, model: PaneModel, handlers: PaneHandlers): 
                 ]),
             rowView(ui, row),
           ]),
-          actionRowView(ui, model.isSelectedSaved, handlers, read),
+          actionRowView(ui, model.isSelectedSaved, handlers, [...releases, ...read]),
         ]
 
   return (
@@ -137,6 +161,7 @@ export function paneView(ui: PaneUi, model: PaneModel, handlers: PaneHandlers): 
           onPress={handlers.down}
         />
       </Box>
+      {model.summary === undefined ? [] : [<Text dimColor>{model.summary}</Text>]}
       {model.filter === undefined ? [] : filterView(ui, model.filter, handlers)}
       {body}
     </Box>

@@ -206,7 +206,7 @@ function summarizeShown(host: Host, items: readonly Item[]): Promise<unknown> {
 }
 
 /**
- * What the pane's Buttons run: tab and selection moves write the pane state and summarize what comes into view, mark-as-read drops the item drawn as selected from the saved list, the actions act on it; typing in the stack tab's filter writes the filter.
+ * What the pane's Buttons run: tab and selection moves write the pane state and summarize what comes into view, mark-as-read drops the item drawn as selected from the saved list, the releases toggle lists or hides the selected package's releases, the actions act on the item drawn as selected; typing in the stack tab's filter writes the filter.
  *
  * @param $ the render hook's engine, used only when a Button is pressed
  * @param item the selected item as drawn
@@ -230,6 +230,7 @@ function paneHandlersOf(
     up: move('up'),
     down: move('down'),
     read: () => void (item === undefined ? undefined : markRead(hostOf($), item)),
+    releases: () => void Pane.toggleReleases(hostOf($), size, summarizeShown),
     filter: value => void Pane.filterPane(hostOf($), value, size, summarizeShown),
     ...itemActionsOf($, item),
   }

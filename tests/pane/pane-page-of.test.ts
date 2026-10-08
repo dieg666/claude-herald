@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
+import type { StackItem } from '../../types/index.js'
 import Pane from '../../hooks/pane'
 import Fixtures from '../fixtures'
 
@@ -72,20 +73,22 @@ describe('pane-page-of', () => {
     expect(pageOf('a', 0, Number.NaN).size).toBe(Pane.PANE_FIRST_WINDOW)
   })
 
-  const STACK = { items: Fixtures.STACK_SAMPLE, filter: '' }
+  const STACK = { items: Fixtures.STACK_SAMPLE, filter: '', expanded: [] }
 
-  test('the stack tab lists the shown stack items grouped by ecosystem, filtered; without a stack there is no such tab', () => {
+  test('the stack tab lists a package per row grouped by ecosystem, flagged then by level, filtered; without a stack there is no such tab', () => {
     const page = Pane.panePageOf({ tab: '@stack', selected: 0 }, SOURCES, ITEMS, SAVED, 20, STACK)
 
     expect(page.tabs.map(tab => tab.id)).toEqual(['a', 'b', '@stack', 'saved'])
     expect(page.items.map(item => item.title)).toEqual([
       'React 19',
-      'v5.1.0',
-      'v4.17.21',
       'v16.0.0-rc.1',
       'v0.4.0',
+      'v5.1.0',
+      'v4.17.21',
       'v2.31.1',
     ])
+    expect(page.stack?.rows.map(row => row.kind)).toEqual(Array(6).fill('package'))
+    expect(page.stack?.summary).toBe('6 packages behind · 1 security · 1 breaking')
 
     const filtered = Pane.panePageOf({ tab: '@stack', selected: 3 }, SOURCES, ITEMS, SAVED, 20, {
       ...STACK,
@@ -96,10 +99,38 @@ describe('pane-page-of', () => {
     expect(pageOf('@stack', 0).tab.id).toBe('a')
   })
 
-  test("the stack tab's window leaves room for the filter and one heading per ecosystem", () => {
+  test("the stack tab's window counts lines, one per row, less the summary, the filter and one heading per ecosystem", () => {
     const page = Pane.panePageOf({ tab: '@stack', selected: 0 }, SOURCES, ITEMS, SAVED, 4, STACK)
 
-    // Two ecosystems and the filter take three lines, two rows' worth.
-    expect([page.shown.length, page.size]).toEqual([2, 4])
+    // Four two-line items are eight lines; the summary, the filter and two headings leave four rows.
+    expect([page.span.count, page.stack?.shownRows.length, page.size]).toEqual([4, 4, 4])
+  })
+
+  test('an expanded package lists its releases as rows acting on each; the window hands over every release of the packages in it', () => {
+    const stack = { items: Fixtures.STACK_RELEASES, filter: '', expanded: ['npm:jsdom'] }
+    const page = Pane.panePageOf({ tab: '@stack', selected: 2 }, SOURCES, ITEMS, SAVED, 20, stack)
+    const versions = page.items.map(item => (item as StackItem).release.version)
+
+    expect(versions.slice(0, 5)).toEqual(['11.1.7', '30.1.2', '30.1.2', '30.1.1', '30.0.0'])
+    expect(page.stack?.rows.slice(1, 5).map(row => row.kind)).toEqual([
+      'package',
+      'release',
+      'release',
+      'release',
+    ])
+    expect(page.selected).toBe(2)
+
+    const one = Pane.panePageOf({ tab: '@stack', selected: 1 }, SOURCES, ITEMS, SAVED, 3, {
+      ...stack,
+      expanded: [],
+    })
+
+    // Six lines less the summary, the filter and two headings leave two rows: @astrojs/node and jsdom.
+    expect(one.shown.map(item => (item as StackItem).release.version)).toEqual([
+      '11.1.7',
+      '30.1.2',
+      '30.1.1',
+      '30.0.0',
+    ])
   })
 })
