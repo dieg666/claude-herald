@@ -323,7 +323,12 @@ export const register: Register = on => {
   })
 
   on('command.run', { command: 'herald' }, async ($, e) => {
-    const reply = await Commands.runHerald(hostOf($), e.args, STACK)
+    const reply = await Commands.runHerald(
+      hostOf($),
+      e.args,
+      STACK,
+      PANE_WINDOW.size ?? Pane.PANE_FIRST_WINDOW,
+    )
 
     if (reply.restartRefresh === true) {
       restartRefresh($)

@@ -37,7 +37,57 @@ describe('show-herald', () => {
     })
   }
 
-  test('opening the pane on All records nothing as viewed, so the source tabs keep their new counts; reopened on a source tab it records that tab; a pane waiting for room does not', async ($, on) => {
+  for (const surface of ['terminal', 'desktop'] as const) {
+    test(`opening the pane on All records the rows of its window as viewed, per source, on the ${surface}; a pane waiting for room records nothing`, async ($, on) => {
+      mock.clock(on)
+
+      const placed = Fixtures.storeOn(on, { ...STORE, viewed: { feed: ['src:old'] } })
+      let result: UiOpenResult = { isPlaced: false, reason: 'the terminal is 80 columns wide' }
+
+      on('session.surfaces', () => ({ value: [surface] }))
+      on('ui.open', () => ({ value: result }))
+      on('ui.log', () => ({ value: undefined }))
+      on('classic.SessionStart', () => ({}))
+
+      await $.classic.SessionStart({ source: 'clear' })
+      await $.command.run(Fixtures.heraldOf(''))
+
+      expect(placed.get('viewed')).toEqual({ feed: ['src:old'] })
+
+      result = { isPlaced: true }
+      await $.command.run(Fixtures.heraldOf(''))
+
+      expect(placed.get('viewed')).toEqual({
+        feed: ['src:a', 'src:b', 'src:c', 'src:d', 'src:old'],
+      })
+    })
+  }
+
+  test('opening the pane on All records only the rows of a window that is smaller than the list', async ($, on) => {
+    mock.clock(on)
+
+    const placed = Fixtures.storeOn(on, {
+      ...STORE,
+      items: { feed: Fixtures.datedItemsOf('feed', 30) },
+      viewed: { feed: ['feed:old'] },
+    })
+
+    on('session.surfaces', () => ({ value: ['terminal'] }))
+    on('ui.open', () => ({ value: { isPlaced: true } }))
+    on('ui.log', () => ({ value: undefined }))
+    on('classic.SessionStart', () => ({}))
+
+    await $.classic.SessionStart({ source: 'clear' })
+    await $.command.run(Fixtures.heraldOf(''))
+
+    const viewed = (placed.get('viewed') as Record<string, string[]>).feed ?? []
+
+    expect(viewed.length).toBe(21)
+    expect(viewed.slice(0, 2)).toEqual(['feed:1', 'feed:2'])
+    expect(viewed).not.toContain('feed:21')
+  })
+
+  test('reopened on a source tab, the pane records that whole tab as viewed', async ($, on) => {
     mock.clock(on)
 
     const placed = Fixtures.storeOn(on, STORE)
@@ -50,8 +100,6 @@ describe('show-herald', () => {
 
     await $.classic.SessionStart({ source: 'clear' })
     await $.command.run(Fixtures.heraldOf(''))
-
-    expect(placed.get('viewed')).toBeUndefined()
 
     const ui = await $.ui.mount({
       plugin: 'herald',

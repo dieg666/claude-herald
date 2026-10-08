@@ -1311,6 +1311,72 @@ describe('pane-view', () => {
     )
 
     test(
+      `on ${surface}: showing All clears the counts of the rows it draws, per source, and moving down it clears the rows that come into view`,
+      { timeoutMs: 20_000 },
+      async ($, on) => {
+        mock.clock(on)
+
+        const { stored } = Fixtures.bandOn(on, {
+          sources: [ALPHA, BETA],
+          items: { a: Fixtures.datedItemsOf('a', 30), b: Fixtures.datedItemsOf('b', 2) },
+          viewed: { a: ['a:30'], b: ['b:old'] },
+        })
+
+        await $.classic.SessionStart({ source: 'clear' })
+
+        const ui = await $.ui.mount({
+          ...PANE,
+          surface,
+          props: { ...Fixtures.PANE_PROPS, scroll: { offset: 0, bodyRows: 12 } },
+        })
+        // The ids of the rows drawn, from their links.
+        const idsOf = async () =>
+          (await linksOf(ui)).map(href => /\/(\w+)\/(\d+)$/.exec(String(href))?.slice(1).join(':'))
+        const viewedOf = () => stored.get('viewed') as Record<string, string[]>
+        const countsOf = async () =>
+          Object.fromEntries(
+            (await tabsOf(ui))
+              .filter(([key]) => key !== 'tab-saved')
+              .map(([key, text]) => [key, /•(\d+)/.exec(String(text))?.[1] ?? '0']),
+          )
+
+        expect(await countsOf()).toEqual({ 'tab-@all': '31', 'tab-a': '29', 'tab-b': '2' })
+
+        await ui.press({ key: 'tab-saved' })
+        await ui.press({ key: 'tab-@all' })
+
+        const first = await idsOf()
+        const firstA = first.filter(id => id?.startsWith('a:')).length
+
+        expect(first.length).toBeLessThan(32)
+        expect(firstA).toBeGreaterThan(0)
+        expect(first).toContain('b:1')
+        expect(first).not.toContain('a:30')
+        expect(new Set(viewedOf().a)).toEqual(
+          new Set(['a:30', ...first.filter(id => id?.startsWith('a:'))]),
+        )
+        expect(viewedOf().b).toEqual(['b:1', 'b:2', 'b:old'])
+        expect(await countsOf()).toEqual({
+          'tab-@all': String(29 - firstA),
+          'tab-a': String(29 - firstA),
+          'tab-b': '0',
+        })
+
+        for (let step = 0; step < first.length + 2; step += 1) {
+          await ui.press({ key: 'down' })
+        }
+
+        const later = await idsOf()
+        const shownA = new Set([...first, ...later].filter(id => id?.startsWith('a:')))
+
+        expect(later).not.toEqual(first)
+        expect(new Set(viewedOf().a)).toEqual(new Set(['a:30', ...shownA]))
+        expect((await countsOf())['tab-a']).toBe(String(29 - shownA.size))
+        expect((await countsOf())['tab-@all']).toBe(String(29 - shownA.size))
+      },
+    )
+
+    test(
       `on ${surface}: a count is a token of its own after the tab's name: new items a bullet in the accent color, a total in parentheses, dim`,
       { timeoutMs: 20_000 },
       async ($, on) => {

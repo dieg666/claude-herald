@@ -1,5 +1,6 @@
 import type { Item } from '../../types/index.js'
 import type { Host } from '../host/host.js'
+import { ALL_TAB } from '../names/all-tab.js'
 import { messageOf } from '../refresh/message-of.js'
 import { summaryTextOf } from '../summaries/summary-text-of.js'
 import { handPaneItems } from './hand-pane-items.js'
@@ -9,6 +10,7 @@ import { panePageOf } from './pane-page-of.js'
 import { paneStackOf } from './pane-stack-of.js'
 import type { PaneShown } from './pane-shown.js'
 import { shownSelectedFirstOf } from './shown-selected-first-of.js'
+import { viewItems } from './view-items.js'
 import { viewTabs } from './view-tabs.js'
 
 /**
@@ -21,7 +23,7 @@ function idsOf(items: readonly Item[]): string {
 }
 
 /**
- * Applies a move to the pane in state (nothing written when it changes nothing) and, when the tab or the items shown changed, hands the items shown to `onShown`, the selected one first; a tab switch records the tab left and the tab shown as viewed; a news or saved item with text selected inside the same window goes alone when it has no summary in state; never throws.
+ * Applies a move to the pane in state (nothing written when it changes nothing) and, when the tab or the items shown changed, hands the items shown to `onShown`, the selected one first; a tab switch records the tab left and the tab shown as viewed, and the All tab records the rows of its window whenever the tab or the window changes; a news or saved item with text selected inside the same window goes alone when it has no summary in state; never throws.
  *
  * @param host the engine
  * @param move what happened
@@ -73,6 +75,10 @@ export async function movePane(
 
     if (after.tab.id !== before.tab.id) {
       await viewTabs(host, [before.tab.id, after.tab.id])
+    }
+
+    if (after.tab.id === ALL_TAB) {
+      await viewItems(host, after.shown)
     }
 
     return after.shown

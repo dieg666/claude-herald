@@ -1,6 +1,7 @@
 import type { StackLoop } from '../deps/stack/stack-loop.js'
 import type { Host } from '../host/host.js'
 import { COMMAND_NAME } from '../names/command-name.js'
+import { PANE_FIRST_WINDOW } from '../pane/pane-first-window.js'
 import { messageOf } from '../refresh/message-of.js'
 import type { CommandReply } from './command-reply.js'
 import { showHerald } from './show-herald.js'
@@ -14,14 +15,20 @@ import { wordsOf } from './words-of.js'
  * @param host the engine
  * @param args everything after `/herald`
  * @param stack the stack loop, whose queue orders the stack's store and state writes
+ * @param size how many items the pane's window may show when `/herald` opens it
  */
-export async function runHerald(host: Host, args: string, stack: StackLoop): Promise<CommandReply> {
+export async function runHerald(
+  host: Host,
+  args: string,
+  stack: StackLoop,
+  size: number = PANE_FIRST_WINDOW,
+): Promise<CommandReply> {
   const [, name = '', rest = ''] = /^\s*(\S*)\s*([\s\S]*?)\s*$/.exec(args) ?? []
   const key = name.toLowerCase()
 
   try {
     if (name === '') {
-      return await showHerald(host)
+      return await showHerald(host, size)
     }
 
     if (key === 'help') {

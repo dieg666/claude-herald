@@ -6,7 +6,7 @@ import { messageOf } from '../refresh/message-of.js'
 import { addViewed } from '../store/add-viewed.js'
 
 /**
- * Records the items each of those source tabs holds now as viewed, in the store and then in state, so their new counts start over; the All, stack and saved tabs are skipped (the All tab's count is the source tabs' added up, so it falls as they are viewed); a failure is logged to debug, never thrown.
+ * Records the items each of those source tabs holds now as viewed, in the store and then in state, so their new counts start over; the All, stack and saved tabs are skipped (the All tab's rows are recorded by `viewItems`, the stack and saved tabs have no new count); a failure is logged to debug, never thrown.
  *
  * @param host the engine
  * @param tabIds the tabs shown, or left
