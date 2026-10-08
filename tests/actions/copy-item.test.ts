@@ -76,10 +76,10 @@ describe('copy-item', () => {
     expect(await Actions.copyItem(host, ITEM, 'terminal')).toBe(false)
     expect(toasts).toEqual(['Could not copy: clip.exe exited with 127: not found'])
     expect(logs).toEqual([
-      'news: clipboard: wl-copy exited with 1',
-      'news: clipboard: xclip: ENOENT',
-      'news: clipboard: powershell.exe: ENOENT',
-      'news: clipboard: clip.exe exited with 127: not found',
+      'herald: clipboard: wl-copy exited with 1',
+      'herald: clipboard: xclip: ENOENT',
+      'herald: clipboard: powershell.exe: ENOENT',
+      'herald: clipboard: clip.exe exited with 127: not found',
     ])
   })
 
@@ -113,7 +113,7 @@ describe('copy-item', () => {
 
     for (const surface of ['terminal', 'desktop'] as const) {
       const ui = await $.ui.mount({
-        plugin: 'news',
+        plugin: 'herald',
         component: 'AbovePrompt',
         props: Fixtures.BAND_PROPS,
         surface,
@@ -162,7 +162,7 @@ describe('copy-item', () => {
     await $.classic.SessionStart({ source: 'clear' })
 
     const ui = await $.ui.mount({
-      plugin: 'news',
+      plugin: 'herald',
       component: 'AbovePrompt',
       props: Fixtures.BAND_PROPS,
       surface: 'terminal',

@@ -7,7 +7,7 @@ import { langOf } from './lang-of.js'
 import { mirrorSummaries } from './mirror-summaries.js'
 
 /**
- * `/news lang <feed|user|code>`: saves the summary language, mirrors the summaries cached in it, and asks for the items shown to be summarized in it.
+ * `/herald lang <feed|user|code>`: saves the summary language, mirrors the summaries cached in it, and asks for the items shown to be summarized in it.
  *
  * @param host the engine
  * @param rest what follows `lang`

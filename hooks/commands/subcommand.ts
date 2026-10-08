@@ -3,10 +3,10 @@ import type { Host } from '../host/host.js'
 import type { CommandReply } from './command-reply.js'
 
 /**
- * One `/news` subcommand: how it is typed, what it does, and how it runs.
+ * One `/herald` subcommand: how it is typed, what it does, and how it runs.
  */
 export type Subcommand = {
-  /** How it is typed after `/news`, e.g. `add <url> [name]`. */
+  /** How it is typed after `/herald`, e.g. `add <url> [name]`. */
   readonly usage: string
   /** What it does, one short line. */
   readonly summary: string

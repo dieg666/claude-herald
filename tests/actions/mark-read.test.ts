@@ -41,6 +41,6 @@ describe('mark-read', () => {
 
     expect(await Actions.markRead(host, READ)).toBe(false)
     expect(toasts).toEqual(['Could not mark "read" as read: read-only'])
-    expect(logs).toEqual(['news: could not mark src:read as read: read-only'])
+    expect(logs).toEqual(['herald: could not mark src:read as read: read-only'])
   })
 })

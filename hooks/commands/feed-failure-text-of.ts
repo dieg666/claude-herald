@@ -13,6 +13,6 @@ export function feedFailureTextOf(reason: FeedFailure, url: string): string {
     case 'truncated':
       return `The feed at ${url} is cut short, so it was not added.`
     case 'not-a-feed':
-      return `${url} is not an RSS or Atom feed, so it was not added. For a web page, use /news add-page ${url}.`
+      return `${url} is not an RSS or Atom feed, so it was not added. For a web page, use /herald add-page ${url}.`
   }
 }

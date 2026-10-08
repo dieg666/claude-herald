@@ -58,7 +58,7 @@ async function keep(
       }
     })
   } catch (error) {
-    host.debug(`news: could not keep the summary of ${item.id}: ${messageOf(error)}`)
+    host.debug(`herald: could not keep the summary of ${item.id}: ${messageOf(error)}`)
   }
 }
 
@@ -107,7 +107,7 @@ async function requestOf(
   )
 
   if (!reply.isAnswered) {
-    host.debug(`news: no ${kind} summary of ${item.id}: ${reply.reason}`)
+    host.debug(`herald: no ${kind} summary of ${item.id}: ${reply.reason}`)
 
     return undefined
   }
@@ -115,7 +115,7 @@ async function requestOf(
   const text = isShort ? shortSummaryOf(reply.text) : longSummaryOf(reply.text)
 
   if (text === undefined) {
-    host.debug(`news: no ${kind} summary of ${item.id}: blank reply`)
+    host.debug(`herald: no ${kind} summary of ${item.id}: blank reply`)
 
     return undefined
   }
@@ -154,7 +154,7 @@ export async function summarize(
       requestOf(host, jobs, item, lang, kind, signal),
     )
   } catch (error) {
-    host.debug(`news: no ${kind} summary of ${item.id}: ${messageOf(error)}`)
+    host.debug(`herald: no ${kind} summary of ${item.id}: ${messageOf(error)}`)
 
     return undefined
   }

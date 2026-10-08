@@ -23,7 +23,7 @@ export async function withinDeadline<T>(
     try {
       timer = host.clockAfter(ms, () => resolve(late()))
     } catch (error) {
-      host.debug(`news: no deadline: ${messageOf(error)}`)
+      host.debug(`herald: no deadline: ${messageOf(error)}`)
     }
   })
 

@@ -7,7 +7,7 @@ import { depsRefusalOf } from './deps-refusal-of.js'
 import { depsRootOf } from './deps-root-of.js'
 
 /**
- * `/news deps rescan`: asks for the stack to be detected again now and its releases refreshed, off the command's dispatch; refused while the project's stack is off.
+ * `/herald deps rescan`: asks for the stack to be detected again now and its releases refreshed, off the command's dispatch; refused while the project's stack is off.
  *
  * @param host the engine
  * @param rest what follows `rescan`, which must be nothing

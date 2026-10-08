@@ -31,7 +31,7 @@ describe('scan-project', () => {
     })
 
     expect(reads).toEqual(['/repo/package.json'])
-    expect(logs).toEqual(['news: deps: skipped yarn.lock: larger than 4 MiB'])
+    expect(logs).toEqual(['herald: deps: skipped yarn.lock: larger than 4 MiB'])
     expect(Fixtures.depNamed(dependencies, 'rollup')).toMatchObject({ range: '^3.29.5' })
     expect(Fixtures.depNamed(dependencies, 'rollup')?.versionInUse).toBeUndefined()
   })
@@ -56,7 +56,7 @@ describe('scan-project', () => {
     const scan = await Detect.scanProject(fake.host, '/repo')
 
     expect(Fixtures.depNamed(scan.dependencies, 'rollup')?.versionInUse).toBeUndefined()
-    expect(fake.logs).toEqual(['news: deps: skipped yarn.lock: EFBIG: over 4 MiB'])
+    expect(fake.logs).toEqual(['herald: deps: skipped yarn.lock: EFBIG: over 4 MiB'])
     expect([...scan.texts.keys()]).toEqual(['package.json'])
   })
 
@@ -79,7 +79,7 @@ describe('scan-project', () => {
     const scan = await Detect.scanProject(fake.host, '/repo', [failing, Detect.NPM_DETECTOR])
 
     expect(Fixtures.depNamed(scan.dependencies, 'rollup')).toBeDefined()
-    expect(fake.logs).toEqual(['news: deps: a parser failed: boom'])
+    expect(fake.logs).toEqual(['herald: deps: a parser failed: boom'])
   })
 
   test('the texts are every manifest, lockfile and workspace file read', async () => {

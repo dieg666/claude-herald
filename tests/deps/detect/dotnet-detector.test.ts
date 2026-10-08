@@ -74,7 +74,7 @@ describe('dotnet-detector', () => {
       true,
     )
     expect(logs).toContain(
-      'news: deps: skipped src/Jackett.Common/Jackett.Common.csproj: not a complete <Project> document',
+      'herald: deps: skipped src/Jackett.Common/Jackett.Common.csproj: not a complete <Project> document',
     )
   })
 })

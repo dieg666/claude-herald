@@ -1,7 +1,7 @@
 {
-  "name": "news",
+  "name": "herald",
   "version": "0.1.0",
-  "description": "News from RSS/Atom feeds and web pages inside Claude Code: a rotating band above the prompt with one-line Haiku summaries, a /news pane with a tab per source, saved items, and copy-for-Claude.",
+  "description": "Herald: news and releases for your stack, right above the prompt.",
   "author": {
     "name": "Diego"
   },

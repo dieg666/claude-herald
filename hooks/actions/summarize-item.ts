@@ -31,7 +31,7 @@ export async function summarizeItem(host: Host, jobs: SummaryJobs, item: Item): 
 
     return true
   } catch (error) {
-    host.debug(`news: could not show the summary of ${item.id}: ${messageOf(error)}`)
+    host.debug(`herald: could not show the summary of ${item.id}: ${messageOf(error)}`)
     host.toast(`No summary of "${title}" right now; try again later.`)
 
     return false

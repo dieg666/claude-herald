@@ -68,7 +68,7 @@ describe('restart-rotation', () => {
     await Band.restartRotation(host, rotation)
 
     expect(rotation.timer).toBeUndefined()
-    expect(logs).toEqual(['news: could not start the band rotation: no clock'])
+    expect(logs).toEqual(['herald: could not start the band rotation: no clock'])
     expect(pages.length).toBe(2)
   })
 

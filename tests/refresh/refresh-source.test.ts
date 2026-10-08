@@ -68,7 +68,7 @@ describe('refresh-source', () => {
     })
     expect(stored.get('items')).toEqual({ big: kept })
     expect(sets).toEqual([])
-    expect(logs).toEqual([`news: big: fetch failed: no page at ${FEED.url}`])
+    expect(logs).toEqual([`herald: big: fetch failed: no page at ${FEED.url}`])
   })
 
   test('a store that fails is reported, not thrown', async () => {
@@ -82,7 +82,7 @@ describe('refresh-source', () => {
       newItems: [],
       error: 'store unavailable',
     })
-    expect(logs).toEqual(['news: big: store unavailable'])
+    expect(logs).toEqual(['herald: big: store unavailable'])
   })
 
   test(
@@ -163,7 +163,7 @@ describe('refresh-source', () => {
       })
       expect(stored.get('items')).toEqual({ anthropic: kept })
       expect(stored.get('pageHashes')).toEqual({ anthropic: 'old' })
-      expect(logs).toEqual(['news: anthropic: model: api-error'])
+      expect(logs).toEqual(['herald: anthropic: model: api-error'])
     },
   )
 

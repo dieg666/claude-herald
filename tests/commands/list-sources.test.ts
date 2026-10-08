@@ -12,7 +12,7 @@ describe('list-sources', () => {
       items: { feed: [Fixtures.itemAt('a'), Fixtures.itemAt('b')] },
     })
 
-    expect((await $.command.run(Fixtures.newsOf('list'))).text).toBe(
+    expect((await $.command.run(Fixtures.heraldOf('list'))).text).toBe(
       [
         '1 of 2 sources enabled:',
         '  on   feed   2 items  A feed  https://example.com/feed.xml',
@@ -34,7 +34,7 @@ describe('list-sources', () => {
     await $.session.start(Fixtures.SESSION)
     await clock.settle()
 
-    expect((await $.command.run(Fixtures.newsOf('list'))).text).toBe(
+    expect((await $.command.run(Fixtures.heraldOf('list'))).text).toBe(
       [
         '1 of 1 sources enabled:',
         '  on   feed   0 items  feed  https://example.com/feed.xml',
@@ -46,8 +46,8 @@ describe('list-sources', () => {
   test('with no sources, says how to add one or restore the factory ones', async ($, on) => {
     Fixtures.storeOn(on, { sources: [] })
 
-    expect((await $.command.run(Fixtures.newsOf('list'))).text).toBe(
-      'No sources. /news add <url> [name] follows a feed; /news reset restores the factory sources.',
+    expect((await $.command.run(Fixtures.heraldOf('list'))).text).toBe(
+      'No sources. /herald add <url> [name] follows a feed; /herald reset restores the factory sources.',
     )
   })
 })

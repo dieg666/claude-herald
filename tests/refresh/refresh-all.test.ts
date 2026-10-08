@@ -191,8 +191,8 @@ describe('refresh-all', () => {
     expect((await Refresh.refreshAll(host, loop)).newItems.length).toBe(1)
     expect(runs).toEqual([[], ['one:https://example.com/2']])
     expect(logs).toEqual([
-      'news: after the refresh: summaries down',
-      'news: after the refresh: summaries down',
+      'herald: after the refresh: summaries down',
+      'herald: after the refresh: summaries down',
     ])
   })
 
@@ -246,7 +246,7 @@ describe('refresh-all', () => {
       newItems: [],
       errors: {},
     })
-    expect(logs).toEqual(['news: the refresh failed: store unavailable'])
+    expect(logs).toEqual(['herald: the refresh failed: store unavailable'])
     expect((state.status as { isRefreshing: boolean }).isRefreshing).toBe(false)
     expect(loop.run).toBeUndefined()
   })
@@ -277,7 +277,7 @@ describe('refresh-all', () => {
     ;(await deadlineOf(afters, Refresh.REFRESH_LIMITS.sourceTimeoutMs)).fn()
 
     expect((await run).errors).toEqual({ one: 'timed out' })
-    expect(logs).toEqual(['news: one: timed out'])
+    expect(logs).toEqual(['herald: one: timed out'])
     expect((state.status as { isRefreshing: boolean }).isRefreshing).toBe(false)
     expect(loop.run).toBeUndefined()
     expect(Object.keys(state.items as object)).toEqual(['two'])
@@ -303,7 +303,7 @@ describe('refresh-all', () => {
     expect(await run).toEqual({ isSkipped: false, newItems: [], errors: {} })
     expect(controller?.signal.aborted).toBe(true)
     expect(loop.run).toBeUndefined()
-    expect(logs).toEqual(['news: the refresh timed out'])
+    expect(logs).toEqual(['herald: the refresh timed out'])
 
     await Promise.resolve()
 

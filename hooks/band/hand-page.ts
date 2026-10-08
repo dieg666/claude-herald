@@ -22,6 +22,6 @@ export function handPage(
   }
 
   rotation.onPage(host, items, signal).catch((error: unknown) => {
-    host.debug(`news: band: ${messageOf(error)}`)
+    host.debug(`herald: band: ${messageOf(error)}`)
   })
 }

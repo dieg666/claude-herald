@@ -16,6 +16,6 @@ export function handPaneItems(host: Host, onShown: PaneShown, items: readonly It
   }
 
   onShown(host, items).catch((error: unknown) => {
-    host.debug(`news: pane: ${messageOf(error)}`)
+    host.debug(`herald: pane: ${messageOf(error)}`)
   })
 }

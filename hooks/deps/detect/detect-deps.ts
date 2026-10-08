@@ -23,7 +23,7 @@ export async function detectDeps(host: Host, at?: ProjectRoot): Promise<DepsProj
     const root = at ?? (await projectRootOf(host))
 
     if (root === undefined) {
-      host.debug('news: deps: skipped detection: the session runs at a filesystem root')
+      host.debug('herald: deps: skipped detection: the session runs at a filesystem root')
 
       return undefined
     }
@@ -51,7 +51,7 @@ export async function detectDeps(host: Host, at?: ProjectRoot): Promise<DepsProj
     })
   } catch (error) {
     host.debug(
-      `news: deps: detection failed: ${error instanceof Error ? error.message : String(error)}`,
+      `herald: deps: detection failed: ${error instanceof Error ? error.message : String(error)}`,
     )
 
     return undefined

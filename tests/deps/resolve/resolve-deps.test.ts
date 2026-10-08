@@ -190,7 +190,7 @@ describe('resolve-deps', () => {
     expect(await Resolve.resolveDeps(host, [requests])).toEqual([
       { dependency: requests, status: 'unresolved', reason: 'store down', isOverride: false },
     ])
-    expect(logs).toEqual(['news: deps: resolution failed: store down'])
+    expect(logs).toEqual(['herald: deps: resolution failed: store down'])
   })
 
   test('a failure worth retrying is not cached, and a stale feed is kept meanwhile', async () => {
@@ -213,7 +213,7 @@ describe('resolve-deps', () => {
       },
     ])
     expect(sets).toEqual([])
-    expect(logs).toEqual(['news: deps: could not resolve pypi:requests: HTTP 503'])
+    expect(logs).toEqual(['herald: deps: could not resolve pypi:requests: HTTP 503'])
   })
 
   test('a 429 backs off on the clock and then resolves', async () => {

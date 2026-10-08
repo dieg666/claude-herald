@@ -15,12 +15,12 @@ describe('set-refresh-interval', () => {
       const stored = Fixtures.storeOn(on, { sources: [], settings: { lang: 'es' } })
       const expected = { ...Defaults.DEFAULT_SETTINGS, lang: 'es', refreshMinutes: 1440 }
 
-      expect((await $.command.run(Fixtures.newsOf('interval 1440'))).text).toBe(
+      expect((await $.command.run(Fixtures.heraldOf('interval 1440'))).text).toBe(
         'Refreshing every 1440 minutes, starting now.',
       )
       expect(stored.get('settings')).toEqual(expected)
       expect(peeked((await $.command.run(Fixtures.PEEK)).text).settings).toEqual(expected)
-      expect((await $.command.run(Fixtures.newsOf('interval 1'))).text).toBe(
+      expect((await $.command.run(Fixtures.heraldOf('interval 1'))).text).toBe(
         'Refreshing every 1 minute, starting now.',
       )
     },
@@ -30,8 +30,8 @@ describe('set-refresh-interval', () => {
     const stored = Fixtures.storeOn(on)
 
     for (const value of ['0', '1441', '1.5', 'five', '-1', '0x10']) {
-      expect((await $.command.run(Fixtures.newsOf(`interval ${value}`))).text).toBe(
-        `The interval is whole minutes from 1 to 1440, e.g. /news interval 10; "${value}" is not one.`,
+      expect((await $.command.run(Fixtures.heraldOf(`interval ${value}`))).text).toBe(
+        `The interval is whole minutes from 1 to 1440, e.g. /herald interval 10; "${value}" is not one.`,
       )
     }
 

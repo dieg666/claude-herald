@@ -93,7 +93,7 @@ export async function resolveDeps(
       repo = entry?.repo,
     ): Outcome => {
       if (reason !== 'cancelled') {
-        host.debug(`news: deps: could not resolve ${key}: ${reason}`)
+        host.debug(`herald: deps: could not resolve ${key}: ${reason}`)
       }
 
       return entry?.feed === undefined
@@ -179,13 +179,13 @@ export async function resolveDeps(
 
     if (Object.keys(updates).length > 0) {
       await saveDepFeeds(host, updates).catch((error: unknown) => {
-        host.debug(`news: deps: could not cache feed mappings: ${messageOf(error)}`)
+        host.debug(`herald: deps: could not cache feed mappings: ${messageOf(error)}`)
       })
     }
 
     return resolutions
   } catch (error) {
-    host.debug(`news: deps: resolution failed: ${messageOf(error)}`)
+    host.debug(`herald: deps: resolution failed: ${messageOf(error)}`)
 
     return dependencies.map(dependency => ({
       dependency,

@@ -3,7 +3,7 @@ import { depFeedKeyOf } from '../deps/resolve/dep-feed-key-of.js'
 import { typedPackageOf } from './typed-package-of.js'
 
 /**
- * The package a `/news deps` subcommand names: `<ecosystem>:<name>` (spelled as the candidate it names ignoring case, else as typed), or a bare name when exactly one of the candidates has it (exactly, else ignoring case); otherwise why not.
+ * The package a `/herald deps` subcommand names: `<ecosystem>:<name>` (spelled as the candidate it names ignoring case, else as typed), or a bare name when exactly one of the candidates has it (exactly, else ignoring case); otherwise why not.
  *
  * @param text what the person typed
  * @param candidates the packages a bare name may name

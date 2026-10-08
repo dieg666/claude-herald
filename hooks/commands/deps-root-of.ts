@@ -4,7 +4,7 @@ import { COMMAND_NAME } from '../names/command-name.js'
 import type { CommandReply } from './command-reply.js'
 
 /**
- * The project a `/news deps` subcommand acts on, as detection finds it (the git root at or above the session's root, else that root alone, `isRepo` false), or the reply when the session runs at a filesystem root.
+ * The project a `/herald deps` subcommand acts on, as detection finds it (the git root at or above the session's root, else that root alone, `isRepo` false), or the reply when the session runs at a filesystem root.
  *
  * @param host the engine
  */

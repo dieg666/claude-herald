@@ -1,4 +1,4 @@
-import type { NewsState } from './news-state.js'
+import type { HeraldState } from './herald-state.js'
 import type { Host } from '../host/host.js'
 import { loadItems } from '../store/load-items.js'
 import { loadSaved } from '../store/load-saved.js'
@@ -11,7 +11,7 @@ import { summaryLangOf } from '../store/summary-lang-of.js'
 /**
  * What hydrate copies from the store into `$.state`.
  */
-type Hydrated = Pick<NewsState, 'sources' | 'settings' | 'items' | 'saved' | 'summaries'>
+type Hydrated = Pick<HeraldState, 'sources' | 'settings' | 'items' | 'saved' | 'summaries'>
 
 /**
  * Copies the store into `$.state` (sources, settings, items, saved, current-language short summaries), reading all before writing any; never throws, logs a failure to debug.
@@ -41,7 +41,7 @@ export async function hydrate(host: Host): Promise<Hydrated | undefined> {
     return { sources, settings, items, saved, summaries }
   } catch (error) {
     host.debug(
-      `news: could not load the store: ${error instanceof Error ? error.message : String(error)}`,
+      `herald: could not load the store: ${error instanceof Error ? error.message : String(error)}`,
     )
 
     return undefined

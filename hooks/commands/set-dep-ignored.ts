@@ -13,7 +13,7 @@ import { projectPackageOf } from './project-package-of.js'
 import { singleWordOf } from './single-word-of.js'
 
 /**
- * `/news deps ignore|unignore <package>`: adds the package to this project's ignored list (dropped from the followed ones and from the band and pane at once) or takes it out; either way the stack is detected again while it is on, to fill or take the freed place. A bare name names a followed or added package (ignore) or an ignored one (unignore).
+ * `/herald deps ignore|unignore <package>`: adds the package to this project's ignored list (dropped from the followed ones and from the band and pane at once) or takes it out; either way the stack is detected again while it is on, to fill or take the freed place. A bare name names a followed or added package (ignore) or an ignored one (unignore).
  *
  * @param host the engine
  * @param rest what follows `ignore` or `unignore`

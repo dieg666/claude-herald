@@ -5,7 +5,7 @@ import type { CommandReply } from './command-reply.js'
 import { listTextOf } from './list-text-of.js'
 
 /**
- * `/news list`: every source, enabled or not, its kind, how many items it keeps and its last error.
+ * `/herald list`: every source, enabled or not, its kind, how many items it keeps and its last error.
  *
  * @param host the engine
  */

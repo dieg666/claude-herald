@@ -18,7 +18,7 @@ describe('set-lang', () => {
     async ($, on) => {
       const stored = Fixtures.storeOn(on, { summaries: SUMMARIES })
 
-      expect((await $.command.run(Fixtures.newsOf('lang ES'))).text).toBe(
+      expect((await $.command.run(Fixtures.heraldOf('lang ES'))).text).toBe(
         'Summaries are written in es.',
       )
       expect(stored.get('settings')).toMatchObject({ lang: 'es' })
@@ -27,7 +27,7 @@ describe('set-lang', () => {
         summaries: { 'src:a': 'corto' },
       })
 
-      await $.command.run(Fixtures.newsOf('lang PT-BR'))
+      await $.command.run(Fixtures.heraldOf('lang PT-BR'))
 
       expect(stored.get('settings')).toMatchObject({ lang: 'pt-BR' })
       expect(peeked((await $.command.run(Fixtures.PEEK)).text).summaries).toEqual({
@@ -44,7 +44,7 @@ describe('set-lang', () => {
 
       on('settings.read', () => ({ value: { language: 'es' } }))
 
-      expect((await $.command.run(Fixtures.newsOf('lang User'))).text).toBe(
+      expect((await $.command.run(Fixtures.heraldOf('lang User'))).text).toBe(
         "Summaries are written in Claude Code's language setting (each item's own while it is unset).",
       )
       expect(stored.get('settings')).toMatchObject({ lang: 'user' })
@@ -52,7 +52,7 @@ describe('set-lang', () => {
         'src:a': 'corto',
       })
 
-      expect((await $.command.run(Fixtures.newsOf('lang feed'))).text).toBe(
+      expect((await $.command.run(Fixtures.heraldOf('lang feed'))).text).toBe(
         "Summaries are written in each item's own language.",
       )
       expect(stored.get('settings')).toMatchObject({ lang: 'feed' })
@@ -63,7 +63,7 @@ describe('set-lang', () => {
     const stored = Fixtures.storeOn(on)
 
     for (const value of ['english', 'e', 'es_ES', 'es-', 'es-x', '"es es"', 'zh-Hans-CN']) {
-      const { text } = await $.command.run(Fixtures.newsOf(`lang ${value}`))
+      const { text } = await $.command.run(Fixtures.heraldOf(`lang ${value}`))
 
       expect(text).toMatch(/^The summary language is feed .* is none of them\.$/)
     }

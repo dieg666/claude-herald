@@ -9,11 +9,11 @@ import { digestTextOf } from './digest-text-of.js'
 import { hasDrawingSurface } from './has-drawing-surface.js'
 
 /**
- * `/news`: opens the pane where a surface draws one, asking for the summaries of the items it opens on; elsewhere, or when it cannot open, answers the latest items as text.
+ * `/herald`: opens the pane where a surface draws one, asking for the summaries of the items it opens on; elsewhere, or when it cannot open, answers the latest items as text.
  *
  * @param host the engine
  */
-export async function showNews(host: Host): Promise<CommandReply> {
+export async function showHerald(host: Host): Promise<CommandReply> {
   const surfaces = await host.surfaces().catch(() => [])
 
   if (hasDrawingSurface(surfaces)) {
@@ -27,12 +27,12 @@ export async function showNews(host: Host): Promise<CommandReply> {
 
       return {
         text: opened.isPlaced
-          ? 'Opened the news pane.'
-          : `The news pane is open and shows once there is room: ${opened.reason}`,
+          ? 'Opened the Herald pane.'
+          : `The Herald pane is open and shows once there is room: ${opened.reason}`,
         summarizePane: true,
       }
     } catch (error) {
-      host.debug(`news: could not open the pane: ${messageOf(error)}`)
+      host.debug(`herald: could not open the pane: ${messageOf(error)}`)
     }
   }
 

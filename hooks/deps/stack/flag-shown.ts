@@ -101,7 +101,7 @@ export async function flagShown(
       )
     })
   } catch (error) {
-    host.debug(`news: deps: could not flag the releases shown: ${messageOf(error)}`)
+    host.debug(`herald: deps: could not flag the releases shown: ${messageOf(error)}`)
   }
 
   return changed

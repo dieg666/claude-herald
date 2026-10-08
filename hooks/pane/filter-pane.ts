@@ -30,7 +30,7 @@ export async function filterPane(
 
     return await handShownPane(host, size, onShown)
   } catch (error) {
-    host.debug(`news: pane: could not filter: ${messageOf(error)}`)
+    host.debug(`herald: pane: could not filter: ${messageOf(error)}`)
 
     return []
   }

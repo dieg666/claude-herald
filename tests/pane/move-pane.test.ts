@@ -73,6 +73,6 @@ describe('move-pane', () => {
     }
 
     expect(await Pane.movePane(host, 'down', 4, async () => undefined)).toBeUndefined()
-    expect(logs).toEqual(['news: pane: model down', 'news: pane: could not move: no state'])
+    expect(logs).toEqual(['herald: pane: model down', 'herald: pane: could not move: no state'])
   })
 })

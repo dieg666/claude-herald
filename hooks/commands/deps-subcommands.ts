@@ -13,7 +13,7 @@ import { setDepsToast } from './set-deps-toast.js'
 import type { Subcommand } from './subcommand.js'
 
 /**
- * Every `/news deps` subcommand by the name typed after `/news deps`, in the order its usage lists them.
+ * Every `/herald deps` subcommand by the name typed after `/herald deps`, in the order its usage lists them.
  */
 export const DEPS_SUBCOMMANDS: Readonly<Record<keyof typeof DEPS_USAGES, Subcommand>> = {
   on: {

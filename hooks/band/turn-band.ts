@@ -55,7 +55,7 @@ export async function turnBand(
 
     return page.items
   } catch (error) {
-    host.debug(`news: band: could not ${move}: ${messageOf(error)}`)
+    host.debug(`herald: band: could not ${move}: ${messageOf(error)}`)
 
     return undefined
   }

@@ -1,5 +1,5 @@
 /**
- * How each `/news deps` subcommand is typed after `/news deps`, by name.
+ * How each `/herald deps` subcommand is typed after `/herald deps`, by name.
  */
 export const DEPS_USAGES = {
   on: 'on',

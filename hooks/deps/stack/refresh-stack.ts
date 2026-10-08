@@ -198,7 +198,7 @@ async function readOf(
   const failure = (reason: string) => {
     if (reason !== 'cancelled') {
       loop.failedAt.set(`feed:${feed}`, now)
-      host.debug(`news: deps: ${key}: release feed: ${reason}`)
+      host.debug(`herald: deps: ${key}: release feed: ${reason}`)
     }
 
     return undefined
@@ -465,7 +465,7 @@ async function runOf(
       ...(toast === '' ? {} : { toast }),
     }
   } catch (error) {
-    host.debug(`news: deps: the stack refresh failed: ${messageOf(error)}`)
+    host.debug(`herald: deps: the stack refresh failed: ${messageOf(error)}`)
 
     return NOTHING
   }

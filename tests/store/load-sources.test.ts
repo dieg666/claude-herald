@@ -55,7 +55,7 @@ describe('load-sources', () => {
     expect(await Store.loadSources(host)).toEqual([...Defaults.FACTORY_SOURCES])
     expect(sets).toEqual([])
     expect(stored.get('sources')).toEqual(corrupt)
-    expect(logs).toEqual(['news: the stored sources are not a list; showing the factory sources'])
+    expect(logs).toEqual(['herald: the stored sources are not a list; showing the factory sources'])
   })
 
   test('a failed seed write is logged and the factory sources still come back', async () => {
@@ -66,6 +66,6 @@ describe('load-sources', () => {
     }
 
     expect(await Store.loadSources(host)).toEqual([...Defaults.FACTORY_SOURCES])
-    expect(logs).toEqual(['news: could not save the factory sources: disk full'])
+    expect(logs).toEqual(['herald: could not save the factory sources: disk full'])
   })
 })

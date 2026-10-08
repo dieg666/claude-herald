@@ -90,7 +90,7 @@ function packageLineOf(
 }
 
 /**
- * `/news deps` as text: the project and its stack settings, the counts, each followed package grouped by ecosystem with its version and where its releases come from (resolved, unresolved with the reason, or not looked up yet, from the cache only), then the ignored packages.
+ * `/herald deps` as text: the project and its stack settings, the counts, each followed package grouped by ecosystem with its version and where its releases come from (resolved, unresolved with the reason, or not looked up yet, from the cache only), then the ignored packages.
  *
  * @param at the project root and whether it is a git repository
  * @param project its stack record

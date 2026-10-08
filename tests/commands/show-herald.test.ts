@@ -3,7 +3,7 @@ import { describe, expect, mock, test } from 'claude-code/testing'
 
 import Fixtures from '../fixtures'
 
-describe('show-news', () => {
+describe('show-herald', () => {
   const FEED = Fixtures.sourceAt('feed', { name: 'Feed' })
   const QUIET = Fixtures.sourceAt('quiet', { name: 'Quiet' })
   const OFF = Fixtures.sourceAt('off', { name: 'Off', isEnabled: false })
@@ -32,8 +32,8 @@ describe('show-news', () => {
 
       const opened = Fixtures.paneOn(on, [surface])
 
-      expect((await $.command.run(Fixtures.newsOf(''))).text).toBe('Opened the news pane.')
-      expect(opened).toEqual([{ id: 'news', title: 'News', focus: true, closeOnEscape: true }])
+      expect((await $.command.run(Fixtures.heraldOf(''))).text).toBe('Opened the Herald pane.')
+      expect(opened).toEqual([{ id: 'herald', title: 'Herald', focus: true, closeOnEscape: true }])
     })
   }
 
@@ -49,13 +49,13 @@ describe('show-news', () => {
       on('ui.open', () => ({ value: { isPlaced: true } }))
 
       await $.classic.SessionStart({ source: 'clear' })
-      await $.command.run(Fixtures.newsOf(''))
+      await $.command.run(Fixtures.heraldOf(''))
       await clock.settle()
 
       expect(asked).toEqual([])
 
       surfaces.push('terminal')
-      await $.command.run(Fixtures.newsOf(''))
+      await $.command.run(Fixtures.heraldOf(''))
       await clock.settle()
 
       expect([...asked].sort()).toEqual(['a', 'b', 'c', 'd'])
@@ -67,7 +67,7 @@ describe('show-news', () => {
 
     const opened = Fixtures.paneOn(on, [])
 
-    expect((await $.command.run(Fixtures.newsOf(''))).text).toBe(DIGEST)
+    expect((await $.command.run(Fixtures.heraldOf(''))).text).toBe(DIGEST)
     expect(opened).toEqual([])
   })
 
@@ -76,7 +76,7 @@ describe('show-news', () => {
 
     const opened = Fixtures.paneOn(on, ['vscode', 'mobile'])
 
-    expect((await $.command.run(Fixtures.newsOf('   '))).text).toBe(DIGEST)
+    expect((await $.command.run(Fixtures.heraldOf('   '))).text).toBe(DIGEST)
     expect(opened).toEqual([])
   })
 
@@ -84,8 +84,8 @@ describe('show-news', () => {
     Fixtures.storeOn(on, STORE)
     Fixtures.paneOn(on, ['terminal'], { isPlaced: false, reason: 'needs 144 columns' })
 
-    expect((await $.command.run(Fixtures.newsOf(''))).text).toBe(
-      'The news pane is open and shows once there is room: needs 144 columns',
+    expect((await $.command.run(Fixtures.heraldOf(''))).text).toBe(
+      'The Herald pane is open and shows once there is room: needs 144 columns',
     )
   })
 
@@ -97,16 +97,16 @@ describe('show-news', () => {
     on('session.surfaces', () => ({ value: ['terminal'] }))
     on('ui.open', () => ({ deny: 'no panes here' }))
 
-    expect((await $.command.run(Fixtures.newsOf(''))).text).toBe(DIGEST)
-    expect(logs).toEqual([expect.stringMatching(/^debug: news: could not open the pane: /)])
+    expect((await $.command.run(Fixtures.heraldOf(''))).text).toBe(DIGEST)
+    expect(logs).toEqual([expect.stringMatching(/^debug: herald: could not open the pane: /)])
   })
 
   test('with every source off, says how to turn one on', async ($, on) => {
     Fixtures.storeOn(on, { sources: [OFF] })
     Fixtures.paneOn(on, [])
 
-    expect((await $.command.run(Fixtures.newsOf(''))).text).toBe(
-      'Every source is off. /news list shows them; /news enable <name> turns one on.',
+    expect((await $.command.run(Fixtures.heraldOf(''))).text).toBe(
+      'Every source is off. /herald list shows them; /herald enable <name> turns one on.',
     )
   })
 })

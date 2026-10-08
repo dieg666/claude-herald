@@ -27,7 +27,7 @@ export async function restartRotation(host: Host, rotation: Rotation): Promise<v
       void turnBand(host, rotation, 'rotate')
     })
   } catch (error) {
-    host.debug(`news: could not start the band rotation: ${messageOf(error)}`)
+    host.debug(`herald: could not start the band rotation: ${messageOf(error)}`)
   }
 
   await handShownPage(host, rotation)

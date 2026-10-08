@@ -21,7 +21,7 @@ describe('pane-view', () => {
   }
 
   const PANE = {
-    plugin: 'news',
+    plugin: 'herald',
     component: 'Pane',
     requestId: Names.PANE_ID,
     props: Fixtures.PANE_PROPS,
@@ -208,7 +208,7 @@ describe('pane-view', () => {
 
       await ui.press({ key: 'tab-b' })
       await ui.press({ key: 'down' })
-      await $.command.run(Fixtures.newsOf('remove Beta'))
+      await $.command.run(Fixtures.heraldOf('remove Beta'))
 
       expect((await tabsOf(ui)).map(([key]) => key)).toEqual(['tab-a', 'tab-saved'])
       expect([await headingOf(ui), await selectedOf(ui)]).toEqual([
@@ -217,7 +217,7 @@ describe('pane-view', () => {
       ])
 
       await ui.press({ key: 'down' })
-      await $.command.run(Fixtures.newsOf('disable Alpha'))
+      await $.command.run(Fixtures.heraldOf('disable Alpha'))
 
       expect(await tabsOf(ui)).toEqual([['tab-saved', 'Saved', '0', false]])
       expect(await headingOf(ui)).toBe('Saved')
@@ -341,7 +341,7 @@ describe('pane-view', () => {
     })
 
     test(
-      `on ${surface}: /news before any drawing summarizes a first window; after a drawing, exactly the rows a tall pane shows, once each`,
+      `on ${surface}: /herald before any drawing summarizes a first window; after a drawing, exactly the rows a tall pane shows, once each`,
       { timeoutMs: 30_000 },
       async ($, on) => {
         const clock = mock.clock(on)
@@ -355,7 +355,7 @@ describe('pane-view', () => {
         Fixtures.paneOn(on, [surface])
 
         await $.classic.SessionStart({ source: 'clear' })
-        await $.command.run(Fixtures.newsOf(''))
+        await $.command.run(Fixtures.heraldOf(''))
         await clock.settle()
 
         expect([...asked].sort()).toEqual(titlesTo(Pane.PANE_FIRST_WINDOW))
@@ -369,7 +369,7 @@ describe('pane-view', () => {
 
         expect(await headingOf(ui)).toBe('Alpha · 1-28 of 30')
 
-        await $.command.run(Fixtures.newsOf(''))
+        await $.command.run(Fixtures.heraldOf(''))
         await clock.settle()
         await ui.redraw()
         await clock.settle()
@@ -402,7 +402,7 @@ describe('pane-view', () => {
 
         expect(await ui.find({ type: 'Text', text: 'Cached a 6.' })).toBeDefined()
 
-        await $.command.run(Fixtures.newsOf('lang fr'))
+        await $.command.run(Fixtures.heraldOf('lang fr'))
         await clock.settle()
 
         expect([...new Set(asked)].sort()).toEqual(items.map(item => item.title).sort())
@@ -455,7 +455,7 @@ describe('pane-view', () => {
       ).toBeDefined()
       expect(await ui.find({ key: 'read' })).toBeUndefined()
 
-      await $.command.run(Fixtures.newsOf('remove Alpha'))
+      await $.command.run(Fixtures.heraldOf('remove Alpha'))
 
       expect(await tabsOf(ui)).toEqual([['tab-saved', 'Saved', '0', false]])
     })

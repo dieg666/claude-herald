@@ -69,7 +69,7 @@ export async function refreshSource(
       source.kind === 'page' ? await fetchPage(host, source, signal) : await fetchFeed(host, source)
 
     if (fetched.kind === 'failed') {
-      host.debug(`news: ${source.name}: ${fetched.reason}`)
+      host.debug(`herald: ${source.name}: ${fetched.reason}`)
 
       return { newItems: [], error: fetched.reason }
     }
@@ -106,7 +106,7 @@ export async function refreshSource(
   } catch (error) {
     const reason = messageOf(error)
 
-    host.debug(`news: ${source.name}: ${reason}`)
+    host.debug(`herald: ${source.name}: ${reason}`)
 
     return { newItems: [], error: reason }
   }

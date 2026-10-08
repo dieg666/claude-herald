@@ -23,7 +23,7 @@ describe('set-dep-ignored', () => {
 
       Fixtures.fsOn(on, Fixtures.stackTreeOf(SAMPLE))
 
-      expect((await $.command.run(Fixtures.newsOf('deps ignore react'))).text).toBe(
+      expect((await $.command.run(Fixtures.heraldOf('deps ignore react'))).text).toBe(
         'Ignoring npm:react in /repo: it is no longer followed, looked up or shown.',
       )
       expect(projectAt(stored).ignored).toEqual(['npm:react'])
@@ -37,7 +37,7 @@ describe('set-dep-ignored', () => {
 
       expect(names).toEqual(['vite', 'lodash', 'requests', 'next', 'zod'])
 
-      expect((await $.command.run(Fixtures.newsOf('deps unignore react'))).text).toBe(
+      expect((await $.command.run(Fixtures.heraldOf('deps unignore react'))).text).toBe(
         'npm:react is no longer ignored in /repo; it is followed again when a manifest declares it or it was added.',
       )
       expect(projectAt(stored).ignored).toBeUndefined()
@@ -59,8 +59,8 @@ describe('set-dep-ignored', () => {
 
     Fixtures.fsOn(on, { '.git': { isDir: true } })
 
-    await $.command.run(Fixtures.newsOf('deps ignore PyPI:some-package'))
-    await $.command.run(Fixtures.newsOf(`deps ignore "npm:we'ird"`))
+    await $.command.run(Fixtures.heraldOf('deps ignore PyPI:some-package'))
+    await $.command.run(Fixtures.heraldOf(`deps ignore "npm:we'ird"`))
 
     expect(projectAt(stored).ignored).toEqual(['pypi:Some-Package', "npm:we'ird"])
   })
@@ -73,14 +73,14 @@ describe('set-dep-ignored', () => {
 
     Fixtures.fsOn(on, { '.git': { isDir: true } })
 
-    const usage = '\nUsage: /news deps ignore <package>'
+    const usage = '\nUsage: /herald deps ignore <package>'
 
-    expect((await $.command.run(Fixtures.newsOf('deps ignore npm:typo'))).text).toBe(
-      `npm:typo is not followed or added in /repo; /news deps lists the packages it follows.${usage}`,
+    expect((await $.command.run(Fixtures.heraldOf('deps ignore npm:typo'))).text).toBe(
+      `npm:typo is not followed or added in /repo; /herald deps lists the packages it follows.${usage}`,
     )
 
     for (const args of ['npm:zod extra words', '"npm:zod extra"']) {
-      expect((await $.command.run(Fixtures.newsOf(`deps ignore ${args}`))).text).toBe(
+      expect((await $.command.run(Fixtures.heraldOf(`deps ignore ${args}`))).text).toBe(
         `Name one package, without spaces.${usage}`,
       )
     }
@@ -105,17 +105,17 @@ describe('set-dep-ignored', () => {
 
     const before = JSON.stringify(stored.get('deps'))
 
-    expect((await $.command.run(Fixtures.newsOf('deps ignore requests'))).text).toBe(
-      '"requests" names npm:requests and pypi:requests; write the one you mean.\nUsage: /news deps ignore <package>',
+    expect((await $.command.run(Fixtures.heraldOf('deps ignore requests'))).text).toBe(
+      '"requests" names npm:requests and pypi:requests; write the one you mean.\nUsage: /herald deps ignore <package>',
     )
-    expect((await $.command.run(Fixtures.newsOf('deps ignore nope'))).text).toBe(
-      'No package here is named "nope"; write it as <ecosystem>:<name>, e.g. npm:nope.\nUsage: /news deps ignore <package>',
+    expect((await $.command.run(Fixtures.heraldOf('deps ignore nope'))).text).toBe(
+      'No package here is named "nope"; write it as <ecosystem>:<name>, e.g. npm:nope.\nUsage: /herald deps ignore <package>',
     )
-    expect((await $.command.run(Fixtures.newsOf('deps unignore requests'))).text).toBe(
-      'No package here is named "requests"; write it as <ecosystem>:<name>, e.g. npm:requests.\nUsage: /news deps unignore <package>',
+    expect((await $.command.run(Fixtures.heraldOf('deps unignore requests'))).text).toBe(
+      'No package here is named "requests"; write it as <ecosystem>:<name>, e.g. npm:requests.\nUsage: /herald deps unignore <package>',
     )
-    expect((await $.command.run(Fixtures.newsOf('deps unignore npm:requests'))).text).toBe(
-      'npm:requests is not ignored in /repo.\nUsage: /news deps unignore <package>',
+    expect((await $.command.run(Fixtures.heraldOf('deps unignore npm:requests'))).text).toBe(
+      'npm:requests is not ignored in /repo.\nUsage: /herald deps unignore <package>',
     )
     expect(JSON.stringify(stored.get('deps'))).toBe(before)
   })
@@ -124,8 +124,8 @@ describe('set-dep-ignored', () => {
     Fixtures.storeOn(on, { sources: [], deps: { '/repo': { ignored: ['npm:react'] } } })
     Fixtures.fsOn(on, { '.git': { isDir: true } })
 
-    expect((await $.command.run(Fixtures.newsOf('deps ignore npm:react'))).text).toBe(
-      'npm:react is already ignored in /repo.\nUsage: /news deps ignore <package>',
+    expect((await $.command.run(Fixtures.heraldOf('deps ignore npm:react'))).text).toBe(
+      'npm:react is already ignored in /repo.\nUsage: /herald deps ignore <package>',
     )
   })
 })

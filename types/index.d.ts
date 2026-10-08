@@ -239,7 +239,7 @@ export type DepResolution = {
 /**
  * The mod's Settings under a name claude-code does not use: inside its module block, `Settings` is claude-code's own.
  */
-export type NewsSettings = Settings
+export type HeraldSettings = Settings
 
 /**
  * Whether a release breaks code that uses the package, and whether it fixes a security issue.
@@ -328,9 +328,9 @@ declare module 'claude-code' {
    * Every value the mod keeps in `$.state`, by key: what the band and pane draw.
    */
   interface PluginState {
-    news: {
+    herald: {
       sources: Source[]
-      settings: NewsSettings
+      settings: HeraldSettings
       items: ItemsBySource
       saved: SavedItem[]
       /** One-line summaries by item id, in the current summary language. */

@@ -11,10 +11,10 @@ describe('set-deps-level', () => {
 
       Fixtures.fsOn(on, { '.git': { isDir: true } })
 
-      expect((await $.command.run(Fixtures.newsOf('deps level Minor+'))).text).toBe(
+      expect((await $.command.run(Fixtures.heraldOf('deps level Minor+'))).text).toBe(
         'The band and the pane show the minor+ dependency releases of /repo.',
       )
-      await $.command.run(Fixtures.newsOf('deps level major + Breaking + security'))
+      await $.command.run(Fixtures.heraldOf('deps level major + Breaking + security'))
 
       expect(stored.get('deps')).toMatchObject({
         '/repo': { settings: { showLevel: 'major+breaking+security' } },
@@ -31,8 +31,8 @@ describe('set-deps-level', () => {
     Fixtures.fsOn(on, { '.git': { isDir: true } })
 
     for (const value of ['patch', 'off', 'minor']) {
-      expect((await $.command.run(Fixtures.newsOf(`deps level ${value}`))).text).toBe(
-        `The level is all, minor+, major+breaking+security, breaking+security; "${value}" is none of them.\nUsage: /news deps level <level>`,
+      expect((await $.command.run(Fixtures.heraldOf(`deps level ${value}`))).text).toBe(
+        `The level is all, minor+, major+breaking+security, breaking+security; "${value}" is none of them.\nUsage: /herald deps level <level>`,
       )
     }
 

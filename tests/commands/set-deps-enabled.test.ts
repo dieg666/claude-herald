@@ -19,7 +19,7 @@ describe('set-deps-enabled', () => {
 
       Fixtures.fsOn(on, { '.git': { isDir: true } })
 
-      expect((await $.command.run(Fixtures.newsOf('deps off'))).text).toBe(
+      expect((await $.command.run(Fixtures.heraldOf('deps off'))).text).toBe(
         'Stopped following the dependency releases of /repo; its stack items are hidden and nothing is fetched for them. Other sources are untouched.',
       )
       expect(settingsAt(stored, '/repo').isEnabled).toBe(false)
@@ -28,7 +28,7 @@ describe('set-deps-enabled', () => {
         settings: { isEnabled: false },
       })
 
-      expect((await $.command.run(Fixtures.newsOf('deps on'))).text).toBe(
+      expect((await $.command.run(Fixtures.heraldOf('deps on'))).text).toBe(
         'Following the dependency releases of /repo again; detecting its stack now.',
       )
       expect(settingsAt(stored, '/repo')).toEqual(Defaults.DEFAULT_DEPS_SETTINGS)
@@ -40,10 +40,10 @@ describe('set-deps-enabled', () => {
 
     Fixtures.fsOn(on, { '.git': { isDir: true } })
 
-    expect((await $.command.run(Fixtures.newsOf('deps off now'))).text).toBe(
-      '/news deps off takes nothing after it.\nUsage: /news deps off',
+    expect((await $.command.run(Fixtures.heraldOf('deps off now'))).text).toBe(
+      '/herald deps off takes nothing after it.\nUsage: /herald deps off',
     )
-    expect((await $.command.run(Fixtures.newsOf('deps on'))).text).toBe(
+    expect((await $.command.run(Fixtures.heraldOf('deps on'))).text).toBe(
       'Your stack is already on for /repo.',
     )
     expect(stored.has('deps')).toBe(false)
@@ -53,12 +53,12 @@ describe('set-deps-enabled', () => {
     const stored = Fixtures.storeOn(on, { sources: [] })
     const root = Fixtures.rootsOn(on, ['/one', '/two'])
 
-    await $.command.run(Fixtures.newsOf('deps off'))
+    await $.command.run(Fixtures.heraldOf('deps off'))
     root.current = '/two'
-    await $.command.run(Fixtures.newsOf('deps cap 3'))
-    await $.command.run(Fixtures.newsOf('deps level all'))
+    await $.command.run(Fixtures.heraldOf('deps cap 3'))
+    await $.command.run(Fixtures.heraldOf('deps level all'))
     root.current = '/one'
-    await $.command.run(Fixtures.newsOf('deps toast off'))
+    await $.command.run(Fixtures.heraldOf('deps toast off'))
 
     expect(settingsAt(stored, '/one')).toEqual({
       ...Defaults.DEFAULT_DEPS_SETTINGS,

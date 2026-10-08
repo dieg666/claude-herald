@@ -48,7 +48,7 @@ async function runOf(
         REFRESH_LIMITS.sourceTimeoutMs,
         refreshSource(host, source, controller.signal, serially),
         (): SourceOutcome => {
-          host.debug(`news: ${source.name}: timed out`)
+          host.debug(`herald: ${source.name}: timed out`)
 
           return { newItems: [], error: 'timed out' }
         },
@@ -83,12 +83,12 @@ async function runOf(
     try {
       await loop.onRun?.(host, run, controller.signal)
     } catch (error) {
-      host.debug(`news: after the refresh: ${messageOf(error)}`)
+      host.debug(`herald: after the refresh: ${messageOf(error)}`)
     }
 
     return run
   } catch (error) {
-    host.debug(`news: the refresh failed: ${messageOf(error)}`)
+    host.debug(`herald: the refresh failed: ${messageOf(error)}`)
 
     await host.state.status
       .update(status => ({ ...status, isRefreshing: isOtherRunning(loop, controller) }))
@@ -121,7 +121,7 @@ export async function refreshAll(host: Host, loop: RefreshLoop): Promise<Refresh
     (): RefreshRun => {
       isLate = true
       controller.abort()
-      host.debug('news: the refresh timed out')
+      host.debug('herald: the refresh timed out')
 
       return { isSkipped: false, newItems: [], errors: {} }
     },

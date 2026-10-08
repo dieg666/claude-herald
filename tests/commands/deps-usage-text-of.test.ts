@@ -22,10 +22,10 @@ describe('deps-usage-text-of', () => {
     expect(text).toBe(
       [
         'Usage:',
-        "  /news deps          this project's stack: settings, followed packages and their release feeds",
-        '  /news deps on       turn on',
-        '  /news deps cap <n>  set',
-        '  /news deps help     show this list',
+        "  /herald deps          this project's stack: settings, followed packages and their release feeds",
+        '  /herald deps on       turn on',
+        '  /herald deps cap <n>  set',
+        '  /herald deps help     show this list',
       ].join('\n'),
     )
   })

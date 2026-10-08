@@ -6,7 +6,7 @@ import type { CommandReply } from './command-reply.js'
 import { wholeNumberOf } from './whole-number-of.js'
 
 /**
- * `/news interval <min>`: saves the minutes between refreshes (1 to 1440) and asks for the refresh timer to restart.
+ * `/herald interval <min>`: saves the minutes between refreshes (1 to 1440) and asks for the refresh timer to restart.
  *
  * @param host the engine
  * @param rest what follows `interval`

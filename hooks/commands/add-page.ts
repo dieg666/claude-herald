@@ -13,7 +13,7 @@ import { sourceNameOf } from './source-name-of.js'
 import { wordsOf } from './words-of.js'
 
 /**
- * `/news add-page <url> [name]`: follows a web page once it fetches as HTML, named after its title unless named; its items are extracted on refresh.
+ * `/herald add-page <url> [name]`: follows a web page once it fetches as HTML, named after its title unless named; its items are extracted on refresh.
  *
  * @param host the engine
  * @param rest what follows `add-page`

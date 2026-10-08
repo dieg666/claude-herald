@@ -9,7 +9,7 @@ import { depsRootOf } from './deps-root-of.js'
 import { onOffOf } from './on-off-of.js'
 
 /**
- * `/news deps dev on|off`: whether this project's dev dependencies are followed too; asks for the stack to be detected again while it is on.
+ * `/herald deps dev on|off`: whether this project's dev dependencies are followed too; asks for the stack to be detected again while it is on.
  *
  * @param host the engine
  * @param rest what follows `dev`

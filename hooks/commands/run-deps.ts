@@ -8,10 +8,10 @@ import { showDeps } from './show-deps.js'
 import { wordsOf } from './words-of.js'
 
 /**
- * `/news deps` with what was typed after it: nothing lists the stack, `help` its subcommands, a known subcommand runs with the rest, anything else (or a subcommand missing its argument) answers why with the usage.
+ * `/herald deps` with what was typed after it: nothing lists the stack, `help` its subcommands, a known subcommand runs with the rest, anything else (or a subcommand missing its argument) answers why with the usage.
  *
  * @param host the engine
- * @param args everything after `/news deps`
+ * @param args everything after `/herald deps`
  * @param stack the stack loop, whose queue orders the stack's store and state writes
  */
 export async function runDeps(host: Host, args: string, stack: StackLoop): Promise<CommandReply> {

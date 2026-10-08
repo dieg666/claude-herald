@@ -15,6 +15,6 @@ export async function hydrateStack(host: Host, loop: StackLoop): Promise<void> {
   }
 
   await mirrorStack(host, loop.root).catch((error: unknown) => {
-    host.debug(`news: deps: could not load the stack's releases: ${messageOf(error)}`)
+    host.debug(`herald: deps: could not load the stack's releases: ${messageOf(error)}`)
   })
 }

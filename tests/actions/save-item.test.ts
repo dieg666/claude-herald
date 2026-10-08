@@ -24,7 +24,7 @@ describe('save-item', () => {
 
     expect(await Actions.saveItem(host, Fixtures.itemAt('a'))).toBe(false)
     expect(toasts).toEqual(['Could not save "a": read-only'])
-    expect(logs).toEqual(['news: could not save src:a: read-only'])
+    expect(logs).toEqual(['herald: could not save src:a: read-only'])
   })
 
   test(
@@ -43,7 +43,7 @@ describe('save-item', () => {
 
       for (const surface of ['terminal', 'desktop'] as const) {
         const ui = await $.ui.mount({
-          plugin: 'news',
+          plugin: 'herald',
           component: 'AbovePrompt',
           props: Fixtures.BAND_PROPS,
           surface,

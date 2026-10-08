@@ -43,6 +43,6 @@ describe('hand-shown-pane', () => {
     }
 
     expect(await Pane.handShownPane(host, 3, onShown)).toEqual([])
-    expect(logs).toEqual(['news: pane: no state'])
+    expect(logs).toEqual(['herald: pane: no state'])
   })
 })

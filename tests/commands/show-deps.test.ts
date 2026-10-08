@@ -66,7 +66,7 @@ describe('show-deps', () => {
     Fixtures.fsOn(on, REPO)
 
     const fetched = Fixtures.webOn(on, new Map())
-    const { text } = await $.command.run(Fixtures.newsOf('deps'))
+    const { text } = await $.command.run(Fixtures.heraldOf('deps'))
 
     expect(text).toBe(
       [
@@ -85,7 +85,7 @@ describe('show-deps', () => {
         '',
         'Ignored: npm:lodash',
         '',
-        '/news deps help lists what you can change.',
+        '/herald deps help lists what you can change.',
       ].join('\n'),
     )
     expect(fetched).toEqual([])
@@ -96,13 +96,13 @@ describe('show-deps', () => {
 
     Fixtures.fsOn(on, REPO)
 
-    expect((await $.command.run(Fixtures.newsOf('deps'))).text).toContain(
-      '0 detected · 0 followed\n\nNot detected yet; /news deps rescan detects it now.',
+    expect((await $.command.run(Fixtures.heraldOf('deps'))).text).toContain(
+      '0 detected · 0 followed\n\nNot detected yet; /herald deps rescan detects it now.',
     )
 
     stored.set('deps', projectOf({ detectedAt: 5 }).deps)
 
-    expect((await $.command.run(Fixtures.newsOf('deps'))).text).toContain(
+    expect((await $.command.run(Fixtures.heraldOf('deps'))).text).toContain(
       '\n\nNo dependency is followed.\n',
     )
   })
@@ -111,11 +111,11 @@ describe('show-deps', () => {
     Fixtures.storeOn(on, projectOf({ settings: { isEnabled: false, toastLevel: 'off' } }))
     Fixtures.fsOn(on, REPO)
 
-    const { text } = await $.command.run(Fixtures.newsOf('deps'))
+    const { text } = await $.command.run(Fixtures.heraldOf('deps'))
 
     expect(text).toMatch(/^Your stack in \/repo: off · .* · no toasts\n/)
     expect(text).toContain(
-      '\nNothing is followed or fetched while it is off; /news deps on turns it on.\n',
+      '\nNothing is followed or fetched while it is off; /herald deps on turns it on.\n',
     )
   })
 
@@ -126,14 +126,14 @@ describe('show-deps', () => {
     on('session.root', () => ({ value: root.current }))
     on('fs.list', () => ({ value: [] }))
 
-    expect((await $.command.run(Fixtures.newsOf('deps'))).text).toMatch(
+    expect((await $.command.run(Fixtures.heraldOf('deps'))).text).toMatch(
       /^Your stack in \/work: on .*\nNot in a git repository: only the manifests in this folder are read\.\n/,
     )
 
     root.current = '/'
 
-    expect((await $.command.run(Fixtures.newsOf('deps'))).text).toBe(
-      'The session runs at a filesystem root, so /news deps has no project to follow.',
+    expect((await $.command.run(Fixtures.heraldOf('deps'))).text).toBe(
+      'The session runs at a filesystem root, so /herald deps has no project to follow.',
     )
   })
 
@@ -146,14 +146,14 @@ describe('show-deps', () => {
 
     Fixtures.fsOn(on, REPO)
 
-    const fifty = (await $.command.run(Fixtures.newsOf('deps'))).text ?? ''
+    const fifty = (await $.command.run(Fixtures.heraldOf('deps'))).text ?? ''
 
     expect(fifty).toContain('  package-49 1.2.3: not looked up yet')
     expect(fifty.length < 3000).toBe(true)
 
     stored.set('deps', projectOf({ dependencies: many(260), detectedCount: 260 }).deps)
 
-    const lots = (await $.command.run(Fixtures.newsOf('deps'))).text ?? ''
+    const lots = (await $.command.run(Fixtures.heraldOf('deps'))).text ?? ''
 
     expect(lots).toContain('  package-199 1.2.3')
     expect(lots).not.toContain('package-200 ')
@@ -171,7 +171,7 @@ describe('show-deps', () => {
     })
     Fixtures.fsOn(on, REPO)
 
-    const line = (await $.command.run(Fixtures.newsOf('deps'))).text
+    const line = (await $.command.run(Fixtures.heraldOf('deps'))).text
       ?.split('\n')
       .find(row => row.startsWith('  we"ird'))
 

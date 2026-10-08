@@ -17,7 +17,7 @@ export async function platformOf(host: Host): Promise<Platform> {
 
     return exitCode === 0 && stdout.trim() === 'Darwin' ? 'darwin' : 'other'
   } catch (error) {
-    host.debug(`news: uname -s failed: ${messageOf(error)}`)
+    host.debug(`herald: uname -s failed: ${messageOf(error)}`)
 
     return 'other'
   }

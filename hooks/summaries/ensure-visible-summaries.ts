@@ -58,7 +58,7 @@ export async function ensureVisibleSummaries(
 
     return Object.fromEntries(texts.flat())
   } catch (error) {
-    host.debug(`news: could not summarize the shown items: ${messageOf(error)}`)
+    host.debug(`herald: could not summarize the shown items: ${messageOf(error)}`)
 
     return {}
   }

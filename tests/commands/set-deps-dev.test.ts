@@ -8,14 +8,14 @@ describe('set-deps-dev', () => {
 
     Fixtures.fsOn(on, { '.git': { isDir: true } })
 
-    expect((await $.command.run(Fixtures.newsOf('deps dev ON'))).text).toBe(
+    expect((await $.command.run(Fixtures.heraldOf('deps dev ON'))).text).toBe(
       'Dev dependencies are followed in /repo too. Detecting its stack again.',
     )
     expect(stored.get('deps')).toMatchObject({ '/repo': { settings: { includeDev: true } } })
-    expect((await $.command.run(Fixtures.newsOf('deps dev on'))).text).toBe(
+    expect((await $.command.run(Fixtures.heraldOf('deps dev on'))).text).toBe(
       'Dev dependencies are already followed in /repo.',
     )
-    expect((await $.command.run(Fixtures.newsOf('deps dev off'))).text).toBe(
+    expect((await $.command.run(Fixtures.heraldOf('deps dev off'))).text).toBe(
       'Only runtime dependencies are followed in /repo. Detecting its stack again.',
     )
     expect(stored.get('deps')).toMatchObject({ '/repo': { settings: { includeDev: false } } })
@@ -26,8 +26,8 @@ describe('set-deps-dev', () => {
 
     Fixtures.fsOn(on, { '.git': { isDir: true } })
 
-    expect((await $.command.run(Fixtures.newsOf('deps dev yes'))).text).toBe(
-      'Dev dependencies are followed (on) or not (off); "yes" is neither.\nUsage: /news deps dev <on|off>',
+    expect((await $.command.run(Fixtures.heraldOf('deps dev yes'))).text).toBe(
+      'Dev dependencies are followed (on) or not (off); "yes" is neither.\nUsage: /herald deps dev <on|off>',
     )
     expect(stored.has('deps')).toBe(false)
   })

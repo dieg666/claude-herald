@@ -27,7 +27,7 @@ export async function startStack(
     loop.root = root.path
 
     await mirrorStack(host, root.path).catch((error: unknown) => {
-      host.debug(`news: deps: could not load the stack's releases: ${messageOf(error)}`)
+      host.debug(`herald: deps: could not load the stack's releases: ${messageOf(error)}`)
     })
   }
 

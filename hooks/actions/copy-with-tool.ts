@@ -26,7 +26,7 @@ export async function copyWithTool(host: Host, text: string): Promise<string | u
       reason = `${argv[0]}: ${messageOf(error)}`
     }
 
-    host.debug(`news: clipboard: ${reason}`)
+    host.debug(`herald: clipboard: ${reason}`)
   }
 
   return reason

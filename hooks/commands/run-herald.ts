@@ -3,25 +3,25 @@ import type { Host } from '../host/host.js'
 import { COMMAND_NAME } from '../names/command-name.js'
 import { messageOf } from '../refresh/message-of.js'
 import type { CommandReply } from './command-reply.js'
-import { showNews } from './show-news.js'
+import { showHerald } from './show-herald.js'
 import { SUBCOMMANDS } from './subcommands.js'
 import { usageTextOf } from './usage-text-of.js'
 import { wordsOf } from './words-of.js'
 
 /**
- * Runs `/news` with what was typed after it: no words opens the news, a known subcommand runs with the rest, anything else (or a subcommand missing its argument) answers the usage; never throws.
+ * Runs `/herald` with what was typed after it: no words opens the news, a known subcommand runs with the rest, anything else (or a subcommand missing its argument) answers the usage; never throws.
  *
  * @param host the engine
- * @param args everything after `/news`
+ * @param args everything after `/herald`
  * @param stack the stack loop, whose queue orders the stack's store and state writes
  */
-export async function runNews(host: Host, args: string, stack: StackLoop): Promise<CommandReply> {
+export async function runHerald(host: Host, args: string, stack: StackLoop): Promise<CommandReply> {
   const [, name = '', rest = ''] = /^\s*(\S*)\s*([\s\S]*?)\s*$/.exec(args) ?? []
   const key = name.toLowerCase()
 
   try {
     if (name === '') {
-      return await showNews(host)
+      return await showHerald(host)
     }
 
     if (key === 'help') {
@@ -47,7 +47,7 @@ export async function runNews(host: Host, args: string, stack: StackLoop): Promi
     const reason = messageOf(error)
     const label = key === '' ? `/${COMMAND_NAME}` : `/${COMMAND_NAME} ${key}`
 
-    host.debug(`news: ${label}: ${reason}`)
+    host.debug(`herald: ${label}: ${reason}`)
 
     return { text: `${label} failed: ${reason}` }
   }

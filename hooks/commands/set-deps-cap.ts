@@ -9,7 +9,7 @@ import { depsRootOf } from './deps-root-of.js'
 import { wholeNumberOf } from './whole-number-of.js'
 
 /**
- * `/news deps cap <n>`: how many of this project's dependencies are followed at most (1 to 500, runtime and root-declared ones first); asks for the stack to be detected again while it is on.
+ * `/herald deps cap <n>`: how many of this project's dependencies are followed at most (1 to 500, runtime and root-declared ones first); asks for the stack to be detected again while it is on.
  *
  * @param host the engine
  * @param rest what follows `cap`

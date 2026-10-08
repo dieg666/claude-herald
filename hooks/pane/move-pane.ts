@@ -58,7 +58,7 @@ export async function movePane(
 
     return after.shown
   } catch (error) {
-    host.debug(`news: pane: could not move: ${messageOf(error)}`)
+    host.debug(`herald: pane: could not move: ${messageOf(error)}`)
 
     return undefined
   }

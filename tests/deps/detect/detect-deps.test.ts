@@ -181,7 +181,7 @@ describe('detect-deps', () => {
     expect(fs.lists).toEqual([])
     expect(fake.stored.get('deps')).toBeUndefined()
     expect(fake.logs).toEqual([
-      'news: deps: skipped detection: the session runs at a filesystem root',
+      'herald: deps: skipped detection: the session runs at a filesystem root',
     ])
   })
 
@@ -212,6 +212,6 @@ describe('detect-deps', () => {
     }
 
     expect(await Detect.detectDeps(fake.host)).toBeUndefined()
-    expect(fake.logs).toEqual(['news: deps: detection failed: no session'])
+    expect(fake.logs).toEqual(['herald: deps: detection failed: no session'])
   })
 })

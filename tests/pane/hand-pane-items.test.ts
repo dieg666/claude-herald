@@ -32,6 +32,6 @@ describe('hand-pane-items', () => {
       await Promise.resolve()
     }
 
-    expect(logs).toEqual(['news: pane: model down'])
+    expect(logs).toEqual(['herald: pane: model down'])
   })
 })

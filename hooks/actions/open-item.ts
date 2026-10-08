@@ -37,7 +37,7 @@ export async function openItem(host: Host, item: Item): Promise<boolean> {
     reason = messageOf(error)
   }
 
-  host.debug(`news: could not open ${url}: ${reason}`)
+  host.debug(`herald: could not open ${url}: ${reason}`)
   host.toast(`Could not open the link: ${reason}`)
 
   return false

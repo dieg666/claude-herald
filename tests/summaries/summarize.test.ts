@@ -67,7 +67,7 @@ describe('summarize', () => {
 
     expect(await Summaries.summarize(host, jobs, ITEM, 'feed', 'short')).toBeUndefined()
     expect(stored.get('summaries')).toBeUndefined()
-    expect(logs).toEqual([`news: no short summary of ${ITEM.id}: empty-reply`])
+    expect(logs).toEqual([`herald: no short summary of ${ITEM.id}: empty-reply`])
 
     replies.push(Fixtures.answerOf('Now.'))
 
@@ -113,8 +113,8 @@ describe('summarize', () => {
     expect(await Summaries.summarize(host, jobs, ITEM, 'feed', 'long')).toBeUndefined()
     expect(stored.get('summaries')).toBeUndefined()
     expect(logs).toEqual([
-      `news: no short summary of ${ITEM.id}: model unavailable`,
-      `news: no long summary of ${ITEM.id}: blank reply`,
+      `herald: no short summary of ${ITEM.id}: model unavailable`,
+      `herald: no long summary of ${ITEM.id}: blank reply`,
     ])
   })
 
@@ -193,6 +193,6 @@ describe('summarize', () => {
     expect(await Summaries.summarize(host, Summaries.summaryJobsOf(), ITEM, 'feed', 'short')).toBe(
       'Kept.',
     )
-    expect(logs).toEqual([`news: could not keep the summary of ${ITEM.id}: read-only store`])
+    expect(logs).toEqual([`herald: could not keep the summary of ${ITEM.id}: read-only store`])
   })
 })

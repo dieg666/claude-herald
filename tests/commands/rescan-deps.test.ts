@@ -7,8 +7,8 @@ describe('rescan-deps', () => {
     const stored = Fixtures.storeOn(on, { sources: [] })
     const fs = Fixtures.fsOn(on, { '.git': { isDir: true }, 'package.json': '{}' })
 
-    expect((await $.command.run(Fixtures.newsOf('deps rescan'))).text).toBe(
-      'Detecting the stack of /repo again; /news deps shows it once done.',
+    expect((await $.command.run(Fixtures.heraldOf('deps rescan'))).text).toBe(
+      'Detecting the stack of /repo again; /herald deps shows it once done.',
     )
     expect(fs.reads).toEqual([])
     expect(stored.has('deps')).toBe(false)
@@ -18,11 +18,11 @@ describe('rescan-deps', () => {
     Fixtures.storeOn(on, { sources: [], deps: { '/repo': { settings: { isEnabled: false } } } })
     Fixtures.fsOn(on, { '.git': { isDir: true } })
 
-    expect((await $.command.run(Fixtures.newsOf('deps rescan all'))).text).toBe(
-      '/news deps rescan takes nothing after it.\nUsage: /news deps rescan',
+    expect((await $.command.run(Fixtures.heraldOf('deps rescan all'))).text).toBe(
+      '/herald deps rescan takes nothing after it.\nUsage: /herald deps rescan',
     )
-    expect((await $.command.run(Fixtures.newsOf('deps rescan'))).text).toBe(
-      'Your stack is off for /repo, so there is nothing to rescan; /news deps on turns it on and detects it.',
+    expect((await $.command.run(Fixtures.heraldOf('deps rescan'))).text).toBe(
+      'Your stack is off for /repo, so there is nothing to rescan; /herald deps on turns it on and detects it.',
     )
   })
 })

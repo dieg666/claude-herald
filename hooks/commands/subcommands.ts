@@ -3,7 +3,7 @@ import { addFeed } from './add-feed.js'
 import { addPage } from './add-page.js'
 import { listSources } from './list-sources.js'
 import { removeSource } from './remove-source.js'
-import { resetNews } from './reset-news.js'
+import { resetHerald } from './reset-herald.js'
 import { runDeps } from './run-deps.js'
 import { setEnabled } from './set-enabled.js'
 import { setLang } from './set-lang.js'
@@ -13,7 +13,7 @@ import { setTemplate } from './set-template.js'
 import type { Subcommand } from './subcommand.js'
 
 /**
- * Every `/news` subcommand by the name typed after `/news`, in the order the usage lists them; a family such as `deps` is one entry that parses its own rest.
+ * Every `/herald` subcommand by the name typed after `/herald`, in the order the usage lists them; a family such as `deps` is one entry that parses its own rest.
  */
 export const SUBCOMMANDS: Readonly<Record<string, Subcommand>> = {
   add: {
@@ -80,7 +80,7 @@ export const SUBCOMMANDS: Readonly<Record<string, Subcommand>> = {
     usage: 'reset',
     summary: 'factory sources and default settings again; saved items stay',
     needsArgument: false,
-    run: resetNews,
+    run: resetHerald,
   },
   deps: {
     usage: 'deps',

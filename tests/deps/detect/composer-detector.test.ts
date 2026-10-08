@@ -64,6 +64,6 @@ describe('composer-detector', () => {
 
     expect(Fixtures.depNamed(dependencies, 'laravel/framework')?.versionInUse).toBeUndefined()
     expect(Fixtures.depNamed(dependencies, 'laravel/framework')?.range).toBe('^13.0')
-    expect(logs.some(line => line.startsWith('news: deps: skipped composer.lock:'))).toBe(true)
+    expect(logs.some(line => line.startsWith('herald: deps: skipped composer.lock:'))).toBe(true)
   })
 })

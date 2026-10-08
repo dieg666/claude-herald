@@ -136,7 +136,7 @@ async function requestOf(
   )
 
   if (!reply.isAnswered) {
-    host.debug(`news: no release flags for ${release.id}: ${reply.reason}`)
+    host.debug(`herald: no release flags for ${release.id}: ${reply.reason}`)
 
     return undefined
   }
@@ -145,14 +145,14 @@ async function requestOf(
 
   try {
     if (flags === undefined) {
-      host.debug(`news: no release flags for ${release.id}: malformed reply`)
+      host.debug(`herald: no release flags for ${release.id}: malformed reply`)
 
       return await jobs.serially(() => countMalformed(host, release))
     }
 
     await jobs.serially(() => putReleaseFlags(host, { releaseId: release.id, ...flags }))
   } catch (error) {
-    host.debug(`news: could not keep the release flags of ${release.id}: ${messageOf(error)}`)
+    host.debug(`herald: could not keep the release flags of ${release.id}: ${messageOf(error)}`)
   }
 
   return flags === undefined ? undefined : { kind: 'model', flags }
@@ -178,7 +178,7 @@ export async function flagReleases(
   try {
     entries = new Map((await loadReleaseFlags(host)).map(entry => [entry.releaseId, entry]))
   } catch (error) {
-    host.debug(`news: could not read the release flags: ${messageOf(error)}`)
+    host.debug(`herald: could not read the release flags: ${messageOf(error)}`)
 
     return [...releases]
   }
@@ -208,7 +208,7 @@ export async function flagReleases(
 
         return withVerdict(release, verdict)
       } catch (error) {
-        host.debug(`news: no release flags for ${release.id}: ${messageOf(error)}`)
+        host.debug(`herald: no release flags for ${release.id}: ${messageOf(error)}`)
 
         return release
       }

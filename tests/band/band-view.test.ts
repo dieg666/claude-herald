@@ -8,7 +8,7 @@ describe('band-view', () => {
   const SURFACES = ['terminal', 'desktop'] as const
   const SOURCE = Fixtures.sourceAt('src', { icon: 'S' })
   const STORE = { sources: [SOURCE], items: { src: Fixtures.datedItemsOf('src', 7) } }
-  const BAND = { plugin: 'news', component: 'AbovePrompt', props: Fixtures.BAND_PROPS } as const
+  const BAND = { plugin: 'herald', component: 'AbovePrompt', props: Fixtures.BAND_PROPS } as const
 
   type Drawing = {
     find: (query: ElementQuery) => Promise<FoundElement | undefined>
@@ -246,7 +246,7 @@ describe('band-view', () => {
       expect(await survey.drawn()).toEqual(Fixtures.BELOW_BAND)
 
       await survey.unmount()
-      await $.command.run(Fixtures.newsOf('disable src'))
+      await $.command.run(Fixtures.heraldOf('disable src'))
 
       const empty = await $.ui.mount({ ...BAND, surface })
 
@@ -376,11 +376,11 @@ describe('band-view', () => {
 
       expect(await rangeOf(ui)).toBe('7 of 7')
 
-      await $.command.run(Fixtures.newsOf('disable old'))
+      await $.command.run(Fixtures.heraldOf('disable old'))
 
       expect(await rangeOf(ui)).toBe('1-2 of 2')
 
-      await $.command.run(Fixtures.newsOf('enable old'))
+      await $.command.run(Fixtures.heraldOf('enable old'))
 
       expect(await rangeOf(ui)).toBe('7 of 7')
 
@@ -389,7 +389,7 @@ describe('band-view', () => {
 
       expect(await selectedOf(ui)).toBe('https://example.com/old/1')
 
-      await $.command.run(Fixtures.newsOf('disable old'))
+      await $.command.run(Fixtures.heraldOf('disable old'))
 
       expect([await rangeOf(ui), await selectedOf(ui)]).toEqual([
         '1-2 of 2',

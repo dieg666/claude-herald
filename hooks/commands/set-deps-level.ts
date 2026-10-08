@@ -9,7 +9,7 @@ import { depsRefusalOf } from './deps-refusal-of.js'
 import { depsRootOf } from './deps-root-of.js'
 
 /**
- * `/news deps level <level>`: which of this project's dependency releases the band and the pane show; asks for what they show now to be checked.
+ * `/herald deps level <level>`: which of this project's dependency releases the band and the pane show; asks for what they show now to be checked.
  *
  * @param host the engine
  * @param rest what follows `level`

@@ -6,7 +6,7 @@ import { depsRootOf } from './deps-root-of.js'
 import { depsTextOf } from './deps-text-of.js'
 
 /**
- * `/news deps`: this project's stack as text, from the store alone (no request).
+ * `/herald deps`: this project's stack as text, from the store alone (no request).
  *
  * @param host the engine
  */

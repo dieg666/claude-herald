@@ -25,7 +25,7 @@ export function findSource(
   const [source] = matches
 
   if (source === undefined) {
-    return { error: `No source is named "${query}". /news list shows them.` }
+    return { error: `No source is named "${query}". /herald list shows them.` }
   }
 
   return matches.length === 1

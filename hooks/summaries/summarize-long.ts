@@ -22,7 +22,7 @@ export async function summarizeLong(
   try {
     return await summarize(host, jobs, item, await currentSummaryLang(host), 'long', signal)
   } catch (error) {
-    host.debug(`news: no long summary of ${item.id}: ${messageOf(error)}`)
+    host.debug(`herald: no long summary of ${item.id}: ${messageOf(error)}`)
 
     return undefined
   }

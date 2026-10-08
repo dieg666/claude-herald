@@ -16,7 +16,7 @@ describe('set-deps-filter', () => {
       Fixtures.storeOn(on, { sources: [] })
       Fixtures.fsOn(on, { '.git': { isDir: true } })
 
-      expect((await $.command.run(Fixtures.newsOf('deps filter "react  major"'))).text).toBe(
+      expect((await $.command.run(Fixtures.heraldOf('deps filter "react  major"'))).text).toBe(
         'The stack tab shows the releases matching "react  major".',
       )
 
@@ -25,7 +25,7 @@ describe('set-deps-filter', () => {
       expect(set.stack).toMatchObject({ root: '/repo', filter: 'react  major' })
       expect(set.pane?.selected).toBe(0)
 
-      expect((await $.command.run(Fixtures.newsOf('deps filter'))).text).toBe(
+      expect((await $.command.run(Fixtures.heraldOf('deps filter'))).text).toBe(
         'The stack tab shows every release again.',
       )
       expect(peeked((await $.command.run(Fixtures.PEEK_STACK)).text).stack.filter).toBe('')
@@ -39,8 +39,8 @@ describe('set-deps-filter', () => {
       Fixtures.storeOn(on, { sources: [] })
       Fixtures.fsOn(on, { '.git': { isDir: true } })
 
-      expect((await $.command.run(Fixtures.newsOf(`deps filter ${'x'.repeat(101)}`))).text).toBe(
-        'The filter is 101 characters; the most is 100.\nUsage: /news deps filter [text]',
+      expect((await $.command.run(Fixtures.heraldOf(`deps filter ${'x'.repeat(101)}`))).text).toBe(
+        'The filter is 101 characters; the most is 100.\nUsage: /herald deps filter [text]',
       )
       expect(peeked((await $.command.run(Fixtures.PEEK_STACK)).text).stack).toBeNull()
     },

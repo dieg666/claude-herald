@@ -17,7 +17,7 @@ import { unmapDep } from './unmap-dep.js'
 import { wordsOf } from './words-of.js'
 
 /**
- * `/news deps map <package> <owner/repo|feed-url|off>`: sets where a package's releases are read (every project's, as overrides are kept by package), drops the releases this project kept from its old feed so the new one is read silently on the next refresh, and asks for that refresh while the package is followed; `off` as the target undoes the mapping instead.
+ * `/herald deps map <package> <owner/repo|feed-url|off>`: sets where a package's releases are read (every project's, as overrides are kept by package), drops the releases this project kept from its old feed so the new one is read silently on the next refresh, and asks for that refresh while the package is followed; `off` as the target undoes the mapping instead.
  *
  * @param host the engine
  * @param rest what follows `map`

@@ -108,7 +108,7 @@ describe('register', () => {
 
       expect(await $.classic.SessionStart({ source: 'clear' })).toEqual({})
       expect(logs.length).toBe(1)
-      expect(logs[0]).toMatch(/^debug: news: could not load the store/)
+      expect(logs[0]).toMatch(/^debug: herald: could not load the store/)
       expect(peeked((await $.command.run(Fixtures.PEEK)).text)).toEqual(UNWRITTEN)
     },
   )
@@ -286,7 +286,7 @@ describe('register', () => {
     expect(logs.filter(line => !line.includes(' summary of ')).length).toBe(2)
     expect(logs.filter(line => line.includes('no short summary of ')).length).toBe(4)
     expect(logs.length).toBe(6)
-    expect(logs.every(line => line.startsWith('debug: news: '))).toBe(true)
+    expect(logs.every(line => line.startsWith('debug: herald: '))).toBe(true)
 
     await clock.advance(PERIOD)
 
@@ -329,7 +329,7 @@ describe('register', () => {
     isHung = false
     await clock.advance(30_000)
 
-    expect(logs).toEqual(['news: feed: timed out'])
+    expect(logs).toEqual(['herald: feed: timed out'])
 
     await clock.advance(30_000)
 
@@ -406,7 +406,7 @@ describe('register', () => {
     await clock.settle()
 
     const ui = await $.ui.mount({
-      plugin: 'news',
+      plugin: 'herald',
       component: 'AbovePrompt',
       props: Fixtures.BAND_PROPS,
       surface: 'terminal',
@@ -582,10 +582,10 @@ describe('register', () => {
     await clock.settle()
 
     expect(logs.length > 0).toBe(true)
-    expect(logs.every(line => line.startsWith('debug: news: deps:'))).toBe(true)
+    expect(logs.every(line => line.startsWith('debug: herald: deps:'))).toBe(true)
   })
 
-  test('session.start registers /news to run at once, with a description and a hint', async ($, on) => {
+  test('session.start registers /herald to run at once, with a description and a hint', async ($, on) => {
     mock.clock(on)
     Fixtures.storeOn(on, { sources: [] })
 
@@ -597,7 +597,7 @@ describe('register', () => {
 
     expect(registered).toEqual([
       {
-        name: 'news',
+        name: 'herald',
         description: expect.any(String),
         argumentHint: expect.any(String),
         immediate: true,
@@ -616,10 +616,10 @@ describe('register', () => {
     on('session.start', () => ({ cwd: '/work' }))
 
     expect(await $.session.start(Fixtures.SESSION)).toEqual({ cwd: '/work' })
-    expect(logs).toEqual([expect.stringMatching(/^debug: news: could not register \/news: /)])
+    expect(logs).toEqual([expect.stringMatching(/^debug: herald: could not register \/herald: /)])
   })
 
-  test('/news interval restarts the refresh timer once, at the new interval', async ($, on) => {
+  test('/herald interval restarts the refresh timer once, at the new interval', async ($, on) => {
     const clock = mock.clock(on)
     const stored = Fixtures.storeOn(on, { sources: [FEED], settings: { refreshMinutes: 5 } })
     const fetched = webOn(on, new Map([[FEED.url, Feeds.rssWithItems(2)]]))
@@ -632,7 +632,7 @@ describe('register', () => {
 
     expect(fetched.length).toBe(1)
 
-    const { text } = await $.command.run(Fixtures.newsOf('interval 2'))
+    const { text } = await $.command.run(Fixtures.heraldOf('interval 2'))
 
     await clock.settle()
 
@@ -654,7 +654,7 @@ describe('register', () => {
     expect(fetched.length).toBe(4)
   })
 
-  test('a refused /news interval leaves the timer alone', async ($, on) => {
+  test('a refused /herald interval leaves the timer alone', async ($, on) => {
     const clock = mock.clock(on)
     const stored = Fixtures.storeOn(on, { sources: [FEED], settings: { refreshMinutes: 5 } })
     const fetched = webOn(on, new Map([[FEED.url, Feeds.rssWithItems(2)]]))
@@ -664,7 +664,7 @@ describe('register', () => {
 
     await $.session.start(Fixtures.SESSION)
     await clock.settle()
-    await $.command.run(Fixtures.newsOf('interval 0'))
+    await $.command.run(Fixtures.heraldOf('interval 0'))
     await clock.settle()
 
     expect(fetched.length).toBe(1)
@@ -676,7 +676,7 @@ describe('register', () => {
   })
 
   for (const source of ['clear', 'resume', 'fork'] as const) {
-    test(`classic.SessionStart ${source} registers /news again`, async ($, on) => {
+    test(`classic.SessionStart ${source} registers /herald again`, async ($, on) => {
       Fixtures.storeOn(on, { sources: [] })
 
       const registered = Fixtures.registerOn(on)
@@ -685,7 +685,7 @@ describe('register', () => {
 
       await $.classic.SessionStart({ source })
 
-      expect(registered).toEqual([expect.objectContaining({ name: 'news', immediate: true })])
+      expect(registered).toEqual([expect.objectContaining({ name: 'herald', immediate: true })])
     })
   }
 
@@ -695,7 +695,7 @@ describe('register', () => {
   }
 
   const BAND = {
-    plugin: 'news',
+    plugin: 'herald',
     component: 'AbovePrompt',
     props: Fixtures.BAND_PROPS,
     surface: 'terminal',
@@ -723,7 +723,7 @@ describe('register', () => {
     expect(await ui.find({ type: 'Text', text: 'Summary of src 2.' })).toBeDefined()
   })
 
-  test('/news rotate restarts the band timer once, at the new seconds', async ($, on) => {
+  test('/herald rotate restarts the band timer once, at the new seconds', async ($, on) => {
     const clock = mock.clock(on)
 
     Fixtures.bandOn(on, { ...BAND_STORE, settings: { rotateSeconds: 20 } })
@@ -734,7 +734,7 @@ describe('register', () => {
     const ui = await $.ui.mount(BAND)
 
     await clock.advance(10_000)
-    await $.command.run(Fixtures.newsOf('rotate 5'))
+    await $.command.run(Fixtures.heraldOf('rotate 5'))
     await clock.advance(5000)
 
     expect(await rangeOf(ui)).toBe('4-6 of 7')
@@ -749,7 +749,7 @@ describe('register', () => {
     expect(await rangeOf(ui)).toBe('1-3 of 7')
   })
 
-  test('a refused /news rotate leaves the band timer alone', async ($, on) => {
+  test('a refused /herald rotate leaves the band timer alone', async ($, on) => {
     const clock = mock.clock(on)
 
     Fixtures.bandOn(on, { ...BAND_STORE, settings: { rotateSeconds: 20 } })
@@ -759,7 +759,7 @@ describe('register', () => {
 
     const ui = await $.ui.mount(BAND)
 
-    await $.command.run(Fixtures.newsOf('rotate 1'))
+    await $.command.run(Fixtures.heraldOf('rotate 1'))
     await clock.advance(19_999)
 
     expect(await rangeOf(ui)).toBe('1-3 of 7')
@@ -786,7 +786,7 @@ describe('register', () => {
     expect(await rangeOf(ui)).toBe('4-6 of 7')
   })
 
-  test('/news reset restarts the band timer at the default seconds', async ($, on) => {
+  test('/herald reset restarts the band timer at the default seconds', async ($, on) => {
     const clock = mock.clock(on)
     const factory = Defaults.FACTORY_SOURCES.find(source => source.isEnabled)
 
@@ -805,13 +805,13 @@ describe('register', () => {
 
     const ui = await $.ui.mount(BAND)
 
-    await $.command.run(Fixtures.newsOf('reset'))
+    await $.command.run(Fixtures.heraldOf('reset'))
     await clock.advance(20_000)
 
     expect(await rangeOf(ui)).toBe('4-6 of 7')
   })
 
-  test('/news reset summarizes the items shown in the default language', async ($, on) => {
+  test('/herald reset summarizes the items shown in the default language', async ($, on) => {
     const clock = mock.clock(on)
     const factory = Defaults.FACTORY_SOURCES.find(source => source.isEnabled)
     const id = factory?.id ?? ''
@@ -834,14 +834,14 @@ describe('register', () => {
 
     expect((await ui.findAll({ type: 'Text', text: /^Corto\.$/ })).length).toBe(3)
 
-    await $.command.run(Fixtures.newsOf('reset'))
+    await $.command.run(Fixtures.heraldOf('reset'))
     await clock.settle()
 
     expect([...asked].sort()).toEqual(items.map(item => item.title).sort())
     expect(await ui.find({ type: 'Text', text: `Summary of ${items[1]?.title}.` })).toBeDefined()
   })
 
-  test('/news disable summarizes the page the band shows now, once per item', async ($, on) => {
+  test('/herald disable summarizes the page the band shows now, once per item', async ($, on) => {
     const clock = mock.clock(on)
     const shown = ['new:1', 'new:2', 'old:1']
     const { asked } = Fixtures.bandOn(on, {
@@ -854,19 +854,19 @@ describe('register', () => {
 
     const ui = await $.ui.mount(BAND)
 
-    await $.command.run(Fixtures.newsOf('disable new'))
+    await $.command.run(Fixtures.heraldOf('disable new'))
     await clock.settle()
 
     expect([...asked].sort()).toEqual(['old 2', 'old 3'])
     expect(await ui.find({ type: 'Text', text: 'Summary of old 3.' })).toBeDefined()
 
-    await $.command.run(Fixtures.newsOf('disable new'))
+    await $.command.run(Fixtures.heraldOf('disable new'))
     await clock.settle()
 
     expect(asked.length).toBe(2)
   })
 
-  test('/news lang summarizes the items shown in the new language', async ($, on) => {
+  test('/herald lang summarizes the items shown in the new language', async ($, on) => {
     const clock = mock.clock(on)
     const { asked } = Fixtures.bandOn(on, {
       ...BAND_STORE,
@@ -884,13 +884,13 @@ describe('register', () => {
 
     expect(await ui.find({ type: 'Text', text: 'Cached src:2.' })).toBeDefined()
 
-    await $.command.run(Fixtures.newsOf('lang es'))
+    await $.command.run(Fixtures.heraldOf('lang es'))
     await clock.settle()
 
     expect([...asked].sort()).toEqual(['src 1', 'src 2', 'src 3'])
     expect(await ui.find({ type: 'Text', text: 'Summary of src 2.' })).toBeDefined()
 
-    await $.command.run(Fixtures.newsOf('lang feed'))
+    await $.command.run(Fixtures.heraldOf('lang feed'))
     await clock.settle()
 
     expect(asked.length).toBe(3)
@@ -1100,7 +1100,7 @@ describe('register', () => {
     expect(stackOf(stored).deps['npm:react']).toBeUndefined()
 
     expect(logs.filter(line => line.includes('timed out'))).toEqual([
-      'news: deps: npm:react: release feed: timed out',
+      'herald: deps: npm:react: release feed: timed out',
     ])
 
     // The held answer arriving after the deadline writes nothing.
@@ -1165,7 +1165,7 @@ describe('register', () => {
     expect(stackOf(stored).deps['npm:vite']).toBeDefined()
 
     expect(logs.filter(line => line.includes('timed out'))).toEqual([
-      'news: deps: could not resolve npm:react: timed out',
+      'herald: deps: could not resolve npm:react: timed out',
     ])
 
     // The held answer arriving after the deadline caches and reads nothing.
@@ -1257,7 +1257,7 @@ describe('register', () => {
   })
 
   /** The project at /repo following react, kept with its 19.0.0 release, next to one news source with one item, on a store whose writes are counted by key. */
-  const stackAndNewsOn = (on: On) => {
+  const stackAndSourceOn = (on: On) => {
     const react = Fixtures.STACK_SAMPLE[0] ?? Fixtures.stackItemAt('react', '19.0.0')
     const entries = new Map<string, unknown>(
       Object.entries({
@@ -1299,9 +1299,9 @@ describe('register', () => {
       link.children.join(''),
     )
 
-  test('/news deps rescan detects the stack once and refreshes it once, off the dispatch', async ($, on) => {
+  test('/herald deps rescan detects the stack once and refreshes it once, off the dispatch', async ($, on) => {
     const clock = mock.clock(on)
-    const { writes, manifestReads } = stackAndNewsOn(on)
+    const { writes, manifestReads } = stackAndSourceOn(on)
 
     await $.session.start(Fixtures.SESSION)
     await clock.settle()
@@ -1309,7 +1309,7 @@ describe('register', () => {
     const reads = manifestReads()
     const stackWrites = writes.filter(key => key === 'stack').length
 
-    expect((await $.command.run(Fixtures.newsOf('deps rescan'))).text).toMatch(/^Detecting /)
+    expect((await $.command.run(Fixtures.heraldOf('deps rescan'))).text).toMatch(/^Detecting /)
     await clock.settle()
 
     expect(manifestReads()).toBe(reads + 1)
@@ -1318,7 +1318,7 @@ describe('register', () => {
 
   test('a refused deps subcommand neither detects nor refreshes', async ($, on) => {
     const clock = mock.clock(on)
-    const { writes, manifestReads } = stackAndNewsOn(on)
+    const { writes, manifestReads } = stackAndSourceOn(on)
 
     await $.session.start(Fixtures.SESSION)
     await clock.settle()
@@ -1327,7 +1327,7 @@ describe('register', () => {
     const count = writes.length
 
     for (const args of ['cap 0', 'ignore nope', 'map react nowhere', 'add zod', 'level loud']) {
-      await $.command.run(Fixtures.newsOf(`deps ${args}`))
+      await $.command.run(Fixtures.heraldOf(`deps ${args}`))
     }
 
     await clock.settle()
@@ -1336,9 +1336,9 @@ describe('register', () => {
     expect(writes.length).toBe(count)
   })
 
-  test('/news deps ignore drops the package from the band at once and keeps it out after the rescan', async ($, on) => {
+  test('/herald deps ignore drops the package from the band at once and keeps it out after the rescan', async ($, on) => {
     const clock = mock.clock(on)
-    const { manifestReads } = stackAndNewsOn(on)
+    const { manifestReads } = stackAndSourceOn(on)
 
     await $.session.start(Fixtures.SESSION)
     await clock.settle()
@@ -1349,7 +1349,7 @@ describe('register', () => {
 
     const reads = manifestReads()
 
-    await $.command.run(Fixtures.newsOf('deps ignore react'))
+    await $.command.run(Fixtures.heraldOf('deps ignore react'))
     await ui.redraw()
 
     expect(await linksOf(ui)).toEqual(['src 1'])
@@ -1361,9 +1361,9 @@ describe('register', () => {
     expect(await linksOf(ui)).toEqual(['src 1'])
   })
 
-  test('/news deps off hides only the stack items and makes no stack request afterwards', async ($, on) => {
+  test('/herald deps off hides only the stack items and makes no stack request afterwards', async ($, on) => {
     const clock = mock.clock(on)
-    const { fetched } = stackAndNewsOn(on)
+    const { fetched } = stackAndSourceOn(on)
 
     await $.session.start(Fixtures.SESSION)
     await clock.settle()
@@ -1372,7 +1372,7 @@ describe('register', () => {
 
     expect((await linksOf(ui)).length).toBe(2)
 
-    await $.command.run(Fixtures.newsOf('deps off'))
+    await $.command.run(Fixtures.heraldOf('deps off'))
     await ui.redraw()
 
     expect(await linksOf(ui)).toEqual(['src 1'])
@@ -1387,10 +1387,10 @@ describe('register', () => {
     expect(after.every(url => url === Fixtures.sourceAt('src').url)).toBe(true)
   })
 
-  test('/news deps map refreshes once and reads the new feed silently', async ($, on) => {
+  test('/herald deps map refreshes once and reads the new feed silently', async ($, on) => {
     const clock = mock.clock(on)
     const toasts: string[] = []
-    const { fetched } = stackAndNewsOn(on)
+    const { fetched } = stackAndSourceOn(on)
     const NEW_FEED = 'https://example.org/react.atom'
 
     on('ui.toast', ($, e) => {
@@ -1404,7 +1404,7 @@ describe('register', () => {
 
     const before = fetched.length
 
-    expect((await $.command.run(Fixtures.newsOf(`deps map react ${NEW_FEED}`))).text).toBe(
+    expect((await $.command.run(Fixtures.heraldOf(`deps map react ${NEW_FEED}`))).text).toBe(
       `npm:react now reads its releases from ${NEW_FEED}.`,
     )
     await clock.settle()

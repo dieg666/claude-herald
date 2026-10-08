@@ -7,7 +7,7 @@ import { TEMPLATE_PLACEHOLDERS } from './template-placeholders.js'
 import { templateTextOf } from './template-text-of.js'
 
 /**
- * `/news template <text>`: saves the copy-for-Claude text, which must name the item by `{title}` or `{url}` and use no other placeholder than `{title}`, `{url}` and `{source}`.
+ * `/herald template <text>`: saves the copy-for-Claude text, which must name the item by `{title}` or `{url}` and use no other placeholder than `{title}`, `{url}` and `{source}`.
  *
  * @param host the engine
  * @param rest what follows `template`, spacing kept

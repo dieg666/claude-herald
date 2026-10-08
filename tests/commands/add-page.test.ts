@@ -21,7 +21,7 @@ describe('add-page', () => {
       }
     })
 
-    const { text } = await $.command.run(Fixtures.newsOf(`add-page ${URL}`))
+    const { text } = await $.command.run(Fixtures.heraldOf(`add-page ${URL}`))
 
     await clock.settle()
 
@@ -53,7 +53,7 @@ describe('add-page', () => {
     Fixtures.webOn(on, new Map([[URL, Feeds.HTML_PAGE]]))
     on('model.complete', () => ({ value: Fixtures.answerOf('[]') }))
 
-    await $.command.run(Fixtures.newsOf(`add-page ${URL} Team blog`))
+    await $.command.run(Fixtures.heraldOf(`add-page ${URL} Team blog`))
 
     expect(stored.get('sources')).toEqual([
       expect.objectContaining({ id: 'team-blog', name: 'Team blog', kind: 'page' }),
@@ -65,8 +65,8 @@ describe('add-page', () => {
 
     Fixtures.webOn(on, new Map([[URL, Feeds.HN_RSS]]))
 
-    expect((await $.command.run(Fixtures.newsOf(`add-page ${URL}`))).text).toBe(
-      `${URL} is a feed, not a web page; use /news add ${URL}.`,
+    expect((await $.command.run(Fixtures.heraldOf(`add-page ${URL}`))).text).toBe(
+      `${URL} is a feed, not a web page; use /herald add ${URL}.`,
     )
     expect(stored.get('sources')).toEqual([])
   })
@@ -82,14 +82,14 @@ describe('add-page', () => {
       ]),
     )
 
-    expect((await $.command.run(Fixtures.newsOf(`add-page ${URL}`))).text).toBe(
+    expect((await $.command.run(Fixtures.heraldOf(`add-page ${URL}`))).text).toBe(
       `${URL} is not an HTML page, so it was not added.`,
     )
-    expect((await $.command.run(Fixtures.newsOf('add-page https://example.org/gone'))).text).toBe(
+    expect((await $.command.run(Fixtures.heraldOf('add-page https://example.org/gone'))).text).toBe(
       'https://example.org/gone answered HTTP 410, so it was not added.',
     )
-    expect((await $.command.run(Fixtures.newsOf('add-page mailto:me@example.org'))).text).toBe(
-      '"mailto:me@example.org" is not an http(s) address. Usage: /news add-page <url> [name]',
+    expect((await $.command.run(Fixtures.heraldOf('add-page mailto:me@example.org'))).text).toBe(
+      '"mailto:me@example.org" is not an http(s) address. Usage: /herald add-page <url> [name]',
     )
     expect(stored.get('sources')).toEqual([])
   })

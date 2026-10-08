@@ -26,7 +26,7 @@ describe('map-dep', () => {
 
       Fixtures.fsOn(on, Fixtures.stackTreeOf(SAMPLE))
 
-      expect((await $.command.run(Fixtures.newsOf('deps map react facebook/react'))).text).toBe(
+      expect((await $.command.run(Fixtures.heraldOf('deps map react facebook/react'))).text).toBe(
         'npm:react now reads its releases from facebook/react.',
       )
       expect(Store.depFeedsOf(stored.get('depFeeds'))['npm:react']).toEqual({
@@ -55,10 +55,10 @@ describe('map-dep', () => {
     Fixtures.fsOn(on, { '.git': { isDir: true } })
 
     expect(
-      (await $.command.run(Fixtures.newsOf('deps map pypi:requests https://example.org/r.xml')))
+      (await $.command.run(Fixtures.heraldOf('deps map pypi:requests https://example.org/r.xml')))
         .text,
     ).toBe(
-      'pypi:requests now reads its releases from https://example.org/r.xml. It is not followed in /repo; /news deps add pypi:requests follows it.',
+      'pypi:requests now reads its releases from https://example.org/r.xml. It is not followed in /repo; /herald deps add pypi:requests follows it.',
     )
     expect(Store.depFeedsOf(stored.get('depFeeds'))['pypi:requests']).toMatchObject({
       feed: 'https://example.org/r.xml',
@@ -76,11 +76,11 @@ describe('map-dep', () => {
 
     Fixtures.fsOn(on, { '.git': { isDir: true } })
 
-    expect((await $.command.run(Fixtures.newsOf('deps map zod colinhacks/zod'))).text).toBe(
-      'npm:zod now reads its releases from colinhacks/zod; it is ignored in /repo, /news deps unignore npm:zod follows it.',
+    expect((await $.command.run(Fixtures.heraldOf('deps map zod colinhacks/zod'))).text).toBe(
+      'npm:zod now reads its releases from colinhacks/zod; it is ignored in /repo, /herald deps unignore npm:zod follows it.',
     )
 
-    await $.command.run(Fixtures.newsOf('deps unignore zod'))
+    await $.command.run(Fixtures.heraldOf('deps unignore zod'))
 
     expect(Store.depFeedsOf(stored.get('depFeeds'))['npm:zod']).toMatchObject({
       repo: 'colinhacks/zod',
@@ -129,7 +129,7 @@ describe('map-dep', () => {
 
     await clock.settle()
 
-    const reply = await Commands.runNews(host, 'deps map react other/react', loop)
+    const reply = await Commands.runHerald(host, 'deps map react other/react', loop)
 
     release()
     await running
@@ -182,7 +182,7 @@ describe('map-dep', () => {
 
     await clock.settle()
 
-    const mapping = Commands.runNews(host, 'deps map react other/react', loop)
+    const mapping = Commands.runHerald(host, 'deps map react other/react', loop)
 
     await clock.settle()
     release()
@@ -202,8 +202,8 @@ describe('map-dep', () => {
     Fixtures.fsOn(on, { '.git': { isDir: true } })
 
     for (const args of ['"npm:zod extra" colinhacks/zod', 'npm:zod "a/b c"', 'npm:zod a/b extra']) {
-      expect((await $.command.run(Fixtures.newsOf(`deps map ${args}`))).text).toBe(
-        'Name the package, then where its releases are, each without spaces.\nUsage: /news deps map <package> <owner/repo|feed-url|off>',
+      expect((await $.command.run(Fixtures.heraldOf(`deps map ${args}`))).text).toBe(
+        'Name the package, then where its releases are, each without spaces.\nUsage: /herald deps map <package> <owner/repo|feed-url|off>',
       )
     }
 
@@ -220,15 +220,15 @@ describe('map-dep', () => {
 
     Fixtures.fsOn(on, { '.git': { isDir: true } })
 
-    const usage = '\nUsage: /news deps map <package> <owner/repo|feed-url|off>'
+    const usage = '\nUsage: /herald deps map <package> <owner/repo|feed-url|off>'
 
-    expect((await $.command.run(Fixtures.newsOf('deps map zod nowhere'))).text).toBe(
+    expect((await $.command.run(Fixtures.heraldOf('deps map zod nowhere'))).text).toBe(
       `"nowhere" is neither a GitHub repository (owner/repo or its URL) nor a feed URL.${usage}`,
     )
-    expect((await $.command.run(Fixtures.newsOf('deps map zod'))).text).toBe(
+    expect((await $.command.run(Fixtures.heraldOf('deps map zod'))).text).toBe(
       `Name the package, then where its releases are, each without spaces.${usage}`,
     )
-    expect((await $.command.run(Fixtures.newsOf('deps map nope a/b'))).text).toBe(
+    expect((await $.command.run(Fixtures.heraldOf('deps map nope a/b'))).text).toBe(
       `No package here is named "nope"; write it as <ecosystem>:<name>, e.g. npm:nope.${usage}`,
     )
     expect(stored.has('depFeeds')).toBe(false)

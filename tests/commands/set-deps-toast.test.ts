@@ -8,10 +8,10 @@ describe('set-deps-toast', () => {
 
     Fixtures.fsOn(on, { '.git': { isDir: true } })
 
-    expect((await $.command.run(Fixtures.newsOf('deps toast all'))).text).toBe(
+    expect((await $.command.run(Fixtures.heraldOf('deps toast all'))).text).toBe(
       'New all dependency releases of /repo raise a toast.',
     )
-    expect((await $.command.run(Fixtures.newsOf('deps toast OFF'))).text).toBe(
+    expect((await $.command.run(Fixtures.heraldOf('deps toast OFF'))).text).toBe(
       'No toast for new dependency releases of /repo.',
     )
     expect(stored.get('deps')).toMatchObject({ '/repo': { settings: { toastLevel: 'off' } } })
@@ -22,8 +22,8 @@ describe('set-deps-toast', () => {
 
     Fixtures.fsOn(on, { '.git': { isDir: true } })
 
-    expect((await $.command.run(Fixtures.newsOf('deps toast loud'))).text).toBe(
-      'The toast level is all, minor+, major+breaking+security, breaking+security, off; "loud" is none of them.\nUsage: /news deps toast <level|off>',
+    expect((await $.command.run(Fixtures.heraldOf('deps toast loud'))).text).toBe(
+      'The toast level is all, minor+, major+breaking+security, breaking+security, off; "loud" is none of them.\nUsage: /herald deps toast <level|off>',
     )
     expect(stored.has('deps')).toBe(false)
   })

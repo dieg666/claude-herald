@@ -29,7 +29,7 @@ export async function restartRefresh(host: Host, loop: RefreshLoop): Promise<Ref
       void refreshAll(host, loop)
     })
   } catch (error) {
-    host.debug(`news: could not start the refresh timer: ${messageOf(error)}`)
+    host.debug(`herald: could not start the refresh timer: ${messageOf(error)}`)
   }
 
   return refreshAll(host, loop)

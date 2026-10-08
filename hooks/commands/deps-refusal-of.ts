@@ -3,7 +3,7 @@ import type { CommandReply } from './command-reply.js'
 import { DEPS_USAGES } from './deps-usages.js'
 
 /**
- * A refused `/news deps` subcommand's reply: why, then its usage line.
+ * A refused `/herald deps` subcommand's reply: why, then its usage line.
  *
  * @param name the subcommand
  * @param reason why it was refused, one sentence

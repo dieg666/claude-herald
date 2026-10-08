@@ -19,7 +19,7 @@ export async function markRead(host: Host, item: Item): Promise<boolean> {
 
     return !saved.some(entry => entry.id === item.id)
   } catch (error) {
-    host.debug(`news: could not mark ${item.id} as read: ${messageOf(error)}`)
+    host.debug(`herald: could not mark ${item.id} as read: ${messageOf(error)}`)
     host.toast(`Could not mark "${titleLineOf(item.title)}" as read: ${messageOf(error)}`)
 
     return false

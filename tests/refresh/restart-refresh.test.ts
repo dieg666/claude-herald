@@ -64,7 +64,7 @@ describe('restart-refresh', () => {
     await Refresh.restartRefresh(host, Refresh.refreshLoopOf())
 
     expect(timers.map(timer => timer.ms)).toEqual([5 * 60_000])
-    expect(logs).toEqual(['news: the refresh failed: store unavailable'])
+    expect(logs).toEqual(['herald: the refresh failed: store unavailable'])
   })
 
   test('a timer that cannot start is logged and the refresh still runs', async () => {
@@ -79,7 +79,7 @@ describe('restart-refresh', () => {
 
     expect(loop.timer).toBeUndefined()
     expect(fetched).toEqual([ONE.url])
-    expect(logs).toEqual(['news: could not start the refresh timer: refused'])
+    expect(logs).toEqual(['herald: could not start the refresh timer: refused'])
   })
 
   test('a restart aborts the model call of the run in flight', async () => {

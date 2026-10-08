@@ -12,7 +12,7 @@ describe('unmap-dep', () => {
   const MAPPED = 'https://github.com/fork/react/releases.atom'
   const REGISTRY = 'https://registry.npmjs.org/react/latest'
   const OWN = 'https://github.com/owner/react/releases.atom'
-  const USAGE = '\nUsage: /news deps map <package> <owner/repo|feed-url|off>'
+  const USAGE = '\nUsage: /herald deps map <package> <owner/repo|feed-url|off>'
   const KEPT = { checkedAt: 1, seen: ['npm:react|old'], items: [] }
 
   /** A host on /repo following react, mapped to a fork; /other keeps react's releases too. */
@@ -54,7 +54,7 @@ describe('unmap-dep', () => {
   test('clears the mapping and drops this project’s kept releases of the package only, asking for a refresh', async () => {
     const { host, stored, loop } = hostAt()
 
-    const reply = await Commands.runNews(host, 'deps map react off', loop)
+    const reply = await Commands.runHerald(host, 'deps map react off', loop)
 
     expect(reply).toEqual({
       text: 'npm:react reads its releases from its registry again.',
@@ -68,7 +68,7 @@ describe('unmap-dep', () => {
   test('off is accepted in any case and mirrors the drop to state', async () => {
     const { host, state, stored, loop } = hostAt()
 
-    await Commands.runNews(host, 'deps map react OFF', loop)
+    await Commands.runHerald(host, 'deps map react OFF', loop)
 
     expect(Store.depFeedsOf(stored.get('depFeeds'))).toEqual({})
     expect(JSON.stringify(state.stack)).not.toContain('react')
@@ -80,7 +80,7 @@ describe('unmap-dep', () => {
     })
     const before = JSON.stringify([stored.get('depFeeds'), stored.get('stack')])
 
-    const reply = await Commands.runNews(host, 'deps map react off', loop)
+    const reply = await Commands.runHerald(host, 'deps map react off', loop)
 
     expect(reply).toEqual({
       text: `npm:react has no mapping to undo; it reads its releases from its registry.${USAGE}`,
@@ -89,7 +89,7 @@ describe('unmap-dep', () => {
 
     const none = hostAt({ depFeeds: {} })
 
-    expect((await Commands.runNews(none.host, 'deps map react off', none.loop)).text).toMatch(
+    expect((await Commands.runHerald(none.host, 'deps map react off', none.loop)).text).toMatch(
       /^npm:react has no mapping to undo/,
     )
   })
@@ -97,7 +97,7 @@ describe('unmap-dep', () => {
   test('a package this project does not know is refused as map refuses it', async () => {
     const { host, loop } = hostAt()
 
-    expect((await Commands.runNews(host, 'deps map nope off', loop)).text).toBe(
+    expect((await Commands.runHerald(host, 'deps map nope off', loop)).text).toBe(
       `No package here is named "nope"; write it as <ecosystem>:<name>, e.g. npm:nope.${USAGE}`,
     )
   })
@@ -105,7 +105,7 @@ describe('unmap-dep', () => {
   test('with the stack off, an ignored package or one not followed, no refresh is asked and the reply says why', async () => {
     const off = hostAt({}, { isEnabled: false })
 
-    expect(await Commands.runNews(off.host, 'deps map react off', off.loop)).toEqual({
+    expect(await Commands.runHerald(off.host, 'deps map react off', off.loop)).toEqual({
       text: 'npm:react reads its releases from its registry again.',
     })
 
@@ -115,8 +115,8 @@ describe('unmap-dep', () => {
       },
     })
 
-    expect(await Commands.runNews(ignored.host, 'deps map react off', ignored.loop)).toEqual({
-      text: 'npm:react reads its releases from its registry again; it is ignored in /repo, /news deps unignore npm:react follows it.',
+    expect(await Commands.runHerald(ignored.host, 'deps map react off', ignored.loop)).toEqual({
+      text: 'npm:react reads its releases from its registry again; it is ignored in /repo, /herald deps unignore npm:react follows it.',
     })
 
     const added = hostAt({
@@ -125,8 +125,8 @@ describe('unmap-dep', () => {
       },
     })
 
-    expect(await Commands.runNews(added.host, 'deps map react off', added.loop)).toEqual({
-      text: 'npm:react reads its releases from its registry again. It is not followed in /repo; /news deps add npm:react follows it.',
+    expect(await Commands.runHerald(added.host, 'deps map react off', added.loop)).toEqual({
+      text: 'npm:react reads its releases from its registry again. It is not followed in /repo; /herald deps add npm:react follows it.',
     })
   })
 
@@ -145,7 +145,7 @@ describe('unmap-dep', () => {
     web.set(OWN, { status: 200, text: Feeds.releasesAtomOf('react', [['v19.0.0'], ['v18.2.0']]) })
     loop.isStarted = true
 
-    const reply = await Commands.runNews(host, 'deps map react off', loop)
+    const reply = await Commands.runHerald(host, 'deps map react off', loop)
 
     expect(reply.refreshStack).toBe(true)
 
@@ -165,8 +165,8 @@ describe('unmap-dep', () => {
   test('the deps help lists the off target', async () => {
     const { host, loop } = hostAt()
 
-    expect((await Commands.runNews(host, 'deps help', loop)).text).toContain(
-      '/news deps map <package> <owner/repo|feed-url|off>',
+    expect((await Commands.runHerald(host, 'deps help', loop)).text).toContain(
+      '/herald deps map <package> <owner/repo|feed-url|off>',
     )
   })
 })

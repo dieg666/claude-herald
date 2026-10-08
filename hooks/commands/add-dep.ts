@@ -46,7 +46,7 @@ function addedOf(text: string): Dependency | undefined {
 }
 
 /**
- * `/news deps add <ecosystem:package|owner/repo>`: follows a package no manifest declares (or one ignored or left out by the dev toggle or the cap) in this project, and asks for the stack to be detected again while it is on; refuses one followed already, a GitHub repository included when a followed package's source is that repository.
+ * `/herald deps add <ecosystem:package|owner/repo>`: follows a package no manifest declares (or one ignored or left out by the dev toggle or the cap) in this project, and asks for the stack to be detected again while it is on; refuses one followed already, a GitHub repository included when a followed package's source is that repository.
  *
  * @param host the engine
  * @param rest what follows `add`

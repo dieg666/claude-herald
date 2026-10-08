@@ -7,15 +7,17 @@ describe('run-deps', () => {
   const REPO = { '.git': { isDir: true as const } }
 
   const USAGES = [
-    '/news deps ',
-    ...Object.values(Commands.DEPS_SUBCOMMANDS).map(subcommand => `/news deps ${subcommand.usage}`),
-    '/news deps help',
+    '/herald deps ',
+    ...Object.values(Commands.DEPS_SUBCOMMANDS).map(
+      subcommand => `/herald deps ${subcommand.usage}`,
+    ),
+    '/herald deps help',
   ]
 
-  test('/news deps help lists every deps subcommand; /news help lists deps on one line pointing to it', async ($, on) => {
+  test('/herald deps help lists every deps subcommand; /herald help lists deps on one line pointing to it', async ($, on) => {
     Fixtures.storeOn(on, { sources: [] })
 
-    const { text } = await $.command.run(Fixtures.newsOf('deps help'))
+    const { text } = await $.command.run(Fixtures.heraldOf('deps help'))
 
     expect(text?.startsWith('Usage:\n')).toBe(true)
 
@@ -39,11 +41,11 @@ describe('run-deps', () => {
       'filter',
     ])
 
-    const news = (await $.command.run(Fixtures.newsOf('help'))).text ?? ''
+    const help = (await $.command.run(Fixtures.heraldOf('help'))).text ?? ''
 
-    expect(news.split('\n').filter(line => line.includes('/news deps'))).toEqual([
+    expect(help.split('\n').filter(line => line.includes('/herald deps'))).toEqual([
       expect.stringMatching(
-        /^ {2}\/news deps +your stack's releases; \/news deps help lists its subcommands$/,
+        /^ {2}\/herald deps +your stack's releases; \/herald deps help lists its subcommands$/,
       ),
     ])
   })
@@ -52,10 +54,10 @@ describe('run-deps', () => {
     const stored = Fixtures.storeOn(on, { sources: [] })
 
     for (const args of ['frobnicate', 'constructor', '__proto__', 'list']) {
-      const { text } = await $.command.run(Fixtures.newsOf(`deps ${args}`))
+      const { text } = await $.command.run(Fixtures.heraldOf(`deps ${args}`))
 
-      expect(text?.startsWith(`/news deps has no "${args}" subcommand.\n\nUsage:\n`)).toBe(true)
-      expect(text).toContain('/news deps help')
+      expect(text?.startsWith(`/herald deps has no "${args}" subcommand.\n\nUsage:\n`)).toBe(true)
+      expect(text).toContain('/herald deps help')
     }
 
     expect([...stored.keys()]).toEqual(['sources'])
@@ -67,10 +69,12 @@ describe('run-deps', () => {
     for (const name of Object.keys(Commands.DEPS_SUBCOMMANDS).filter(
       key => Commands.DEPS_SUBCOMMANDS[key as keyof typeof Commands.DEPS_SUBCOMMANDS].needsArgument,
     )) {
-      const { text } = await $.command.run(Fixtures.newsOf(`deps ${name}  ""`))
+      const { text } = await $.command.run(Fixtures.heraldOf(`deps ${name}  ""`))
       const usage = Commands.DEPS_USAGES[name as keyof typeof Commands.DEPS_USAGES]
 
-      expect(text).toBe(`/news deps ${name}: the argument is missing.\nUsage: /news deps ${usage}`)
+      expect(text).toBe(
+        `/herald deps ${name}: the argument is missing.\nUsage: /herald deps ${usage}`,
+      )
     }
 
     expect([...stored.keys()]).toEqual(['sources'])
@@ -81,7 +85,7 @@ describe('run-deps', () => {
 
     Fixtures.fsOn(on, REPO)
 
-    expect((await $.command.run(Fixtures.newsOf('DEPS Cap 9'))).text).toMatch(
+    expect((await $.command.run(Fixtures.heraldOf('DEPS Cap 9'))).text).toMatch(
       /^\/repo follows at most 9 /,
     )
     expect(stored.get('deps')).toMatchObject({ '/repo': { settings: { cap: 9 } } })
@@ -140,11 +144,12 @@ describe('run-deps', () => {
         `filter ${'x'.repeat(101)}`,
         'whatever',
       ]) {
-        const { text } = await $.command.run(Fixtures.newsOf(`deps ${args}`))
+        const { text } = await $.command.run(Fixtures.heraldOf(`deps ${args}`))
 
-        expect(typeof text === 'string' && text.trim() !== '', `${where}: /news deps ${args}`).toBe(
-          true,
-        )
+        expect(
+          typeof text === 'string' && text.trim() !== '',
+          `${where}: /herald deps ${args}`,
+        ).toBe(true)
       }
     }
   })

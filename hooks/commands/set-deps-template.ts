@@ -7,7 +7,7 @@ import { TEMPLATE_MAX_CHARS } from './template-max-chars.js'
 import { templateTextOf } from './template-text-of.js'
 
 /**
- * `/news deps template <text>`: saves the copy-for-Claude text of a dependency release, for every project, which must name the release by `{pkg}` or `{url}` and use no other placeholder than `{pkg}`, `{current}`, `{new}` and `{url}`; quotes as `/news template` reads them.
+ * `/herald deps template <text>`: saves the copy-for-Claude text of a dependency release, for every project, which must name the release by `{pkg}` or `{url}` and use no other placeholder than `{pkg}`, `{current}`, `{new}` and `{url}`; quotes as `/herald template` reads them.
  *
  * @param host the engine
  * @param rest what follows `template`, spacing kept

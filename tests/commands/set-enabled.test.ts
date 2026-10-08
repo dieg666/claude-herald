@@ -15,7 +15,7 @@ describe('set-enabled', () => {
     async ($, on) => {
       const stored = Fixtures.storeOn(on, { sources: [FEED] })
 
-      expect((await $.command.run(Fixtures.newsOf('disable my feed'))).text).toBe(
+      expect((await $.command.run(Fixtures.heraldOf('disable my feed'))).text).toBe(
         'Disabled "My Feed"; it is kept but no longer fetched or shown.',
       )
       expect(stored.get('sources')).toEqual([{ ...FEED, isEnabled: false }])
@@ -30,7 +30,7 @@ describe('set-enabled', () => {
     const stored = Fixtures.storeOn(on, { sources: [{ ...FEED, isEnabled: false }] })
     const fetched = Fixtures.webOn(on, new Map([[FEED.url, Feeds.rssWithItems(2)]]))
 
-    expect((await $.command.run(Fixtures.newsOf('enable "My Feed"'))).text).toBe(
+    expect((await $.command.run(Fixtures.heraldOf('enable "My Feed"'))).text).toBe(
       'Enabled "My Feed"; it refreshes now.',
     )
 
@@ -44,7 +44,7 @@ describe('set-enabled', () => {
   test('a source already in that state is left alone', async ($, on) => {
     const stored = Fixtures.storeOn(on, { sources: [FEED] })
 
-    expect((await $.command.run(Fixtures.newsOf('enable My Feed'))).text).toBe(
+    expect((await $.command.run(Fixtures.heraldOf('enable My Feed'))).text).toBe(
       '"My Feed" is already enabled.',
     )
     expect(stored.get('sources')).toEqual([FEED])
@@ -53,11 +53,11 @@ describe('set-enabled', () => {
   test('an unknown name is refused', async ($, on) => {
     const stored = Fixtures.storeOn(on, { sources: [FEED] })
 
-    expect((await $.command.run(Fixtures.newsOf('disable Other'))).text).toBe(
-      'No source is named "Other". /news list shows them.',
+    expect((await $.command.run(Fixtures.heraldOf('disable Other'))).text).toBe(
+      'No source is named "Other". /herald list shows them.',
     )
-    expect((await $.command.run(Fixtures.newsOf('enable Other'))).text).toBe(
-      'No source is named "Other". /news list shows them.',
+    expect((await $.command.run(Fixtures.heraldOf('enable Other'))).text).toBe(
+      'No source is named "Other". /herald list shows them.',
     )
     expect(stored.get('sources')).toEqual([FEED])
   })

@@ -28,7 +28,7 @@ describe('remove-source', () => {
       on('classic.SessionStart', () => ({}))
       await $.classic.SessionStart({ source: 'clear' })
 
-      const { text } = await $.command.run(Fixtures.newsOf('remove   first   FEED'))
+      const { text } = await $.command.run(Fixtures.heraldOf('remove   first   FEED'))
 
       expect(text).toBe('Removed "First Feed".')
       expect(stored.get('sources')).toEqual([TWO])
@@ -47,20 +47,22 @@ describe('remove-source', () => {
   test('removes by address, a trailing slash aside, and by id', async ($, on) => {
     const stored = Fixtures.storeOn(on, { sources: [ONE, TWO] })
 
-    expect((await $.command.run(Fixtures.newsOf('remove https://example.com/two'))).text).toBe(
+    expect((await $.command.run(Fixtures.heraldOf('remove https://example.com/two'))).text).toBe(
       'Removed "two".',
     )
-    expect((await $.command.run(Fixtures.newsOf('remove one'))).text).toBe('Removed "First Feed".')
+    expect((await $.command.run(Fixtures.heraldOf('remove one'))).text).toBe(
+      'Removed "First Feed".',
+    )
     expect(stored.get('sources')).toEqual([])
   })
 
   test('an unknown name or address is refused and nothing changes', async ($, on) => {
     const stored = Fixtures.storeOn(on, { sources: [ONE, TWO] })
 
-    expect((await $.command.run(Fixtures.newsOf('remove nope'))).text).toBe(
-      'No source is named "nope". /news list shows them.',
+    expect((await $.command.run(Fixtures.heraldOf('remove nope'))).text).toBe(
+      'No source is named "nope". /herald list shows them.',
     )
-    expect((await $.command.run(Fixtures.newsOf('remove https://example.com/x'))).text).toBe(
+    expect((await $.command.run(Fixtures.heraldOf('remove https://example.com/x'))).text).toBe(
       'No source reads https://example.com/x.',
     )
     expect(stored.get('sources')).toEqual([ONE, TWO])
@@ -70,13 +72,13 @@ describe('remove-source', () => {
     const twin = Fixtures.sourceAt('twin', { name: 'first feed' })
     const stored = Fixtures.storeOn(on, { sources: [ONE, twin] })
 
-    expect((await $.command.run(Fixtures.newsOf('remove First Feed'))).text).toBe(
+    expect((await $.command.run(Fixtures.heraldOf('remove First Feed'))).text).toBe(
       '2 sources are named "First Feed"; name it by its address instead.',
     )
     expect(stored.get('sources')).toEqual([ONE, twin])
   })
 
-  test('a removed factory source comes back with /news reset', async ($, on) => {
+  test('a removed factory source comes back with /herald reset', async ($, on) => {
     mock.clock(on)
 
     const hn = Defaults.FACTORY_SOURCES[6]
@@ -86,12 +88,12 @@ describe('remove-source', () => {
     Fixtures.logsOn(on)
     on('model.complete', () => ({ deny: 'offline' }))
 
-    expect((await $.command.run(Fixtures.newsOf('remove hacker news'))).text).toBe(
-      'Removed "Hacker News". /news reset brings the factory sources back.',
+    expect((await $.command.run(Fixtures.heraldOf('remove hacker news'))).text).toBe(
+      'Removed "Hacker News". /herald reset brings the factory sources back.',
     )
     expect(stored.get('sources')).not.toContainEqual(hn)
 
-    await $.command.run(Fixtures.newsOf('reset'))
+    await $.command.run(Fixtures.heraldOf('reset'))
 
     expect(stored.get('sources')).toEqual([...Defaults.FACTORY_SOURCES])
   })
@@ -100,7 +102,7 @@ describe('remove-source', () => {
     const blog = Fixtures.sourceAt('simons-blog', { name: "Simon's Blog" })
     const stored = Fixtures.storeOn(on, { sources: [ONE, blog] })
 
-    expect((await $.command.run(Fixtures.newsOf("remove Simon's Blog"))).text).toBe(
+    expect((await $.command.run(Fixtures.heraldOf("remove Simon's Blog"))).text).toBe(
       `Removed "Simon's Blog".`,
     )
     expect(stored.get('sources')).toEqual([ONE])
@@ -136,7 +138,7 @@ describe('remove-source', () => {
     await clock.advance(60_000)
 
     expect(calls).toBe(2)
-    expect((await $.command.run(Fixtures.newsOf('remove two'))).text).toBe('Removed "two".')
+    expect((await $.command.run(Fixtures.heraldOf('remove two'))).text).toBe('Removed "two".')
 
     release()
     await clock.settle()

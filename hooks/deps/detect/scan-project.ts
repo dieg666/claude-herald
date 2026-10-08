@@ -54,7 +54,7 @@ export async function scanProject(
   detectors: readonly Detector[] = DETECTORS,
   limits: { maxDepth: number; maxDirs: number } = WALK_LIMITS,
 ): Promise<Scan> {
-  const debug = (text: string) => host.debug(`news: deps: ${text}`)
+  const debug = (text: string) => host.debug(`herald: deps: ${text}`)
   const list = listerOf(host, root, limits.maxDirs, debug)
   const keeps = (name: string) =>
     detectors.some(detector => detector.isManifest(name) || detector.isCompanion(name))

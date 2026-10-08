@@ -13,7 +13,7 @@ describe('set-template', () => {
       const stored = Fixtures.storeOn(on)
       const template = 'Does  this affect us? {title} ({source}) {url}'
 
-      expect((await $.command.run(Fixtures.newsOf(`template   ${template}  `))).text).toBe(
+      expect((await $.command.run(Fixtures.heraldOf(`template   ${template}  `))).text).toBe(
         `Copy for Claude now copies: ${template}`,
       )
       expect(stored.get('settings')).toMatchObject({ template })
@@ -24,7 +24,7 @@ describe('set-template', () => {
   test('one pair of quotes around the whole text is removed', async ($, on) => {
     const stored = Fixtures.storeOn(on)
 
-    await $.command.run(Fixtures.newsOf(`template "Read {url} and say 'why'"`))
+    await $.command.run(Fixtures.heraldOf(`template "Read {url} and say 'why'"`))
 
     expect(stored.get('settings')).toMatchObject({ template: "Read {url} and say 'why'" })
   })
@@ -32,15 +32,15 @@ describe('set-template', () => {
   test('refuses an unknown placeholder or a text naming no item, saving nothing', async ($, on) => {
     const stored = Fixtures.storeOn(on)
 
-    expect((await $.command.run(Fixtures.newsOf('template {title} {link}'))).text).toBe(
+    expect((await $.command.run(Fixtures.heraldOf('template {title} {link}'))).text).toBe(
       'The template may use {title}, {url}, {source}; {link} is not one of them.',
     )
-    expect((await $.command.run(Fixtures.newsOf('template From {source}'))).text).toBe(
-      'The template must hold {title} or {url}, e.g. /news template Does this affect us? {title} {url}',
+    expect((await $.command.run(Fixtures.heraldOf('template From {source}'))).text).toBe(
+      'The template must hold {title} or {url}, e.g. /herald template Does this affect us? {title} {url}',
     )
-    expect((await $.command.run(Fixtures.newsOf(`template {url} ${'x'.repeat(1000)}`))).text).toBe(
-      'The template is 1006 characters; the most is 1000.',
-    )
+    expect(
+      (await $.command.run(Fixtures.heraldOf(`template {url} ${'x'.repeat(1000)}`))).text,
+    ).toBe('The template is 1006 characters; the most is 1000.')
     expect(stored.has('settings')).toBe(false)
   })
 
@@ -48,7 +48,7 @@ describe('set-template', () => {
     const stored = Fixtures.storeOn(on)
     const template = '"Read" {title} and "say why"'
 
-    await $.command.run(Fixtures.newsOf(`template ${template}`))
+    await $.command.run(Fixtures.heraldOf(`template ${template}`))
 
     expect(stored.get('settings')).toMatchObject({ template })
   })

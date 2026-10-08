@@ -32,6 +32,6 @@ describe('start-stack', () => {
     await Stack.startStack(fake.host, loop, Summaries.summaryJobsOf())
 
     expect(loop.isStarted).toBe(true)
-    expect(fake.logs.every(line => line.startsWith('news: deps: '))).toBe(true)
+    expect(fake.logs.every(line => line.startsWith('herald: deps: '))).toBe(true)
   })
 })

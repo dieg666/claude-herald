@@ -9,7 +9,7 @@ import { depsRefusalOf } from './deps-refusal-of.js'
 import { depsRootOf } from './deps-root-of.js'
 
 /**
- * `/news deps on|off`: follows this project's dependency releases or stops (no request for them and no stack item shown while off, other sources untouched); turning it on asks for the stack to be detected again.
+ * `/herald deps on|off`: follows this project's dependency releases or stops (no request for them and no stack item shown while off, other sources untouched); turning it on asks for the stack to be detected again.
  *
  * @param host the engine
  * @param rest what follows `on` or `off`, which must be nothing

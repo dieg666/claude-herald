@@ -9,7 +9,7 @@ import { depsRefusalOf } from './deps-refusal-of.js'
 import { depsRootOf } from './deps-root-of.js'
 
 /**
- * `/news deps toast <level|off>`: which new dependency releases of this project raise a toast, or none.
+ * `/herald deps toast <level|off>`: which new dependency releases of this project raise a toast, or none.
  *
  * @param host the engine
  * @param rest what follows `toast`

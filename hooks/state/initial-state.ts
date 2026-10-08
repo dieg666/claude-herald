@@ -1,11 +1,11 @@
-import type { NewsState } from './news-state.js'
+import type { HeraldState } from './herald-state.js'
 import { DEFAULT_DEPS_SETTINGS } from '../defaults/default-deps-settings.js'
 import { DEFAULT_SETTINGS } from '../defaults/default-settings.js'
 
 /**
  * What each `$.state` value holds before the first hydrate, and again after `/clear`, `/resume` or `/branch`.
  */
-export const INITIAL_STATE: Readonly<NewsState> = {
+export const INITIAL_STATE: Readonly<HeraldState> = {
   sources: [],
   settings: { ...DEFAULT_SETTINGS },
   items: {},

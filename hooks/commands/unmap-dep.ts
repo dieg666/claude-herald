@@ -11,7 +11,7 @@ import type { CommandReply } from './command-reply.js'
 import { depsRefusalOf } from './deps-refusal-of.js'
 
 /**
- * `/news deps map <package> off`: drops a package's mapping (every project's, as overrides are kept by package), drops the releases this project kept from the mapped feed so the registry's feed is read silently on the next refresh, and asks for that refresh while the package is followed; refused when the package has no mapping.
+ * `/herald deps map <package> off`: drops a package's mapping (every project's, as overrides are kept by package), drops the releases this project kept from the mapped feed so the registry's feed is read silently on the next refresh, and asks for that refresh while the package is followed; refused when the package has no mapping.
  *
  * @param host the engine
  * @param root the project root

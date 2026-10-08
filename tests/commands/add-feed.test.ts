@@ -19,7 +19,7 @@ describe('add-feed', () => {
       const stored = Fixtures.storeOn(on, { sources: [OWN] })
       const fetched = Fixtures.webOn(on, new Map([[URL, Feeds.SIMON_WILLISON]]))
 
-      const { text } = await $.command.run(Fixtures.newsOf(`add ${URL}`))
+      const { text } = await $.command.run(Fixtures.heraldOf(`add ${URL}`))
 
       await clock.settle()
 
@@ -34,7 +34,7 @@ describe('add-feed', () => {
       }
 
       expect(text).toBe(
-        `Added "Simon Willison's Weblog" with 4 entries. /news remove "Simon Willison's Weblog" stops following it.`,
+        `Added "Simon Willison's Weblog" with 4 entries. /herald remove "Simon Willison's Weblog" stops following it.`,
       )
       expect(stored.get('sources')).toEqual([OWN, added])
       expect(peeked((await $.command.run(Fixtures.PEEK)).text).sources).toEqual([OWN, added])
@@ -48,10 +48,10 @@ describe('add-feed', () => {
 
     Fixtures.webOn(on, new Map([[URL, Feeds.HTML_PAGE]]))
 
-    const { text } = await $.command.run(Fixtures.newsOf(`add ${URL}`))
+    const { text } = await $.command.run(Fixtures.heraldOf(`add ${URL}`))
 
     expect(text).toBe(
-      `${URL} is not an RSS or Atom feed, so it was not added. For a web page, use /news add-page ${URL}.`,
+      `${URL} is not an RSS or Atom feed, so it was not added. For a web page, use /herald add-page ${URL}.`,
     )
     expect(stored.get('sources')).toEqual([OWN])
     expect(stored.has('items')).toBe(false)
@@ -69,13 +69,13 @@ describe('add-feed', () => {
       ]),
     )
 
-    expect((await $.command.run(Fixtures.newsOf('add https://example.org/empty.xml'))).text).toBe(
+    expect((await $.command.run(Fixtures.heraldOf('add https://example.org/empty.xml'))).text).toBe(
       'The feed at https://example.org/empty.xml has no entries, so it was not added.',
     )
-    expect((await $.command.run(Fixtures.newsOf('add https://example.org/cut.xml'))).text).toBe(
+    expect((await $.command.run(Fixtures.heraldOf('add https://example.org/cut.xml'))).text).toBe(
       'The feed at https://example.org/cut.xml is cut short, so it was not added.',
     )
-    expect((await $.command.run(Fixtures.newsOf('add https://example.org/blank.xml'))).text).toBe(
+    expect((await $.command.run(Fixtures.heraldOf('add https://example.org/blank.xml'))).text).toBe(
       'https://example.org/blank.xml answered with nothing, so it was not added.',
     )
     expect(stored.get('sources')).toEqual([OWN])
@@ -86,11 +86,11 @@ describe('add-feed', () => {
 
     Fixtures.webOn(on, new Map([[URL, { status: 404, text: 'missing' }]]))
 
-    expect((await $.command.run(Fixtures.newsOf(`add ${URL}`))).text).toBe(
+    expect((await $.command.run(Fixtures.heraldOf(`add ${URL}`))).text).toBe(
       `${URL} answered HTTP 404, so it was not added.`,
     )
     expect(
-      (await $.command.run(Fixtures.newsOf('add https://example.org/offline.xml'))).text,
+      (await $.command.run(Fixtures.heraldOf('add https://example.org/offline.xml'))).text,
     ).toMatch(
       /^Could not fetch https:\/\/example\.org\/offline\.xml \(.+\), so it was not added\.$/,
     )
@@ -107,7 +107,7 @@ describe('add-feed', () => {
       'http://simonwillison.net/atom/everything/#top',
       'https://SIMONWILLISON.net/atom/everything//',
     ]) {
-      expect((await $.command.run(Fixtures.newsOf(`add ${address}`))).text).toMatch(
+      expect((await $.command.run(Fixtures.heraldOf(`add ${address}`))).text).toMatch(
         /is already followed as "Simon Willison"\.$/,
       )
     }
@@ -121,7 +121,7 @@ describe('add-feed', () => {
     Fixtures.webOn(on, new Map())
 
     expect(
-      (await $.command.run(Fixtures.newsOf('add https://news.ycombinator.com/rss'))).text,
+      (await $.command.run(Fixtures.heraldOf('add https://news.ycombinator.com/rss'))).text,
     ).toBe('https://news.ycombinator.com/rss is already followed as "Hacker News".')
   })
 
@@ -137,8 +137,8 @@ describe('add-feed', () => {
       ]),
     )
 
-    await $.command.run(Fixtures.newsOf('add https://example.org/a.xml'))
-    await $.command.run(Fixtures.newsOf('add https://example.org/b.xml'))
+    await $.command.run(Fixtures.heraldOf('add https://example.org/a.xml'))
+    await $.command.run(Fixtures.heraldOf('add https://example.org/b.xml'))
     await clock.settle()
 
     const sources = stored.get('sources') as { id: string; name: string }[]
@@ -157,7 +157,7 @@ describe('add-feed', () => {
     Fixtures.webOn(on, new Map([['https://example.org/my%20feed.xml', Feeds.HN_RSS]]))
 
     const { text } = await $.command.run(
-      Fixtures.newsOf('  add   "https://example.org/my feed.xml"   "My   own"  feed  '),
+      Fixtures.heraldOf('  add   "https://example.org/my feed.xml"   "My   own"  feed  '),
     )
 
     await clock.settle()
@@ -176,8 +176,8 @@ describe('add-feed', () => {
     const stored = Fixtures.storeOn(on, { sources: [OWN] })
     const fetched = Fixtures.webOn(on, new Map([[URL, Feeds.HN_RSS]]))
 
-    expect((await $.command.run(Fixtures.newsOf(`add ${URL} OWN`))).text).toBe(
-      'A source is already named "OWN"; pick another name, or /news remove OWN first.',
+    expect((await $.command.run(Fixtures.heraldOf(`add ${URL} OWN`))).text).toBe(
+      'A source is already named "OWN"; pick another name, or /herald remove OWN first.',
     )
     expect(fetched).toEqual([])
     expect(stored.get('sources')).toEqual([OWN])
@@ -187,8 +187,8 @@ describe('add-feed', () => {
     const stored = Fixtures.storeOn(on, { sources: [OWN] })
 
     for (const address of ['example.org/feed', 'ftp://example.org/feed', 'file:///etc/passwd']) {
-      expect((await $.command.run(Fixtures.newsOf(`add ${address}`))).text).toBe(
-        `"${address}" is not an http(s) address. Usage: /news add <url> [name]`,
+      expect((await $.command.run(Fixtures.heraldOf(`add ${address}`))).text).toBe(
+        `"${address}" is not an http(s) address. Usage: /herald add <url> [name]`,
       )
     }
 
@@ -211,7 +211,7 @@ describe('add-feed', () => {
       return { value: { status: 200, ok: true, headers: {}, text: Feeds.HN_RSS } }
     })
 
-    await $.command.run(Fixtures.newsOf(`add ${URL}`))
+    await $.command.run(Fixtures.heraldOf(`add ${URL}`))
 
     expect((stored.get('sources') as { id: string }[]).map(source => source.id)).toEqual([
       'own',
@@ -227,11 +227,11 @@ describe('add-feed', () => {
 
     Fixtures.webOn(on, new Map([[URL, Feeds.SIMON_WILLISON]]))
 
-    const { text } = await $.command.run(Fixtures.newsOf(`add ${URL}`))
-    const hint = /\/news (remove .*) stops following it\.$/.exec(text ?? '')?.[1] ?? ''
+    const { text } = await $.command.run(Fixtures.heraldOf(`add ${URL}`))
+    const hint = /\/herald (remove .*) stops following it\.$/.exec(text ?? '')?.[1] ?? ''
 
     expect(hint).toBe(`remove "Simon Willison's Weblog"`)
-    expect((await $.command.run(Fixtures.newsOf(hint))).text).toBe(
+    expect((await $.command.run(Fixtures.heraldOf(hint))).text).toBe(
       `Removed "Simon Willison's Weblog".`,
     )
     expect(stored.get('sources')).toEqual([OWN])
@@ -243,7 +243,7 @@ describe('add-feed', () => {
     const stored = Fixtures.storeOn(on, { sources: [] })
     const fetched = Fixtures.webOn(on, new Map([['https://example.org/f?b=%22x%22', Feeds.HN_RSS]]))
 
-    await $.command.run(Fixtures.newsOf('add https://example.org/f?b="x" Quoted'))
+    await $.command.run(Fixtures.heraldOf('add https://example.org/f?b="x" Quoted'))
 
     expect(fetched[0]).toBe('https://example.org/f?b=%22x%22')
     expect(stored.get('sources')).toEqual([

@@ -55,6 +55,6 @@ describe('swift-detector', () => {
 
     expect(Fixtures.depNamed(dependencies, 'swift-case-paths')?.versionInUse).toBeUndefined()
     expect(Fixtures.depNamed(dependencies, 'swift-case-paths')?.range).toBe('^1.5.4')
-    expect(logs.some(line => line.startsWith('news: deps: skipped Package.resolved:'))).toBe(true)
+    expect(logs.some(line => line.startsWith('herald: deps: skipped Package.resolved:'))).toBe(true)
   })
 })

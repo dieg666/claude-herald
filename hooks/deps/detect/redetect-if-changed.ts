@@ -26,7 +26,7 @@ export async function redetectIfChanged(host: Host): Promise<DepsProject | undef
       : undefined
   } catch (error) {
     host.debug(
-      `news: deps: change check failed: ${error instanceof Error ? error.message : String(error)}`,
+      `herald: deps: change check failed: ${error instanceof Error ? error.message : String(error)}`,
     )
 
     return undefined

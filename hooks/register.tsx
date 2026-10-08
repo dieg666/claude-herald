@@ -14,15 +14,18 @@ import State from './state'
 import Store from './store'
 import Summaries from './summaries'
 
-const SOURCES = atom({ plugin: 'news', key: 'sources' } as const, State.INITIAL_STATE.sources)
-const SETTINGS = atom({ plugin: 'news', key: 'settings' } as const, State.INITIAL_STATE.settings)
-const ITEMS = atom({ plugin: 'news', key: 'items' } as const, State.INITIAL_STATE.items)
-const SAVED = atom({ plugin: 'news', key: 'saved' } as const, State.INITIAL_STATE.saved)
-const SUMMARIES = atom({ plugin: 'news', key: 'summaries' } as const, State.INITIAL_STATE.summaries)
-const BAND = atom({ plugin: 'news', key: 'band' } as const, State.INITIAL_STATE.band)
-const PANE = atom({ plugin: 'news', key: 'pane' } as const, State.INITIAL_STATE.pane)
-const STATUS = atom({ plugin: 'news', key: 'status' } as const, State.INITIAL_STATE.status)
-const STACK_STATE = atom({ plugin: 'news', key: 'stack' } as const, State.INITIAL_STATE.stack)
+const SOURCES = atom({ plugin: 'herald', key: 'sources' } as const, State.INITIAL_STATE.sources)
+const SETTINGS = atom({ plugin: 'herald', key: 'settings' } as const, State.INITIAL_STATE.settings)
+const ITEMS = atom({ plugin: 'herald', key: 'items' } as const, State.INITIAL_STATE.items)
+const SAVED = atom({ plugin: 'herald', key: 'saved' } as const, State.INITIAL_STATE.saved)
+const SUMMARIES = atom(
+  { plugin: 'herald', key: 'summaries' } as const,
+  State.INITIAL_STATE.summaries,
+)
+const BAND = atom({ plugin: 'herald', key: 'band' } as const, State.INITIAL_STATE.band)
+const PANE = atom({ plugin: 'herald', key: 'pane' } as const, State.INITIAL_STATE.pane)
+const STATUS = atom({ plugin: 'herald', key: 'status' } as const, State.INITIAL_STATE.status)
+const STACK_STATE = atom({ plugin: 'herald', key: 'stack' } as const, State.INITIAL_STATE.stack)
 
 // Bounds the mod's model calls for summaries, at most two in flight; other model work may share it.
 const MODEL_LIMITER = Summaries.limiterOf(Summaries.SUMMARY_LIMITS.concurrentRequests)
@@ -143,7 +146,7 @@ function resyncSummaries($: EngineInterface): void {
  * Summarizes the items the pane shows now in the current language, not awaited: in the window it last drew, else `PANE_FIRST_WINDOW` when it is opening, else nothing.
  *
  * @param $ the hook's engine
- * @param isOpening whether `/news` just opened the pane
+ * @param isOpening whether `/herald` just opened the pane
  */
 function resyncPane($: EngineInterface, isOpening: boolean): void {
   const size = PANE_WINDOW.size ?? (isOpening ? Pane.PANE_FIRST_WINDOW : undefined)
@@ -242,7 +245,7 @@ function detectSoon($: EngineInterface): void {
     $.clock.after(0, () => void Stack.startStack(hostOf($), STACK, SUMMARY_JOBS))
   } catch (error) {
     $.ui.log(
-      `news: deps: could not schedule detection: ${error instanceof Error ? error.message : String(error)}`,
+      `herald: deps: could not schedule detection: ${error instanceof Error ? error.message : String(error)}`,
       { to: 'debug' },
     )
   }
@@ -261,29 +264,29 @@ function refreshStackSoon($: EngineInterface, isRescan: boolean): void {
 }
 
 /**
- * Declares `/news` for the session; a refused registration is logged to debug, never thrown.
+ * Declares `/herald` for the session; a refused registration is logged to debug, never thrown.
  *
  * @param $ the hook's engine
  */
-async function registerNews($: EngineInterface): Promise<void> {
+async function registerHerald($: EngineInterface): Promise<void> {
   try {
     // The name stays literal: the static scan pairs it with the command.run hook.
     await $.command.register({
-      name: 'news',
-      description: Commands.NEWS_COMMAND.description,
-      argumentHint: Commands.NEWS_COMMAND.argumentHint,
+      name: 'herald',
+      description: Commands.HERALD_COMMAND.description,
+      argumentHint: Commands.HERALD_COMMAND.argumentHint,
       immediate: true,
     })
   } catch (error) {
     $.ui.log(
-      `news: could not register /${Names.COMMAND_NAME}: ${error instanceof Error ? error.message : String(error)}`,
+      `herald: could not register /${Names.COMMAND_NAME}: ${error instanceof Error ? error.message : String(error)}`,
       { to: 'debug' },
     )
   }
 }
 
 /**
- * Registers the news mod's hooks.
+ * Registers the Herald mod's hooks.
  *
  * @param on the engine's registrar
  */
@@ -293,13 +296,13 @@ export const register: Register = on => {
     restartRefresh($)
     restartRotation($)
     detectSoon($)
-    await registerNews($)
+    await registerHerald($)
 
     return next(e)
   })
 
-  on('command.run', { command: 'news' }, async ($, e) => {
-    const reply = await Commands.runNews(hostOf($), e.args, STACK)
+  on('command.run', { command: 'herald' }, async ($, e) => {
+    const reply = await Commands.runHerald(hostOf($), e.args, STACK)
 
     if (reply.restartRefresh === true) {
       restartRefresh($)
@@ -362,7 +365,7 @@ export const register: Register = on => {
 
   // The pane reads state only (it notes the window size in a module holder); its Buttons write through the Host when pressed.
   // The id stays literal so validate reports it; a test mounts the pane by Names.PANE_ID to keep them equal.
-  on('ui.render', { component: 'Pane', requestId: 'news' }, async ($, e) => {
+  on('ui.render', { component: 'Pane', requestId: 'herald' }, async ($, e) => {
     const sources = await read($, SOURCES)
     const saved = await read($, SAVED)
     const stack = Pane.paneStackOf(await read($, STACK_STATE))
@@ -404,7 +407,7 @@ export const register: Register = on => {
   on('classic.SessionStart', { source: ['clear', 'resume', 'fork'] }, async ($, e, next) => {
     await State.hydrate(hostOf($)).catch(() => undefined)
     await Stack.hydrateStack(hostOf($), STACK)
-    await registerNews($)
+    await registerHerald($)
 
     return next(e)
   }).catch(($, e, next) => next(e))

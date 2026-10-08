@@ -138,6 +138,6 @@ describe('ensure-visible-summaries', () => {
 
     expect(await Summaries.ensureVisibleSummaries(host, Summaries.summaryJobsOf(), [A])).toEqual({})
     expect(asked).toEqual([])
-    expect(logs).toEqual(['news: could not summarize the shown items: store unavailable'])
+    expect(logs).toEqual(['herald: could not summarize the shown items: store unavailable'])
   })
 })

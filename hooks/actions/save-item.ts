@@ -19,7 +19,7 @@ export async function saveItem(host: Host, item: Item): Promise<boolean> {
 
     return saved.some(entry => entry.id === item.id)
   } catch (error) {
-    host.debug(`news: could not save ${item.id}: ${messageOf(error)}`)
+    host.debug(`herald: could not save ${item.id}: ${messageOf(error)}`)
     host.toast(`Could not save "${titleLineOf(item.title)}": ${messageOf(error)}`)
 
     return false

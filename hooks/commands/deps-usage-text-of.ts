@@ -2,7 +2,7 @@ import { COMMAND_NAME } from '../names/command-name.js'
 import type { Subcommand } from './subcommand.js'
 
 /**
- * The usage text of `/news deps`: the listing, then every subcommand in table order with what it does, then help.
+ * The usage text of `/herald deps`: the listing, then every subcommand in table order with what it does, then help.
  *
  * @param subcommands the deps subcommands by name
  */

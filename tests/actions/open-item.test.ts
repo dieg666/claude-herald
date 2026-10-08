@@ -47,7 +47,7 @@ describe('open-item', () => {
       ['uname', '-s'],
       [...XDG, ITEM.url],
     ])
-    expect(logs).toEqual(['news: uname -s failed: not found'])
+    expect(logs).toEqual(['herald: uname -s failed: not found'])
   })
 
   test('an address that is not http(s) runs nothing and toasts', async () => {
@@ -68,7 +68,7 @@ describe('open-item', () => {
     expect(await Actions.openItem(failed.host, ITEM)).toBe(false)
     expect(failed.toasts).toEqual(['Could not open the link: sh exited with 127: sh: not found'])
     expect(failed.logs).toEqual([
-      `news: could not open ${ITEM.url}: sh exited with 127: sh: not found`,
+      `herald: could not open ${ITEM.url}: sh exited with 127: sh: not found`,
     ])
 
     const missing = Fixtures.fakeHostOf()
@@ -109,7 +109,7 @@ describe('open-item', () => {
 
     for (const surface of ['terminal', 'desktop'] as const) {
       const ui = await $.ui.mount({
-        plugin: 'news',
+        plugin: 'herald',
         component: 'AbovePrompt',
         props: Fixtures.BAND_PROPS,
         surface,

@@ -240,7 +240,7 @@ describe('refresh-stack', () => {
     await refresh()
 
     expect(fetched).toEqual([feedOf('react')])
-    expect(logs).toEqual([expect.stringMatching(/^news: deps: npm:react: release feed: /)])
+    expect(logs).toEqual([expect.stringMatching(/^herald: deps: npm:react: release feed: /)])
 
     await clock.advance(1)
     await refresh()
@@ -310,7 +310,7 @@ describe('refresh-stack', () => {
     expect(loop.running).toBeUndefined()
     expect(keptOf(stored, 'npm:vite')?.items.length).toBe(1)
     expect(keptOf(stored)).toBeUndefined()
-    expect(logs).toEqual(['news: deps: npm:react: release feed: timed out'])
+    expect(logs).toEqual(['herald: deps: npm:react: release feed: timed out'])
     expect(asked).toEqual([feedOf('react')])
 
     await clock.advance(Stack.STACK_LIMITS.failureWindowMs - DEADLINE - 1)
@@ -351,7 +351,7 @@ describe('refresh-stack', () => {
     expect(loop.running).toBeUndefined()
     expect(keptOf(stored, 'npm:vite')?.items.length).toBe(1)
     expect(Object.keys(stored.get('depFeeds') as object)).toEqual(['npm:vite'])
-    expect(logs).toEqual(['news: deps: could not resolve npm:react: timed out'])
+    expect(logs).toEqual(['herald: deps: could not resolve npm:react: timed out'])
     expect(asked).toEqual([REGISTRY])
 
     await clock.advance(Stack.STACK_LIMITS.failureWindowMs - DEADLINE - 1)

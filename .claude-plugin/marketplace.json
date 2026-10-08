@@ -1,16 +1,16 @@
 {
-  "name": "news-mod",
+  "name": "claude-herald",
   "owner": {
     "name": "Diego"
   },
   "metadata": {
-    "description": "A Claude Code mod that shows news from RSS/Atom feeds and web pages above the prompt."
+    "description": "Herald: news and releases for your stack, right above the prompt."
   },
   "plugins": [
     {
-      "name": "news",
+      "name": "herald",
       "source": "./",
-      "description": "News from RSS/Atom feeds and web pages inside Claude Code: a rotating band above the prompt with one-line Haiku summaries, a /news pane with a tab per source, saved items, and copy-for-Claude."
+      "description": "Herald: news and releases for your stack, right above the prompt."
     }
   ]
 }

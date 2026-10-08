@@ -66,6 +66,6 @@ describe('maven-detector', () => {
     const { dependencies, logs } = await Fixtures.scanOf({ 'pom.xml': Maven.BROKEN_POM })
 
     expect(dependencies).toEqual([])
-    expect(logs).toContain('news: deps: skipped pom.xml: not a complete <project> document')
+    expect(logs).toContain('herald: deps: skipped pom.xml: not a complete <project> document')
   })
 })

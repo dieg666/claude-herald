@@ -7,7 +7,7 @@ import type { CommandReply } from './command-reply.js'
 import { findSource } from './find-source.js'
 
 /**
- * `/news enable|disable <name>`: turns a source on (refreshing it at once, not awaited) or off, keeping it either way, and asks for the items the band now shows to be summarized.
+ * `/herald enable|disable <name>`: turns a source on (refreshing it at once, not awaited) or off, keeping it either way, and asks for the items the band now shows to be summarized.
  *
  * @param host the engine
  * @param rest what follows `enable` or `disable`

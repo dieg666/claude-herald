@@ -8,7 +8,7 @@ import { dropSources } from './drop-sources.js'
 import { findSource } from './find-source.js'
 
 /**
- * `/news remove <name|url>`: removes a source and forgets its items, seen ids and page hash; saved items stay; asks for the items the band now shows to be summarized.
+ * `/herald remove <name|url>`: removes a source and forgets its items, seen ids and page hash; saved items stay; asks for the items the band now shows to be summarized.
  *
  * @param host the engine
  * @param rest what follows `remove`

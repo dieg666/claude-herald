@@ -6,7 +6,7 @@ import type { CommandReply } from './command-reply.js'
 import { wholeNumberOf } from './whole-number-of.js'
 
 /**
- * `/news rotate <sec>`: saves the seconds between band rotations (5 to 3600) and asks for the rotation to restart.
+ * `/herald rotate <sec>`: saves the seconds between band rotations (5 to 3600) and asks for the rotation to restart.
  *
  * @param host the engine
  * @param rest what follows `rotate`

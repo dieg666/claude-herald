@@ -87,7 +87,7 @@ describe('turn-band', () => {
 
     await Promise.resolve()
 
-    expect(logs).toEqual(['news: band: model down'])
+    expect(logs).toEqual(['herald: band: model down'])
   })
 
   test('a state that fails is logged, not thrown', async () => {
@@ -98,6 +98,6 @@ describe('turn-band', () => {
     }
 
     expect(await Band.turnBand(host, rotation, 'next')).toBeUndefined()
-    expect(logs).toEqual(['news: band: could not next: state gone'])
+    expect(logs).toEqual(['herald: band: could not next: state gone'])
   })
 })

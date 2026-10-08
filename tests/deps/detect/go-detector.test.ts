@@ -71,6 +71,6 @@ describe('go-detector', () => {
     })
 
     expect(dependencies.every(dependency => dependency.manifestPath === 'go.mod')).toBe(true)
-    expect(logs).toContain('news: deps: skipped tools/go.mod: unterminated require block')
+    expect(logs).toContain('herald: deps: skipped tools/go.mod: unterminated require block')
   })
 })

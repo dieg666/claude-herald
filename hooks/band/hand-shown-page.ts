@@ -32,7 +32,7 @@ export async function handShownPage(
 
     return page.items
   } catch (error) {
-    host.debug(`news: band: ${messageOf(error)}`)
+    host.debug(`herald: band: ${messageOf(error)}`)
 
     return []
   }

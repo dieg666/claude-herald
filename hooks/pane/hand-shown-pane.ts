@@ -33,7 +33,7 @@ export async function handShownPane(
 
     return page.shown
   } catch (error) {
-    host.debug(`news: pane: ${messageOf(error)}`)
+    host.debug(`herald: pane: ${messageOf(error)}`)
 
     return []
   }

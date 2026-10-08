@@ -14,7 +14,7 @@ import { sourceNameOf } from './source-name-of.js'
 import { wordsOf } from './words-of.js'
 
 /**
- * `/news add <url> [name]`: follows an RSS or Atom feed once it fetches and parses with entries, named after its title unless named; refuses anything else and saves nothing then.
+ * `/herald add <url> [name]`: follows an RSS or Atom feed once it fetches and parses with entries, named after its title unless named; refuses anything else and saves nothing then.
  *
  * @param host the engine
  * @param rest what follows `add`

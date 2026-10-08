@@ -12,7 +12,7 @@ import { depsRootOf } from './deps-root-of.js'
 const FILTER_CHARS = 100
 
 /**
- * `/news deps filter [text]`: sets the text the pane's stack tab filters this project's releases by (nothing clears it), the selection back at the top when it changed, and asks for what the pane shows now to be checked.
+ * `/herald deps filter [text]`: sets the text the pane's stack tab filters this project's releases by (nothing clears it), the selection back at the top when it changed, and asks for what the pane shows now to be checked.
  *
  * @param host the engine
  * @param rest what follows `filter`

@@ -70,6 +70,6 @@ describe('ruby-detector', () => {
     })
 
     expect(dependencies).toEqual([])
-    expect(logs).toContain('news: deps: skipped Gemfile: a block is never closed')
+    expect(logs).toContain('herald: deps: skipped Gemfile: a block is never closed')
   })
 })

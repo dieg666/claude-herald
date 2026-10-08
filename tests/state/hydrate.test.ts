@@ -69,7 +69,7 @@ describe('hydrate', () => {
 
     expect(await State.hydrate(host)).toBeUndefined()
     expect(state.sources).toEqual([])
-    expect(logs).toEqual(['news: could not load the store: store unavailable: sources'])
+    expect(logs).toEqual(['herald: could not load the store: store unavailable: sources'])
   })
 
   test('a store that reads but refuses writes still fills state on a first run', async () => {
@@ -88,6 +88,6 @@ describe('hydrate', () => {
     expect(state.items).toEqual({ own: [Fixtures.itemAt('a')] })
     expect(state.saved).toEqual([{ ...Fixtures.itemAt('s'), savedAt: 9 }])
     expect(state.summaries).toEqual({ 'src:a': 'corto' })
-    expect(logs).toEqual(['news: could not save the factory sources: read-only store'])
+    expect(logs).toEqual(['herald: could not save the factory sources: read-only store'])
   })
 })

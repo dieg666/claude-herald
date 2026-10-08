@@ -29,7 +29,7 @@ export async function loadSources(host: Host): Promise<Source[]> {
   const factory = FACTORY_SOURCES.map(source => ({ ...source }))
 
   if (value !== undefined && value !== null) {
-    host.debug('news: the stored sources are not a list; showing the factory sources')
+    host.debug('herald: the stored sources are not a list; showing the factory sources')
 
     return factory
   }
@@ -37,7 +37,7 @@ export async function loadSources(host: Host): Promise<Source[]> {
   try {
     await host.storeSet(STORE_KEYS.sources, factory)
   } catch (error) {
-    host.debug(`news: could not save the factory sources: ${messageOf(error)}`)
+    host.debug(`herald: could not save the factory sources: ${messageOf(error)}`)
   }
 
   return factory

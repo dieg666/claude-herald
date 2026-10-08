@@ -21,7 +21,7 @@ describe('deps-root-of', () => {
 
     expect(await Commands.depsRootOf(fake.host)).toEqual({
       reply: {
-        text: 'The session runs at a filesystem root, so /news deps has no project to follow.',
+        text: 'The session runs at a filesystem root, so /herald deps has no project to follow.',
       },
     })
   })

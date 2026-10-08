@@ -90,7 +90,7 @@ describe('flag-releases', () => {
       { breaking: false, security: true },
     ])
     expect(stored.get('releaseFlags')).toBeUndefined()
-    expect(logs).toEqual([`news: no release flags for ${releases[0]?.id}: empty-reply`])
+    expect(logs).toEqual([`herald: no release flags for ${releases[0]?.id}: empty-reply`])
 
     replies.push(Fixtures.answerOf('{"breaking": true, "security": false}'))
 
@@ -116,7 +116,7 @@ describe('flag-releases', () => {
     expect(stored.get('releaseFlags')).toEqual([
       { releaseId: releases[0]?.id, breaking: true, security: true, malformed: 1 },
     ])
-    expect(logs).toEqual([`news: no release flags for ${releases[0]?.id}: malformed reply`])
+    expect(logs).toEqual([`herald: no release flags for ${releases[0]?.id}: malformed reply`])
   })
 
   test('a fenced answer is a verdict, cached', async () => {
@@ -277,7 +277,7 @@ describe('flag-releases', () => {
     }
 
     expect(await Classify.flagReleases(host, Summaries.summaryJobsOf(), releases)).toEqual(releases)
-    expect(logs).toEqual([`news: no release flags for ${releases[0]?.id}: model unavailable`])
+    expect(logs).toEqual([`herald: no release flags for ${releases[0]?.id}: model unavailable`])
   })
 
   test('a backlog is not sent whole: a few requests per call, the rest keep their keyword flags', async () => {
@@ -360,7 +360,7 @@ describe('flag-releases', () => {
 
     expect(await Classify.flagReleases(host, Summaries.summaryJobsOf(), releases)).toEqual(releases)
     expect(asked).toEqual([])
-    expect(logs).toEqual(['news: could not read the release flags: store offline'])
+    expect(logs).toEqual(['herald: could not read the release flags: store offline'])
   })
 
   test('a failed cache write is logged and the answer still used', async () => {
@@ -376,7 +376,7 @@ describe('flag-releases', () => {
 
     expect(flagged?.flags).toEqual({ breaking: true, security: false })
     expect(logs).toEqual([
-      `news: could not keep the release flags of ${releases[0]?.id}: read-only store`,
+      `herald: could not keep the release flags of ${releases[0]?.id}: read-only store`,
     ])
   })
 })

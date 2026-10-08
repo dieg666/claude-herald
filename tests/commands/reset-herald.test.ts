@@ -3,7 +3,7 @@ import { describe, expect, mock, test } from 'claude-code/testing'
 import Defaults from '../../hooks/defaults'
 import Fixtures from '../fixtures'
 
-describe('reset-news', () => {
+describe('reset-herald', () => {
   const ADDED = Fixtures.sourceAt('added')
   const SAVED = { ...Fixtures.itemAt('s'), savedAt: 3 }
   const HN = { ...Defaults.FACTORY_SOURCES[6], isEnabled: false }
@@ -30,7 +30,7 @@ describe('reset-news', () => {
       Fixtures.logsOn(on)
       on('model.complete', () => ({ deny: 'offline' }))
 
-      expect((await $.command.run(Fixtures.newsOf('reset'))).text).toBe(
+      expect((await $.command.run(Fixtures.heraldOf('reset'))).text).toBe(
         'Restored the 10 factory sources and the default settings, removed 1 added source; kept 1 saved item.',
       )
       expect(stored.get('sources')).toEqual([...Defaults.FACTORY_SOURCES])
@@ -61,7 +61,7 @@ describe('reset-news', () => {
 
     expect(fetched).toEqual([])
 
-    await $.command.run(Fixtures.newsOf('reset'))
+    await $.command.run(Fixtures.heraldOf('reset'))
     await clock.settle()
 
     const once = fetched.length

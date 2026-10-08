@@ -13,7 +13,7 @@ import type {
   UiOpenResult,
 } from 'claude-code'
 
-import type { NewsState } from '../state/news-state.js'
+import type { HeraldState } from '../state/herald-state.js'
 import type { StateCell } from './state-cell.js'
 
 /**
@@ -33,7 +33,7 @@ export type Host = {
   /**
    * Every `$.state` value of the mod, by key.
    */
-  state: { [K in keyof NewsState]: StateCell<NewsState[K]> }
+  state: { [K in keyof HeraldState]: StateCell<HeraldState[K]> }
 
   /**
    * Claude Code's `language` setting (`$.settings.read`), `undefined` when unset.

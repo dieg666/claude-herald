@@ -11,7 +11,7 @@ describe('set-deps-template', () => {
       const stored = Fixtures.storeOn(on, { settings: { template: 'Mine {url}' } })
       const template = "We use {pkg} {current}; {new} is out: {url} - 'check'"
 
-      expect((await $.command.run(Fixtures.newsOf(`deps template "${template}"`))).text).toBe(
+      expect((await $.command.run(Fixtures.heraldOf(`deps template "${template}"`))).text).toBe(
         `Copy for Claude now copies, for a dependency release: ${template}`,
       )
       expect(stored.get('settings')).toEqual({
@@ -27,16 +27,16 @@ describe('set-deps-template', () => {
 
   test('an unknown placeholder, no {pkg} or {url}, or over 1000 characters is refused with the usage line', async ($, on) => {
     const stored = Fixtures.storeOn(on)
-    const usage = '\nUsage: /news deps template <text>'
+    const usage = '\nUsage: /herald deps template <text>'
 
-    expect((await $.command.run(Fixtures.newsOf('deps template {pkg} {title}'))).text).toBe(
+    expect((await $.command.run(Fixtures.heraldOf('deps template {pkg} {title}'))).text).toBe(
       `The template may use {pkg}, {current}, {new}, {url}; {title} is not one of them.${usage}`,
     )
-    expect((await $.command.run(Fixtures.newsOf('deps template {new} is out'))).text).toBe(
+    expect((await $.command.run(Fixtures.heraldOf('deps template {new} is out'))).text).toBe(
       `The template must hold {pkg} or {url}.${usage}`,
     )
     expect(
-      (await $.command.run(Fixtures.newsOf(`deps template {pkg} ${'x'.repeat(1000)}`))).text,
+      (await $.command.run(Fixtures.heraldOf(`deps template {pkg} ${'x'.repeat(1000)}`))).text,
     ).toBe(`The template is 1006 characters; the most is 1000.${usage}`)
     expect(stored.has('settings')).toBe(false)
   })

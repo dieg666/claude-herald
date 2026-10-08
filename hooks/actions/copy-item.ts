@@ -55,7 +55,7 @@ export async function copyItem(host: Host, item: Item, surface: RenderSurface): 
 
     return false
   } catch (error) {
-    host.debug(`news: could not copy ${item.id}: ${messageOf(error)}`)
+    host.debug(`herald: could not copy ${item.id}: ${messageOf(error)}`)
     host.toast(`Could not copy: ${messageOf(error)}`)
 
     return false

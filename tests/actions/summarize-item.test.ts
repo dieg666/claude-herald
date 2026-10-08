@@ -28,7 +28,7 @@ describe('summarize-item', () => {
     expect(await Actions.summarizeItem(host, Summaries.summaryJobsOf(), Fixtures.itemAt('a'))).toBe(
       false,
     )
-    expect(logs).toEqual(['news: could not show the summary of src:a: no transcript'])
+    expect(logs).toEqual(['herald: could not show the summary of src:a: no transcript'])
     expect(toasts).toEqual(['No summary of "a" right now; try again later.'])
   })
 
@@ -52,7 +52,7 @@ describe('summarize-item', () => {
     await $.classic.SessionStart({ source: 'clear' })
 
     const ui = await $.ui.mount({
-      plugin: 'news',
+      plugin: 'herald',
       component: 'AbovePrompt',
       props: Fixtures.BAND_PROPS,
       surface: 'terminal',

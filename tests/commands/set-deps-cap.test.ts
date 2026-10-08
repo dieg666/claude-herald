@@ -8,11 +8,11 @@ describe('set-deps-cap', () => {
 
     Fixtures.fsOn(on, { '.git': { isDir: true } })
 
-    expect((await $.command.run(Fixtures.newsOf('deps cap 1'))).text).toBe(
+    expect((await $.command.run(Fixtures.heraldOf('deps cap 1'))).text).toBe(
       '/repo follows at most 1 dependency. Detecting its stack again.',
     )
     expect(stored.get('deps')).toMatchObject({ '/repo': { settings: { cap: 1 } } })
-    expect((await $.command.run(Fixtures.newsOf('deps cap 500'))).text).toBe(
+    expect((await $.command.run(Fixtures.heraldOf('deps cap 500'))).text).toBe(
       '/repo follows at most 500 dependencies. Detecting its stack again.',
     )
     expect(stored.get('deps')).toMatchObject({ '/repo': { settings: { cap: 500 } } })
@@ -24,8 +24,8 @@ describe('set-deps-cap', () => {
     Fixtures.fsOn(on, { '.git': { isDir: true } })
 
     for (const value of ['0', '501', 'abc', '-1', '2.5', '1e2', '10 20']) {
-      expect((await $.command.run(Fixtures.newsOf(`deps cap ${value}`))).text).toBe(
-        `The cap is a whole number from 1 to 500; "${value}" is not one.\nUsage: /news deps cap <1-500>`,
+      expect((await $.command.run(Fixtures.heraldOf(`deps cap ${value}`))).text).toBe(
+        `The cap is a whole number from 1 to 500; "${value}" is not one.\nUsage: /herald deps cap <1-500>`,
       )
     }
 
