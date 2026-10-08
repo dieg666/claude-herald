@@ -11,10 +11,17 @@ const DASH = new RegExp(String.raw`^([A-Za-z][\w.-]*?)[-_](${VERSION})$`)
 
 const WHOLE = new RegExp(String.raw`^${VERSION}$`)
 
-const SEARCH = new RegExp(String.raw`(?:^|[^0-9A-Za-z.])(${VERSION})`)
+const SEARCH = new RegExp(String.raw`(?:^|[^0-9A-Za-z.])(${VERSION})`, 'g')
 
 /** Prefixes that say "this is a release" rather than naming a package. */
 const GENERIC_WORDS = new Set([
+  'alpha',
+  'beta',
+  'final',
+  'hotfix',
+  'latest',
+  'patch',
+  'rc',
   'release',
   'releases',
   'rel',
@@ -33,6 +40,15 @@ const GENERIC_WORDS = new Set([
  */
 function dottedOf(version: string): string {
   return /^[vV]?\d+(?:_\d+)+$/.test(version) ? version.replace(/_/g, '.') : version
+}
+
+/**
+ * Whether a version found in a title looks like one rather than a stray number: it has a dot, a `v` prefix or is a date.
+ *
+ * @param version the version as written
+ */
+function looksLikeVersion(version: string): boolean {
+  return /^[vV]\d|\.|^\d{4}-\d{1,2}-\d{1,2}/.test(version)
 }
 
 /**
@@ -68,20 +84,29 @@ function tokenVersionOf(token: string): TaggedVersion | undefined {
 }
 
 /**
- * The version a release tag or title names, and the package when the tag names one: a whole tag (or a title's first word) in one of the tag forms, else the first version-like word of the text (`Release 1.2.3: notes`); undefined when there is none.
+ * The version a release tag or title names, and the package when the tag names one: a whole tag (or a title's first word) in one of the tag forms, else the first version-like word of the text (`Release 1.2.3: notes`); in a title, only a version with a dot, a `v` prefix or a date counts (`Weekly update 12` names none); undefined when there is none.
  *
  * @param text a tag or a title
+ * @param isTitle whether the text is a title rather than a tag
  */
-export function taggedVersionOf(text: string): TaggedVersion | undefined {
+export function taggedVersionOf(text: string, isTitle = false): TaggedVersion | undefined {
+  const isAccepted = (found: TaggedVersion | undefined) =>
+    found !== undefined && (!isTitle || looksLikeVersion(found.version))
   const trimmed = text.trim().slice(0, 300)
   const first = (trimmed.split(/\s+/)[0] ?? '').replace(/[:,;]+$/, '')
   const found = tokenVersionOf(first)
 
-  if (found !== undefined) {
+  if (isAccepted(found)) {
     return found
   }
 
-  const version = SEARCH.exec(trimmed)?.[1]
+  for (const match of trimmed.matchAll(SEARCH)) {
+    const version = match[1] === undefined ? undefined : { version: dottedOf(match[1]) }
 
-  return version === undefined ? undefined : { version: dottedOf(version) }
+    if (isAccepted(version)) {
+      return version
+    }
+  }
+
+  return undefined
 }

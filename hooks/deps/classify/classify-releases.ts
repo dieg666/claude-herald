@@ -40,7 +40,7 @@ export function classifyReleases(
   return entries.flatMap(entry => {
     const tag = tagOfEntry(entry)
     const tagged =
-      (tag === undefined ? undefined : taggedVersionOf(tag)) ?? taggedVersionOf(entry.title)
+      (tag === undefined ? undefined : taggedVersionOf(tag)) ?? taggedVersionOf(entry.title, true)
 
     if (tagged?.package !== undefined && !namesDependency(tagged.package, dependency)) {
       return []

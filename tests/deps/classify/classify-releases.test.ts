@@ -255,6 +255,26 @@ describe('classify-releases', () => {
     ])
   })
 
+  test('Maven flavours compare as their version: another flavour of the version in use is hidden', () => {
+    const guava = depOf('maven', 'com.google.guava:guava', { versionInUse: '32.1.3-jre' })
+    const entries = ['v32.1.3-android', 'v32.1.3', 'v33.0.0-android', 'v33.0.0-jre'].map(tag =>
+      Fixtures.releaseAt(tag),
+    )
+
+    expect(levelsOf(Classify.classifyReleases(guava, entries))).toEqual([
+      ['v33.0.0-android', 'major'],
+      ['v33.0.0-jre', 'major'],
+    ])
+  })
+
+  test('a title-only entry naming a bare number has no version and stays unknown', () => {
+    const dep = depOf('npm', 'left-pad', { versionInUse: '13.0.0' })
+
+    expect(
+      levelsOf(Classify.classifyReleases(dep, [{ guid: 'urn:3', title: 'Weekly update 12' }])),
+    ).toEqual([[undefined, 'unknown']])
+  })
+
   test('an npm lockfile alias is compared by its aliased version', () => {
     const dep = depOf('npm', 'other', { versionInUse: 'npm:other@1.5.0' })
 
