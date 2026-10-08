@@ -2174,6 +2174,68 @@ describe('pane-view', () => {
         expect((await footerOf(ui))?.at(-1)).toEqual(['releases', 'Hide releases', 'e'])
       },
     )
+
+    test(
+      `on ${surface}: giving the pane the keyboard changes the footer alone: tabs, title line, rows and dates are drawn the same, cut to the same width`,
+      { timeoutMs: 30_000 },
+      async ($, on) => {
+        const clock = mock.clock(on)
+        const long = Fixtures.datedItemsOf('a', 30).map(item => ({
+          ...item,
+          title: `${item.title} ${'a headline long enough to be cut at the right end '.repeat(3)}`,
+        }))
+
+        Fixtures.bandOn(
+          on,
+          {
+            ...STORE,
+            items: { ...STORE.items, a: long },
+            saved: long.slice(0, 3).map((item, index) => ({ ...item, savedAt: index + 1 })),
+            ...Fixtures.stackStoreOf(Fixtures.STACK_SAMPLE),
+          },
+          Fixtures.stackTreeOf(Fixtures.STACK_SAMPLE),
+        )
+
+        await $.session.start(Fixtures.SESSION)
+        await clock.settle()
+
+        const propsWith = (isFocused: boolean) => ({
+          ...Fixtures.PANE_PROPS,
+          isFocused,
+          bodyColumns: 100,
+        })
+        const ui = await $.ui.mount({ ...PANE, surface, props: propsWith(false) })
+
+        // The drawn tree without its footer, as plain data; a Button's press handle is new on every draw.
+        const aboveFooterOf = async () => {
+          const root = (await ui.drawn()) as unknown as { children: unknown[] }
+
+          return JSON.stringify(
+            root.children.filter(child => footerKeyOf(child) !== 'footer'),
+            (name, value: unknown) => (name === 'press' ? undefined : value),
+          )
+        }
+
+        // Alpha's tab is active at first, so only the others are pressed.
+        for (const tab of [undefined, 'tab-saved', 'tab-@stack']) {
+          if (tab !== undefined) {
+            await ui.press({ key: tab })
+
+            // The active tab is drawn as a highlighted Box, not a Button.
+            expect((await ui.find({ key: tab }))?.type).toBe('Box')
+          }
+
+          await ui.redraw(propsWith(false))
+
+          const away = await aboveFooterOf()
+
+          await ui.redraw(propsWith(true))
+
+          expect(await aboveFooterOf()).toBe(away)
+          expect(await positionOf(ui)).toMatch(/^1–\d+ of \d+$/)
+        }
+      },
+    )
   }
 
   test('on mobile, where the Buttons are tapped, the footer has the keys and no focus hint, focused or not', async ($, on) => {
