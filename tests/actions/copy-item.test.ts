@@ -177,4 +177,17 @@ describe('copy-item', () => {
     expect(toasts).toEqual(['📋 Copied'])
     expect(submitted).toEqual([])
   })
+
+  test('a stack item copies the filled deps template instead', async () => {
+    const { host, copies } = await hostWith()
+    const [react] = Fixtures.STACK_SAMPLE
+
+    await host.storeSet('settings', {
+      ...STORE.settings,
+      depsTemplate: '{pkg}: {current} to {new}',
+    })
+
+    expect(await Actions.copyItem(host, react!, 'terminal')).toBe(true)
+    expect(copies).toEqual([{ text: 'react: 18.2.0 to 19.0.0', surface: 'terminal' }])
+  })
 })
