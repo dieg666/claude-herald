@@ -213,6 +213,32 @@ describe('pane-view', () => {
       expect(await selectedOf(ui)).toBe('https://example.com/a/1')
     })
 
+    test(`on ${surface}: a bare version tag keeps its bare title on the source's tab and leads with the source name under Saved`, async ($, on) => {
+      mock.clock(on)
+
+      const tag = { ...Fixtures.datedItemsOf('a', 1)[0], title: 'v0.3.293' }
+
+      Fixtures.bandOn(on, {
+        sources: [ALPHA],
+        items: { a: [tag] },
+        saved: [{ ...tag, savedAt: 1 }],
+      })
+
+      await $.classic.SessionStart({ source: 'clear' })
+
+      const ui = await $.ui.mount({ ...PANE, surface })
+      const titlesOf = async () =>
+        (await ui.findAll({ type: 'Link' })).map(link => link.children.join(''))
+
+      expect(await titlesOf()).toEqual(['v0.3.293'])
+
+      await ui.press({ key: 'tab-saved' })
+
+      expect(await titlesOf()).toEqual(['Alpha v0.3.293'])
+
+      await ui.unmount()
+    })
+
     test(
       `on ${surface}: saving from a source tab lists the item under Saved; mark as read takes it off the list and the store`,
       { plugins: [Fixtures.STATE_PEEK], timeoutMs: 20_000 },

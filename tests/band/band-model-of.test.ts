@@ -101,6 +101,24 @@ describe('band-model-of', () => {
     expect(Band.bandModelOf(pageAt(0, 0), SOURCES, {}, saved, 80).isSelectedSaved).toBe(false)
   })
 
+  test('a title that is only a version leads with its source name; a headline or a gone source does not', () => {
+    const sources = [Fixtures.sourceAt('src', { name: 'Claude Code', icon: 'C' })]
+    const items = [
+      { ...Fixtures.itemAt('v2.1.293'), title: 'v2.1.293' },
+      { ...Fixtures.itemAt('b'), title: 'Claude Code v2.1.293 adds things' },
+      { ...Fixtures.itemAt('c'), sourceId: 'gone', title: 'v1.0.0' },
+    ]
+    const page = Band.bandPageOf({ offset: 0, selected: 0, isPaused: false }, items)
+
+    expect(Band.bandModelOf(page, sources, {}, [], 80).rows.map(row => row.title)).toEqual([
+      'Claude Code v2.1.293',
+      'Claude Code v2.1.293 adds things',
+      'v1.0.0',
+    ])
+    // Twenty-two cells less the mark, the glyph column and the gaps leave seventeen.
+    expect(Band.bandModelOf(page, sources, {}, [], 22).rows[0]?.title).toBe('Claude Code v2.1…')
+  })
+
   test('a stack item shows 📦 or ⚠, pkg current → new with the title when there is room, and its level as the summary', () => {
     const [react, vite] = Fixtures.STACK_SAMPLE
     const page = Band.bandPageOf({ offset: 0, selected: 0, isPaused: false }, [react!, vite!])

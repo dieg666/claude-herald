@@ -92,6 +92,27 @@ describe('band-view', () => {
       },
     )
 
+    test(`on ${surface}: a bare version tag is drawn with its source's name, a headline as it is, the stored title unchanged`, async ($, on) => {
+      mock.clock(on)
+
+      const source = Fixtures.sourceAt('rel', { name: 'Claude Code', icon: 'C' })
+      const tag = { ...Fixtures.datedItemsOf('rel', 2)[0], title: 'v2.1.293' }
+      const headline = { ...Fixtures.datedItemsOf('rel', 2)[1], title: 'Claude Code v2.1.292 adds' }
+      const { stored } = Fixtures.bandOn(on, { sources: [source], items: { rel: [tag, headline] } })
+
+      await $.classic.SessionStart({ source: 'clear' })
+
+      const ui = await $.ui.mount({ ...BAND, surface })
+
+      expect((await linksOf(ui)).map(([, text]) => text)).toEqual([
+        'Claude Code v2.1.293',
+        'Claude Code v2.1.292 adds',
+      ])
+      expect(stored.get('items')).toEqual({ rel: [tag, headline] })
+
+      await ui.unmount()
+    })
+
     test(`on ${surface}: every color is a theme key and every hotkey one distinct lowercase letter`, async ($, on) => {
       mock.clock(on)
       Fixtures.bandOn(on, STORE)

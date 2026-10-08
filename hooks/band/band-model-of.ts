@@ -4,6 +4,7 @@ import { isStackItem } from '../deps/stack/is-stack-item.js'
 import { stackIconOf } from '../deps/stack/stack-icon-of.js'
 import { stackLineOf } from '../deps/stack/stack-line-of.js'
 import { stackNoteOf } from '../deps/stack/stack-note-of.js'
+import { displayTitleOf } from '../items/display-title-of.js'
 import { collapsedTextOf } from '../page/collapsed-text-of.js'
 import { summaryTextOf } from '../summaries/summary-text-of.js'
 import type { BandModel } from './band-model.js'
@@ -23,10 +24,10 @@ function lineOf(text: string): string {
 }
 
 /**
- * What the band draws for a page, every line fitted to `columns` cells; a stack item shows 📦 (⚠ when breaking or security), `pkg current → new` and its ecosystem, level and flags; a news item without usable text, or with an empty summary (replies rejected for now), shows no summary.
+ * What the band draws for a page, every line fitted to `columns` cells; a title that is only a version leads with its source's name; a stack item shows 📦 (⚠ when breaking or security), `pkg current → new` and its ecosystem, level and flags; a news item without usable text, or with an empty summary (replies rejected for now), shows no summary.
  *
  * @param page the page shown
- * @param sources every source, for the glyphs
+ * @param sources every source, for the glyphs and names
  * @param summaries the one-line summaries by item id
  * @param saved the saved items
  * @param columns the cells the band's tree may take
@@ -39,6 +40,7 @@ export function bandModelOf(
   columns: number,
 ): BandModel {
   const icons = new Map(sources.map(source => [source.id, lineOf(source.icon)]))
+  const names = new Map(sources.map(source => [source.id, lineOf(source.name)]))
   const selected = page.items[page.span.selected]
 
   const rows = page.items.map((item, index) => {
@@ -52,7 +54,10 @@ export function bandModelOf(
     const hasNoSummary = stack === undefined && (cached === '' || summaryTextOf(item) === '')
     const summary =
       stack !== undefined ? stackNoteOf(stack.release) : hasNoSummary ? undefined : cached
-    const title = stack === undefined ? lineOf(item.title) : stackLineOf(stack)
+    const title =
+      stack === undefined
+        ? displayTitleOf(lineOf(item.title), names.get(item.sourceId))
+        : stackLineOf(stack)
 
     return {
       id: item.id,

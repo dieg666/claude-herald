@@ -9,6 +9,7 @@ import { isStackItem } from '../deps/stack/is-stack-item.js'
 import { stackIconOf } from '../deps/stack/stack-icon-of.js'
 import { stackLineOf } from '../deps/stack/stack-line-of.js'
 import { stackNoteOf } from '../deps/stack/stack-note-of.js'
+import { displayTitleOf } from '../items/display-title-of.js'
 import { SAVED_TAB } from '../names/saved-tab.js'
 import { STACK_TAB } from '../names/stack-tab.js'
 import { collapsedTextOf } from '../page/collapsed-text-of.js'
@@ -37,6 +38,7 @@ function lineOf(text: string): string {
  * @param summary its one-line summary, when there is one
  * @param isSelected whether it is the selected item
  * @param columns the cells the pane's body has
+ * @param sourceName the source's name when the tab mixes sources, so a version-only title leads with it
  */
 function rowOf(
   item: Item,
@@ -44,6 +46,7 @@ function rowOf(
   summary: string | undefined,
   isSelected: boolean,
   columns: number,
+  sourceName?: string,
 ): PaneRow {
   const stack = isStackItem(item) ? item : undefined
   const glyph = stack === undefined ? icon : fitColumns(stackIconOf(stack.release), ICON_COLUMNS)
@@ -52,7 +55,8 @@ function rowOf(
   const href = httpUrlOf(item.url)?.href
   const date = shortDateOf(item.publishedAt)
   const dated = date === undefined ? 0 : displayWidthOf(date) + 1
-  const title = stack === undefined ? lineOf(item.title) : stackLineOf(stack)
+  const title =
+    stack === undefined ? displayTitleOf(lineOf(item.title), sourceName) : stackLineOf(stack)
 
   return {
     id: item.id,
@@ -88,7 +92,7 @@ function emptyOf(tab: string, name: string, filter: string): string {
 }
 
 /**
- * What the pane draws for a page, every line fitted to `columns` cells; the stack tab draws a one-line row per package (and per release of an expanded one) under a heading per ecosystem, with its summary line and its filter.
+ * What the pane draws for a page, every line fitted to `columns` cells; on the saved tab a title that is only a version leads with its source's name; the stack tab draws a one-line row per package (and per release of an expanded one) under a heading per ecosystem, with its summary line and its filter.
  *
  * @param page the page shown
  * @param sources every source, for the names and glyphs
@@ -106,6 +110,7 @@ export function paneModelOf(
   filter = '',
 ): PaneModel {
   const icons = new Map(sources.map(source => [source.id, lineOf(source.icon)]))
+  const names = new Map(sources.map(source => [source.id, lineOf(source.name)]))
   const isSavedTab = page.tab.id === SAVED_TAB
   const isStackTab = page.tab.id === STACK_TAB
   const name = isSavedTab
@@ -124,6 +129,7 @@ export function paneModelOf(
             Object.hasOwn(summaries, item.id) ? summaries[item.id] : undefined,
             index === page.span.selected,
             columns,
+            isSavedTab ? names.get(item.sourceId) : undefined,
           ),
         )
       : paneStackRowsOf(page.stack, page.span.selected, columns)

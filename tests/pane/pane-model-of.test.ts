@@ -79,6 +79,31 @@ describe('pane-model-of', () => {
     expect(row?.summary).toBeUndefined()
   })
 
+  test('on the saved tab a version-only title leads with its source name; the source tab keeps the bare tag', () => {
+    const tag = { ...Fixtures.itemAt('v1.2.3'), sourceId: 'a', title: 'v1.2.3' }
+    const kept = [
+      { ...tag, savedAt: 1 },
+      { ...tag, id: 'gone:v1', sourceId: 'gone', savedAt: 2 },
+    ]
+    const own = Pane.paneModelOf(
+      Pane.panePageOf({ tab: 'a', selected: 0 }, SOURCES, { a: [tag] }, kept, 10),
+      SOURCES,
+      {},
+      kept,
+      80,
+    )
+    const saved = Pane.paneModelOf(
+      Pane.panePageOf({ tab: 'saved', selected: 0 }, SOURCES, { a: [tag] }, kept, 10),
+      SOURCES,
+      {},
+      kept,
+      80,
+    )
+
+    expect(own.rows.map(row => row.title)).toEqual(['v1.2.3'])
+    expect(saved.rows.map(row => row.title)).toEqual(['Alpha v1.2.3', 'v1.2.3'])
+  })
+
   test('an empty tab names itself and says so', () => {
     const empty = Pane.paneModelOf(
       Pane.panePageOf({ tab: 'a', selected: 0 }, SOURCES, {}, [], 10),
