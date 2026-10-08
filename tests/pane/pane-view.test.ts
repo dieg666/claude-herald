@@ -34,6 +34,10 @@ describe('pane-view', () => {
     findAll: (query: ElementQuery) => Promise<FoundElement[]>
   }
 
+  // The active tab's text: spelled as a plain Button on the terminal, its text alone on a surface with native buttons.
+  const activeOf = (surface: string, hotkey: string, text: string) =>
+    surface === 'terminal' ? `${hotkey}: ${text}` : text
+
   // The active tab's look: plain text bold and underlined, in the inverse text color, over a Box filled with the text color.
   const isHighlighted = (box: FoundElement) => {
     const [text, ...rest] = box.children as FoundElement[]
@@ -142,7 +146,7 @@ describe('pane-view', () => {
         const ui = await $.ui.mount({ ...PANE, surface })
 
         expect(await tabsOf(ui)).toEqual([
-          ['tab-a', '1: Alpha', undefined, 'active'],
+          ['tab-a', activeOf(surface, '1', 'Alpha'), undefined, 'active'],
           ['tab-b', 'Beta', '2', 'dim'],
           ['tab-saved', 'Saved', '0', 'dim'],
         ])
@@ -300,33 +304,51 @@ describe('pane-view', () => {
       const ui = await $.ui.mount({ ...PANE, surface })
 
       expect(await tabsOf(ui)).toEqual([
-        ['tab-a', '1: Alpha', undefined, 'active'],
+        ['tab-a', activeOf(surface, '1', 'Alpha'), undefined, 'active'],
         ['tab-long', 'Claude Code releases', '2', 'dim'],
         ['tab-saved', 'Saved 2', '0', 'dim'],
       ])
       expect((await ui.find({ key: 'tab-a' }))?.type).toBe('Box')
+      expect(lineOf(await ui.find({ key: 'tab-a' }))).toBe(
+        surface === 'terminal' ? '1: Alpha' : 'Alpha',
+      )
       expect(await ui.find({ type: 'Button', key: 'tab-a' })).toBeUndefined()
 
       await ui.press({ key: 'tab-long' })
 
       expect(await tabsOf(ui)).toEqual([
         ['tab-a', 'Alpha', '1', 'dim'],
-        ['tab-long', '2: Claude Code releases', undefined, 'active'],
+        ['tab-long', activeOf(surface, '2', 'Claude Code releases'), undefined, 'active'],
         ['tab-saved', 'Saved 2', '0', 'dim'],
       ])
 
       await ui.press({ key: 'tab-saved' })
 
-      expect((await tabsOf(ui)).at(-1)).toEqual(['tab-saved', '0: Saved 2', undefined, 'active'])
+      expect((await tabsOf(ui)).at(-1)).toEqual([
+        'tab-saved',
+        activeOf(surface, '0', 'Saved 2'),
+        undefined,
+        'active',
+      ])
 
       await ui.press({ key: 'read' })
 
-      expect((await tabsOf(ui)).at(-1)).toEqual(['tab-saved', '0: Saved 1', undefined, 'active'])
+      expect((await tabsOf(ui)).at(-1)).toEqual([
+        'tab-saved',
+        activeOf(surface, '0', 'Saved 1'),
+        undefined,
+        'active',
+      ])
 
       await ui.press({ key: 'read' })
 
       // With nothing saved the count goes.
-      expect((await tabsOf(ui)).at(-1)).toEqual(['tab-saved', '0: Saved', undefined, 'active'])
+      expect((await tabsOf(ui)).at(-1)).toEqual([
+        'tab-saved',
+        activeOf(surface, '0', 'Saved'),
+        undefined,
+        'active',
+      ])
     })
 
     test(`on ${surface}: the title line holds the selection Buttons then, at its right end, the position with an en dash, never the tab's name`, async ($, on) => {
@@ -387,7 +409,7 @@ describe('pane-view', () => {
       const wide = await mountAt(50)
 
       expect(await tabsOf(wide)).toEqual([
-        ['tab-a', '1: Alpha', undefined, 'active'],
+        ['tab-a', activeOf(surface, '1', 'Alpha'), undefined, 'active'],
         ['tab-b', 'Beta', '2', 'dim'],
         ['tab-long', 'Claude Code rel…', '3', 'dim'],
         ['tab-saved', 'Saved 2', '0', 'dim'],
@@ -401,7 +423,7 @@ describe('pane-view', () => {
       expect((await tabsOf(wide)).map(([key, text]) => [key, text])).toEqual([
         ['tab-a', 'Alpha'],
         ['tab-b', 'Beta'],
-        ['tab-long', '3: Claude Code rel…'],
+        ['tab-long', activeOf(surface, '3', 'Claude Code rel…')],
         ['tab-saved', 'Saved 2'],
       ])
 
@@ -412,7 +434,7 @@ describe('pane-view', () => {
       const narrow = await mountAt(49)
 
       expect(await tabsOf(narrow)).toEqual([
-        ['tab-a', '1: Alpha', undefined, 'active'],
+        ['tab-a', activeOf(surface, '1', 'Alpha'), undefined, 'active'],
         ['tab-b', 'Beta', '2', 'dim'],
         ['tab-long', 'Claude Code releases', '3', 'dim'],
         ['tab-saved', 'Saved 2', '0', 'dim'],
@@ -439,10 +461,11 @@ describe('pane-view', () => {
       await $.classic.SessionStart({ source: 'clear' })
 
       const ui = await $.ui.mount({ ...PANE, surface })
+      // The source names drawn on rows, leaving out the active tab's text, which on desktop is the bare name.
       const namesOf = async (name: string) =>
-        (await ui.findAll({ type: 'Text', text: new RegExp(`^${name}$`) })).map(
-          text => text.props.dimColor,
-        )
+        (await ui.findAll({ type: 'Text', text: new RegExp(`^${name}$`) }))
+          .filter(text => text.props.underline !== true)
+          .map(text => text.props.dimColor)
 
       expect(await namesOf('Alpha')).toEqual([])
       expect(
@@ -571,7 +594,9 @@ describe('pane-view', () => {
       await ui.press({ key: 'down' })
       await $.command.run(Fixtures.heraldOf('disable Alpha'))
 
-      expect(await tabsOf(ui)).toEqual([['tab-saved', '0: Saved', undefined, 'active']])
+      expect(await tabsOf(ui)).toEqual([
+        ['tab-saved', activeOf(surface, '0', 'Saved'), undefined, 'active'],
+      ])
       expect(await positionOf(ui)).toBeUndefined()
     })
 
@@ -871,7 +896,7 @@ describe('pane-view', () => {
 
       // The active first tab is text that still spells its digit; the others are Buttons on theirs.
       expect((await tabsOf(ui)).map(([key, text, hotkey]) => [key, text, hotkey])).toEqual([
-        ['tab-s1', '1: s1', undefined],
+        ['tab-s1', activeOf(surface, '1', 's1'), undefined],
         ...sources
           .slice(1, 9)
           .map((source, index) => [`tab-${source.id}`, source.id, String(index + 2)]),
@@ -909,7 +934,9 @@ describe('pane-view', () => {
 
       await $.command.run(Fixtures.heraldOf('remove Alpha'))
 
-      expect(await tabsOf(ui)).toEqual([['tab-saved', '0: Saved', undefined, 'active']])
+      expect(await tabsOf(ui)).toEqual([
+        ['tab-saved', activeOf(surface, '0', 'Saved'), undefined, 'active'],
+      ])
     })
 
     test(`on ${surface}: an address that is not http(s) draws as plain text; long and wide titles are cut to the width`, async ($, on) => {
@@ -1040,7 +1067,7 @@ describe('pane-view', () => {
         const ui = await $.ui.mount({ ...PANE, surface })
 
         expect(await tabsOf(ui)).toEqual([
-          ['tab-a', '1: Alpha', undefined, 'active'],
+          ['tab-a', activeOf(surface, '1', 'Alpha'), undefined, 'active'],
           ['tab-b', 'Beta', '2', 'dim'],
           ['tab-@stack', 'Your stack 4', 'y', 'dim'],
           ['tab-saved', 'Saved', '0', 'dim'],

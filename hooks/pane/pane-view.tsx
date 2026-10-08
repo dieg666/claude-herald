@@ -1,7 +1,7 @@
 /* @jsxRuntime classic */
 /* @jsx h */
 /* @jsxFrag Fragment */
-import type { RenderElement } from 'claude-code'
+import type { RenderElement, RenderSurface } from 'claude-code'
 
 import { actionRowView } from '../band/action-row-view.js'
 import type { BandUi } from '../band/band-ui.js'
@@ -129,20 +129,26 @@ function rowView(ui: BandUi, row: PaneRow): RenderElement {
 }
 
 /**
- * One tab of the tab row: the active one as plain text filled like the selected row, bold and underlined too, spelled as the terminal spells a plain Button so the row keeps its layout; any other a dim Button with its hotkey.
+ * One tab of the tab row: the active one as plain text filled like the selected row, bold and underlined too, spelled on the terminal as a plain Button there reads so the row keeps its layout, and as its text alone elsewhere, as a native button reads; any other a dim Button with its hotkey.
  *
  * @param ui the elements
  * @param tab the tab
  * @param handlers what pressing it runs
+ * @param surface where the pane is drawn
  */
-function tabView(ui: PaneUi, tab: PaneTabView, handlers: PaneHandlers): RenderElement {
+function tabView(
+  ui: PaneUi,
+  tab: PaneTabView,
+  handlers: PaneHandlers,
+  surface: RenderSurface,
+): RenderElement {
   const { Box, Text, Button } = ui
 
   if (tab.isActive) {
     return (
       <Box key={`tab-${tab.id}`} flexShrink={0} {...selectedFillOf(true)}>
         <Text bold underline {...selectedStyleOf(true)}>
-          {paneTabSpellingOf(tab)}
+          {surface === 'terminal' ? paneTabSpellingOf(tab) : paneTabTextOf(tab)}
         </Text>
       </Box>
     )
@@ -193,8 +199,14 @@ function filterView(ui: PaneUi, filter: string, handlers: PaneHandlers): RenderE
  * @param ui the elements, `Input` among them where the surface has one
  * @param model what to draw
  * @param handlers what each Button and the filter run
+ * @param surface where the pane is drawn
  */
-export function paneView(ui: PaneUi, model: PaneModel, handlers: PaneHandlers): RenderElement {
+export function paneView(
+  ui: PaneUi,
+  model: PaneModel,
+  handlers: PaneHandlers,
+  surface: RenderSurface,
+): RenderElement {
   const { Box, Text, Button } = ui
 
   const read = model.isSavedTab
@@ -241,7 +253,7 @@ export function paneView(ui: PaneUi, model: PaneModel, handlers: PaneHandlers): 
   return (
     <Box flexDirection="column">
       <Box flexDirection="row" flexWrap="wrap" columnGap={2}>
-        {model.tabs.map(tab => tabView(ui, tab, handlers))}
+        {model.tabs.map(tab => tabView(ui, tab, handlers, surface))}
       </Box>
       <Box flexDirection="row" columnGap={2}>
         <Button key="up" label="↑" hotkey={PANE_HOTKEYS.up} plain dimColor onPress={handlers.up} />

@@ -396,6 +396,7 @@ export const register: Register = on => {
         stack?.filter,
       ),
       paneHandlersOf($, page.items[page.selected], page.size),
+      e.surface,
     )
   })
 
