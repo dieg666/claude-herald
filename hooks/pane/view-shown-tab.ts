@@ -1,6 +1,6 @@
 import type { Host } from '../host/host.js'
-import { messageOf } from '../refresh/message-of.js'
 import { ALL_TAB } from '../names/all-tab.js'
+import { messageOf } from '../refresh/message-of.js'
 import { panePageOf } from './pane-page-of.js'
 import { paneStackOf } from './pane-stack-of.js'
 import { viewItems } from './view-items.js'
