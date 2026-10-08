@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
+import Feed from '../../hooks/feed'
 import Page from '../../hooks/page'
 import Refresh from '../../hooks/refresh'
 import Fixtures from '../fixtures'
@@ -276,5 +277,89 @@ describe('refresh-source', () => {
       expect(stored.has('seen')).toBe(false)
       expect(state.items).toEqual({})
     }
+  })
+
+  describe('a source that falls back to its second address', () => {
+    const HN = Fixtures.sourceAt('hn', {
+      url: 'https://hnrss.org/frontpage',
+      fallbackUrl: 'https://news.ycombinator.com/rss',
+    })
+
+    const itemsOf = (xml: string, url: string) => {
+      const parsed = Feed.parseFeed(xml, url)
+
+      if (!parsed.ok) {
+        throw new Error(parsed.reason)
+      }
+
+      return Refresh.itemsOfFeed('hn', parsed.feed)
+    }
+
+    const FROM_HNRSS = itemsOf(Feeds.HNRSS_SAME_STORIES, HN.url)
+    const GUID_IDS = FROM_HNRSS.map(item => item.id)
+
+    const fallingBack = (entries: Record<string, unknown>) => {
+      const fake = Fixtures.fakeHostOf(entries)
+
+      fake.web.set(HN.url, { status: 503, text: '' })
+      fake.web.set(HN.fallbackUrl ?? '', { status: 200, text: Feeds.HN_RSS })
+
+      return fake
+    }
+
+    test('the real fallback feed carries the same stories under other ids', () => {
+      const fromHn = itemsOf(Feeds.HN_RSS, HN.fallbackUrl ?? '')
+
+      expect(GUID_IDS[0]).toBe('hn:https://news.ycombinator.com/item?id=49996437')
+      expect(fromHn[0]?.id).toBe('hn:https://www.anthropic.com/claude-haiku-5-5')
+      expect(fromHn.map(item => item.url).slice(0, 3)).toEqual(FROM_HNRSS.map(item => item.url))
+    })
+
+    test('the same stories merge into the stored items, keeping their ids, text and seen state', async () => {
+      const { host, stored, state } = fallingBack({
+        items: { hn: FROM_HNRSS },
+        seen: { hn: GUID_IDS },
+      })
+
+      const outcome = await Refresh.refreshSource(host, HN)
+      const kept = (state.items as Record<string, typeof FROM_HNRSS>).hn ?? []
+
+      expect(kept.length).toBe(4)
+      expect(
+        kept
+          .map(item => item.id)
+          .filter(id => GUID_IDS.includes(id))
+          .sort(),
+      ).toEqual([...GUID_IDS].sort())
+
+      for (const item of FROM_HNRSS) {
+        expect(kept.find(other => other.id === item.id)?.text).toBe(item.text)
+      }
+
+      expect(outcome.newItems.map(item => item.title)).toEqual([
+        'Push ifs up and fors down: The idiom, its algebra, and its limits',
+      ])
+      expect(stored.get('items')).toEqual({ hn: kept })
+    })
+
+    test('duplicates a user already has stored collapse onto the oldest id on the next refresh', async () => {
+      const dupes = itemsOf(Feeds.HN_RSS, HN.fallbackUrl ?? '').map(item => ({
+        ...item,
+        text: 'Comments',
+      }))
+
+      const { host, stored } = fallingBack({
+        items: { hn: [...dupes, ...FROM_HNRSS] },
+        seen: { hn: [...GUID_IDS, ...dupes.map(item => item.id)] },
+      })
+
+      const outcome = await Refresh.refreshSource(host, HN)
+      const kept = (stored.get('items') as Record<string, { id: string; url: string }[]>).hn ?? []
+
+      expect(outcome.newItems).toEqual([])
+      expect(kept.length).toBe(4)
+      expect(new Set(kept.map(item => item.url)).size).toBe(4)
+      expect(kept.filter(item => GUID_IDS.includes(item.id)).length).toBe(3)
+    })
   })
 })

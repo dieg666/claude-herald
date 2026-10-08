@@ -1,5 +1,6 @@
 import type { HeraldState } from './herald-state.js'
 import type { Host } from '../host/host.js'
+import { mergeItems } from '../items/merge-items.js'
 import { loadItems } from '../store/load-items.js'
 import { loadSaved } from '../store/load-saved.js'
 import { loadSettings } from '../store/load-settings.js'
@@ -14,7 +15,7 @@ import { summaryLangOf } from '../store/summary-lang-of.js'
 type Hydrated = Pick<HeraldState, 'sources' | 'settings' | 'items' | 'saved' | 'summaries'>
 
 /**
- * Copies the store into `$.state` (sources, settings, items, saved, current-language short summaries), reading all before writing any; never throws, logs a failure to debug.
+ * Copies the store into `$.state` (sources, settings, items with duplicates of one story folded, saved, current-language short summaries), reading all before writing any; never throws, logs a failure to debug.
  *
  * @param host the engine
  * @returns what it wrote, or undefined when it failed
@@ -23,7 +24,9 @@ export async function hydrate(host: Host): Promise<Hydrated | undefined> {
   try {
     const sources = await loadSources(host)
     const settings = await loadSettings(host)
-    const items = await loadItems(host)
+    const items = Object.fromEntries(
+      Object.entries(await loadItems(host)).map(([id, list]) => [id, mergeItems(list, [])]),
+    )
     const saved = await loadSaved(host)
     const entries = await loadSummaries(host)
 

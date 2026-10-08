@@ -50,6 +50,35 @@ describe('hydrate', () => {
     expect(state.summaries).toEqual({ 'src:a': 'corto' })
   })
 
+  test('stored copies of one story fold onto the id the summary is cached under', async () => {
+    const guid = {
+      ...Fixtures.itemAt('story'),
+      id: 'own:https://news.ycombinator.com/item?id=1',
+      sourceId: 'own',
+    }
+
+    const dup = { ...guid, id: 'own:https://example.com/story', text: 'Comments' }
+
+    const { host, state } = Fixtures.fakeHostOf({
+      ...STORE,
+      items: { own: [dup, guid] },
+      summaries: [
+        {
+          itemId: guid.id,
+          lang: 'es',
+          kind: 'short',
+          version: Summaries.SUMMARY_PROMPT_VERSION,
+          text: 'corto',
+        },
+      ],
+    })
+
+    await State.hydrate(host)
+
+    expect(state.items).toEqual({ own: [guid] })
+    expect(state.summaries).toEqual({ [guid.id]: 'corto' })
+  })
+
   test('a short summary an older prompt version wrote stays out of state', async () => {
     const { host, state } = Fixtures.fakeHostOf({
       ...STORE,

@@ -86,7 +86,7 @@ export async function refreshSource(
       }
 
       const kept = (await loadItems(host))[source.id] ?? []
-      const items = fetched.kind === 'unchanged' ? kept : mergeItems(kept, fetched.items)
+      const items = mergeItems(kept, fetched.kind === 'unchanged' ? [] : fetched.items)
 
       // Seen first: a write that fails after it cannot make the same items new again.
       const newItems = await newItemsOf(host, source.id, items)

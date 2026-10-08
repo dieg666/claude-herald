@@ -1,9 +1,13 @@
+export * from './combined-item-of.js'
 export * from './display-title-of.js'
+export * from './has-text.js'
+export * from './is-link-label.js'
 export * from './is-version-only.js'
 export * from './item-id-of.js'
 export type * from './item-key.js'
 export * from './items-per-source.js'
 export * from './merge-items.js'
+export * from './normalized-url-of.js'
 export * from './time-of.js'
 export * from './title-hash-of.js'
 
