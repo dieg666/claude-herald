@@ -185,7 +185,7 @@ A template must contain `{title}` or `{url}` (the release template: `{pkg}` or `
 
 ## Summaries and languages
 
-The band and the pane show a one-line summary under each headline, and `…` while it is pending. The mod writes summaries from the item's title and the excerpt the feed carries (at most 500 characters), not from the linked page.
+The band and the pane show a one-line summary under each headline, and `…` while it is pending. The mod writes summaries from the item's title and the excerpt the feed carries (at most 500 characters), not from the linked page. Link and counter lines (such as Hacker News' `Article URL`, `Points` and `# Comments`) are left out of the excerpt; when no text remains, the summary comes from the title alone.
 
 `/herald lang` sets the language of every summary:
 
