@@ -21,8 +21,13 @@ describe('band-view', () => {
 
   const autoOf = async (ui: Drawing) => (await ui.find({ key: 'auto' }))?.props.label
 
-  // The wrapping rows of the band, the header first and the actions second; the nested groups of Buttons are Boxes that do not wrap.
-  const lines = (boxes: FoundElement[]) => boxes.filter(box => box.props.flexWrap === 'wrap')
+  // The band's own Box and its header and actions line, the last child being what the mods below drew.
+  const partsOf = async (ui: Drawing) => {
+    const [root] = await ui.findAll({ type: 'Box' })
+    const kids = (root?.children ?? []) as FoundElement[]
+
+    return { root, header: kids[0], actions: kids[kids.length - 2] }
+  }
 
   // A node as `Type:key:hotkey:label`, or `Text:text[:bold]`, or `Box:[children]`.
   const drawnAs = (node: unknown): string => {
@@ -150,14 +155,14 @@ describe('band-view', () => {
       await $.classic.SessionStart({ source: 'clear' })
 
       const ui = await $.ui.mount({ ...BAND, surface })
-      const [header, actions] = lines(await ui.findAll({ type: 'Box' }))
+      const { header, actions } = await partsOf(ui)
 
-      expect(header?.children.map(drawnAs)).toEqual([
+      expect(header?.children?.map(drawnAs)).toEqual([
         'Text:Herald:bold',
         'Text:1–3 of 7',
         'Box:[Button:prev:p:◀,Button:next:n:▶,Button:auto:a:⏸ auto]',
       ])
-      expect(actions?.children.map(drawnAs)).toEqual([
+      expect(actions?.children?.map(drawnAs)).toEqual([
         'Button:open:o:Open',
         'Button:summarize:s:Summarize',
         'Button:save:v:Save',
@@ -165,12 +170,37 @@ describe('band-view', () => {
         'Box:[Button:up:k:↑,Button:down:j:↓]',
       ])
       // The group of up and down is set apart from the actions by a margin.
-      expect(actions?.children.map(child => (child as FoundElement).props?.marginLeft)).toEqual([
+      expect(actions?.children?.map(child => (child as FoundElement).props?.marginLeft)).toEqual([
         undefined,
         undefined,
         undefined,
         undefined,
         2,
+      ])
+
+      await ui.unmount()
+    })
+
+    test(`on ${surface}: too narrow for the header or the actions at their widest, the back, next and auto Buttons and the up and down Buttons each take a row of their own`, async ($, on) => {
+      mock.clock(on)
+      Fixtures.bandOn(on, STORE)
+
+      await $.classic.SessionStart({ source: 'clear' })
+
+      const ui = await $.ui.mount({
+        ...BAND,
+        surface,
+        props: { ...Fixtures.BAND_PROPS, bodyColumns: 40 },
+      })
+      const { header, actions } = await partsOf(ui)
+
+      expect(header?.children?.map(drawnAs)).toEqual([
+        'Box:[Text:Herald:bold,Text:1–3 of 7]',
+        'Box:[Button:prev:p:◀,Button:next:n:▶,Button:auto:a:⏸ auto]',
+      ])
+      expect(actions?.children?.map(drawnAs)).toEqual([
+        'Box:[Button:open:o:Open,Button:summarize:s:Summarize,Button:save:v:Save]',
+        'Box:[Button:copy:c:Copy for Claude,Box:[Button:up:k:↑,Button:down:j:↓]]',
       ])
 
       await ui.unmount()
@@ -188,9 +218,7 @@ describe('band-view', () => {
           surface,
           props: { ...Fixtures.BAND_PROPS, bodyColumns: columns },
         })
-        const [header, actions] = lines(await ui.findAll({ type: 'Box' }))
-        const rowsOf = (line: FoundElement | undefined) =>
-          Fixtures.wrappedRowsOf((line?.children ?? []).map(Fixtures.cellsOf), columns)
+        const { header, actions } = await partsOf(ui)
 
         // The header and the actions as drawn before: the hotkey and label of each Button, the same position text between.
         const before = [
@@ -199,12 +227,85 @@ describe('band-view', () => {
         ].map(line => Fixtures.wrappedRowsOf(line.map(Band.displayWidthOf), columns))
 
         expect(await rangeOf(ui)).toBe('1–3 of 30')
-        expect([rowsOf(header), rowsOf(actions)]).toEqual(before)
-        expect(rowsOf(header) + rowsOf(actions)).toBe(before[0]! + before[1]!)
+        expect([Fixtures.rowsOf(header, columns), Fixtures.rowsOf(actions, columns)]).toEqual(
+          before,
+        )
 
         await ui.unmount()
       }
     })
+
+    test(
+      `on ${surface}: the band's rows depend on the width and the total only, not on the selection being saved or on the position text`,
+      { timeoutMs: 60_000 },
+      async ($, on) => {
+        mock.clock(on)
+
+        const ids = ['a', 'b', 'c', 'd', 'e', 'f']
+
+        Fixtures.bandOn(on, {
+          sources: ids.map(id => Fixtures.sourceAt(id, { name: id })),
+          items: Object.fromEntries(ids.map(id => [id, Fixtures.datedItemsOf(id, 28)])),
+        })
+
+        await $.classic.SessionStart({ source: 'clear' })
+
+        const wide = Band.headerColumnsOf(168)
+        const actionsWide = Band.actionsColumnsOf()
+        const widths = [
+          ...new Set([40, 44, 64, wide - 1, wide, actionsWide - 1, actionsWide, actionsWide + 1]),
+        ]
+        const at = (columns: number) => ({
+          ...BAND,
+          surface,
+          props: { ...Fixtures.BAND_PROPS, bodyColumns: columns },
+        })
+
+        // Rows of each width with the first item unsaved, then saved.
+        const rowsAt = async () => {
+          const rows: Record<string, number[]> = {}
+
+          for (const columns of widths) {
+            const ui = await $.ui.mount(at(columns))
+            const unsaved = Fixtures.rowsOf((await partsOf(ui)).root, columns)
+
+            await ui.press({ key: 'save' })
+
+            const saved = Fixtures.rowsOf((await partsOf(ui)).root, columns)
+
+            expect(await ui.find({ key: 'save' })).toMatchObject({ props: { label: 'Saved' } })
+            await ui.press({ key: 'save' })
+            await ui.unmount()
+            rows[columns] = [unsaved, saved]
+          }
+
+          return rows
+        }
+
+        const first = await rowsAt()
+        const ui = await $.ui.mount(at(80))
+
+        for (let turn = 0; turn < 33; turn++) {
+          await ui.press({ key: 'next' })
+        }
+
+        expect(await rangeOf(ui)).toBe('100–102 of 168')
+        await ui.unmount()
+
+        const later = await rowsAt()
+
+        for (const columns of widths) {
+          // The header and the actions, each one row or two, plus three items of two rows and what is below.
+          const expected = (columns < wide ? 2 : 1) + 6 + (columns < actionsWide ? 2 : 1) + 1
+
+          expect([columns, first[columns], later[columns]]).toEqual([
+            columns,
+            [expected, expected],
+            [expected, expected],
+          ])
+        }
+      },
+    )
 
     test(`on ${surface}: a bare version tag is drawn with its source's name, a headline as it is, the stored title unchanged`, async ($, on) => {
       mock.clock(on)

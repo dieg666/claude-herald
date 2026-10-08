@@ -1,3 +1,4 @@
+// Assumes the terminal draws a Button as `hotkey: label` and a row Box puts its columnGap between children.
 import Band from '../../hooks/band'
 
 type Node = { props?: Record<string, unknown>; children?: unknown[] }

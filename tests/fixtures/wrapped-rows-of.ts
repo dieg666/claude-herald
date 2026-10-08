@@ -1,3 +1,4 @@
+// Assumes a flex row wraps greedily: an item goes on the current row while it and one gap fit.
 /**
  * How many rows a wrapping row of items takes, each item put on the current row while it fits and on a new one when it does not.
  *

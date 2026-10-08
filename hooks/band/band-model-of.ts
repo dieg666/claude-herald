@@ -8,7 +8,9 @@ import { collapsedTextOf } from '../page/collapsed-text-of.js'
 import { summaryTextOf } from '../summaries/summary-text-of.js'
 import type { BandModel } from './band-model.js'
 import type { BandPage } from './band-page.js'
+import { actionsColumnsOf } from './actions-columns-of.js'
 import { fitColumns } from './fit-columns.js'
+import { headerColumnsOf } from './header-columns-of.js'
 import { ICON_COLUMNS } from './icon-columns.js'
 import { MARK_COLUMNS } from './mark-columns.js'
 import { newsHeadlineOf } from './news-headline-of.js'
@@ -74,6 +76,8 @@ export function bandModelOf(
     range: rangeLabelOf(page.span, page.total, '–'),
     isPaused: page.isPaused,
     rows,
+    isHeaderSplit: columns < headerColumnsOf(page.total),
+    isActionsSplit: columns < actionsColumnsOf(),
     isSelectedSaved: selected !== undefined && saved.some(entry => entry.id === selected.id),
   }
 }

@@ -4,7 +4,9 @@
 import type { RenderElement, RenderNode } from 'claude-code'
 
 import { BAND_HOTKEYS } from '../names/band-hotkeys.js'
+import { BAND_LABELS } from '../names/band-labels.js'
 import { BAND_NAME } from '../names/band-name.js'
+import { GROUP_GAP_COLUMNS } from './group-gap-columns.js'
 import { iconGapOf } from './icon-gap-of.js'
 import { actionRowView } from './action-row-view.js'
 import type { BandHandlers } from './band-handlers.js'
@@ -49,7 +51,7 @@ function rowView(ui: BandUi, row: BandRow): RenderElement {
 }
 
 /**
- * The band: the header (its name, the position, back, on, auto), the page's items, the selected item's actions followed by the selection buttons, then what the mods below drew.
+ * The band: the header (its name, the position, back, next, auto), the page's items, the selected item's actions followed by the selection buttons, then what the mods below drew; a header or actions line too narrow at its widest is laid out on two explicit rows, so the rows depend on the width and the total only.
  *
  * @param ui the elements
  * @param model what to draw
@@ -63,45 +65,74 @@ export function bandView(
   below: RenderNode,
 ): RenderElement {
   const { Box, Text, Button } = ui
+  const pages = (
+    <Box
+      flexDirection="row"
+      columnGap={GROUP_GAP_COLUMNS}
+      marginLeft={model.isHeaderSplit ? 0 : GROUP_GAP_COLUMNS}
+    >
+      <Button
+        key="prev"
+        label={BAND_LABELS.prev}
+        hotkey={BAND_HOTKEYS.prev}
+        plain
+        onPress={handlers.prev}
+      />
+      <Button
+        key="next"
+        label={BAND_LABELS.next}
+        hotkey={BAND_HOTKEYS.next}
+        plain
+        onPress={handlers.next}
+      />
+      <Button
+        key="auto"
+        label={model.isPaused ? BAND_LABELS.autoPaused : BAND_LABELS.autoRunning}
+        hotkey={BAND_HOTKEYS.auto}
+        plain
+        onPress={handlers.auto}
+      />
+    </Box>
+  )
+  const title = [<Text bold>{BAND_NAME}</Text>, <Text>{model.range}</Text>]
+  const selection = (
+    <Box flexDirection="row" columnGap={GROUP_GAP_COLUMNS} marginLeft={GROUP_GAP_COLUMNS}>
+      <Button
+        key="up"
+        label={BAND_LABELS.up}
+        hotkey={BAND_HOTKEYS.up}
+        plain
+        dimColor
+        onPress={handlers.up}
+      />
+      <Button
+        key="down"
+        label={BAND_LABELS.down}
+        hotkey={BAND_HOTKEYS.down}
+        plain
+        dimColor
+        onPress={handlers.down}
+      />
+    </Box>
+  )
 
   return (
     <Box flexDirection="column">
-      <Box flexDirection="row" flexWrap="wrap" columnGap={2}>
-        <Text bold>{BAND_NAME}</Text>
-        <Text>{model.range}</Text>
-        <Box flexDirection="row" columnGap={2} marginLeft={2}>
-          <Button key="prev" label="◀" hotkey={BAND_HOTKEYS.prev} plain onPress={handlers.prev} />
-          <Button key="next" label="▶" hotkey={BAND_HOTKEYS.next} plain onPress={handlers.next} />
-          <Button
-            key="auto"
-            label={model.isPaused ? '▶ auto' : '⏸ auto'}
-            hotkey={BAND_HOTKEYS.auto}
-            plain
-            onPress={handlers.auto}
-          />
+      {model.isHeaderSplit ? (
+        <Box flexDirection="column">
+          <Box flexDirection="row" columnGap={GROUP_GAP_COLUMNS}>
+            {title}
+          </Box>
+          {pages}
         </Box>
-      </Box>
+      ) : (
+        <Box flexDirection="row" columnGap={GROUP_GAP_COLUMNS}>
+          {title}
+          {pages}
+        </Box>
+      )}
       {model.rows.map(row => rowView(ui, row))}
-      {actionRowView(ui, model.isSelectedSaved, handlers, [
-        <Box flexDirection="row" columnGap={2} marginLeft={2}>
-          <Button
-            key="up"
-            label="↑"
-            hotkey={BAND_HOTKEYS.up}
-            plain
-            dimColor
-            onPress={handlers.up}
-          />
-          <Button
-            key="down"
-            label="↓"
-            hotkey={BAND_HOTKEYS.down}
-            plain
-            dimColor
-            onPress={handlers.down}
-          />
-        </Box>,
-      ])}
+      {actionRowView(ui, model.isSelectedSaved, handlers, [selection], model.isActionsSplit)}
       {below}
     </Box>
   )
