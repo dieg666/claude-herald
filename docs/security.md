@@ -26,7 +26,7 @@ The mod's source fetches send no headers of their own. Claude Code may add its o
 The mod does not read your prompts, the conversation or your tool calls. The `hooks:` line of `claude plugin validate <plugin folder>` lists every event it listens to:
 
 ```text
-./register.tsx hooks: session.start, command.run{command=herald}, ui.render{component=AbovePrompt}, ui.render{component=Pane, requestId=herald}, classic.SessionStart{source=clear|resume|fork}
+./register.tsx hooks: session.start, command.run{command=herald}, ui.render{component=AbovePrompt}, ui.open{id=herald}, ui.close{id=herald}, ui.render{component=Pane, requestId=herald}, classic.SessionStart{source=clear|resume|fork}
 ```
 
 It hooks no `prompt.submit`, no `tool.call` and no transcript event. The only files it reads are the manifests and lockfiles in [Files stack detection reads](#files-stack-detection-reads).
@@ -36,6 +36,7 @@ It hooks no `prompt.submit`, no `tool.call` and no transcript event. The only fi
 | `session.start` | Loads the stored data, starts the refresh and rotation timers, schedules stack detection and the first refresh of your stack, and registers `/herald`. |
 | `command.run` with `command=herald` | Runs `/herald`, `/herald deps` and the other subcommands, and answers with text. |
 | `ui.render` with `component=AbovePrompt` | Draws the band and keeps what other mods draw there. |
+| `ui.open` and `ui.close` with `id=herald` | Draw the band again when the pane opens or closes, since the band yields while the pane shows; on close, ask for the summaries of the page the band shows again. |
 | `ui.render` with `component=Pane` and `requestId=herald` | Draws the `/herald` pane. |
 | `classic.SessionStart` with `source=clear`, `resume` or `fork` | Reloads the stored data and the stack's releases and registers `/herald` again, because those reset the mod's state without a `session.start`. |
 
