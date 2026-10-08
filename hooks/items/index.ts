@@ -1,3 +1,5 @@
+export * from './display-title-of.js'
+export * from './is-version-only.js'
 export * from './item-id-of.js'
 export type * from './item-key.js'
 export * from './items-per-source.js'
