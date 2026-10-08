@@ -80,6 +80,8 @@ export type Settings = {
   lang: SummaryLang
   /** The copy-for-Claude text, with `{title}`, `{url}` and `{source}` placeholders. */
   template: string
+  /** The copy-for-Claude text of a dependency release, with `{pkg}`, `{current}`, `{new}` and `{url}` placeholders. */
+  depsTemplate: string
 }
 
 /**
@@ -147,7 +149,17 @@ export type Dependency = {
 }
 
 /**
- * The stack-detection settings of one project.
+ * Which dependency releases a view shows: every one, minor and up, major and up, or only breaking and security ones; breaking and security releases pass every level.
+ */
+export type DepsLevel = 'all' | 'minor+' | 'major+breaking+security' | 'breaking+security'
+
+/**
+ * Which new dependency releases raise a toast: a show level, or none.
+ */
+export type DepsToastLevel = DepsLevel | 'off'
+
+/**
+ * The stack settings of one project.
  */
 export type DepsSettings = {
   /** Whether the project's dependencies are followed at all. */
@@ -156,6 +168,10 @@ export type DepsSettings = {
   includeDev: boolean
   /** How many dependencies are followed at most. */
   cap: number
+  /** Which releases the band and the pane show. */
+  showLevel: DepsLevel
+  /** Which new releases raise a toast. */
+  toastLevel: DepsToastLevel
 }
 
 /**
@@ -228,6 +244,70 @@ export type ReleaseFlagsEntry = ReleaseFlags & {
   malformed?: number
 }
 
+/**
+ * What a stack item says about its release: the package, the versions, how far apart they are, and the flags.
+ */
+export type StackRelease = {
+  /** `<ecosystem>:<name>|<entry guid, link or title>`, what the model's flags are cached under. */
+  releaseId: string
+  ecosystem: Ecosystem
+  /** The package's registry name. */
+  name: string
+  /** The version in use, or the floor of the declared range. */
+  current?: string
+  /** The version the release names. */
+  version?: string
+  /** Which release part changed from the version in use, `unknown` when they cannot be compared. */
+  level: 'patch' | 'minor' | 'major' | 'unknown'
+  isPrerelease: boolean
+  breaking: boolean
+  security: boolean
+}
+
+/**
+ * A release of a followed dependency as the band, the pane and the toasts show it: an item of the stack, with its release.
+ */
+export type StackItem = Item & {
+  release: StackRelease
+}
+
+/**
+ * What the store keeps for one followed dependency's releases.
+ */
+export type StackDep = {
+  /** When its feed was last read, in milliseconds since the epoch. */
+  checkedAt: number
+  /** The version its releases were classified against. */
+  current?: string
+  /** The release ids already seen, newest first; present once its feed has loaded. */
+  seen: string[]
+  /** The newest releases above the version in use, newest first. */
+  items: StackItem[]
+}
+
+/**
+ * What the store keeps for one project's stack releases, keyed by its root path.
+ */
+export type StackProject = {
+  /** By `<ecosystem>:<name>`. */
+  deps: Record<string, StackDep>
+  /** When the last refresh wrote it, in milliseconds since the epoch. */
+  refreshedAt: number
+}
+
+/**
+ * The stack as the band and the pane draw it: the project, its settings, its releases, and the pane's filter.
+ */
+export type StackState = {
+  /** The project root the releases belong to; null before the first look. */
+  root: string | null
+  settings: DepsSettings
+  /** Every kept release of the followed dependencies, newest first. */
+  items: StackItem[]
+  /** The text the pane's stack tab filters by. */
+  filter: string
+}
+
 declare module 'claude-code' {
   /**
    * Every value the mod keeps in `$.state`, by key: what the band and pane draw.
@@ -243,6 +323,7 @@ declare module 'claude-code' {
       band: BandState
       pane: PaneState
       status: RefreshStatus
+      stack: StackState
     }
   }
 }

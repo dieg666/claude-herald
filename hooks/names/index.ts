@@ -6,6 +6,7 @@ export * from './pane-id.js'
 export * from './pane-title.js'
 export * from './plugin-name.js'
 export * from './saved-tab.js'
+export * from './stack-tab.js'
 export * from './store-keys.js'
 
 export * as default from '.'

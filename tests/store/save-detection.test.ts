@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
+import Defaults from '../../hooks/defaults'
 import Store from '../../hooks/store'
 import Fixtures from '../fixtures'
 
@@ -19,7 +20,7 @@ describe('save-detection', () => {
     const saved = await Store.saveDetection(host, '/repo', DETECTION)
 
     expect(saved).toEqual({
-      settings: { isEnabled: true, includeDev: true, cap: 50 },
+      settings: { ...Defaults.DEFAULT_DEPS_SETTINGS, includeDev: true },
       ...DETECTION,
       detectedAt: 1000,
     })

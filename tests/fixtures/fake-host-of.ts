@@ -69,6 +69,7 @@ export function fakeHostOf(entries: Readonly<Record<string, unknown>> = {}, user
       band: cellOf('band'),
       pane: cellOf('pane'),
       status: cellOf('status'),
+      stack: cellOf('stack'),
     },
     userLanguage: async () => userLanguage,
     debug: text => {

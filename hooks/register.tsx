@@ -22,6 +22,7 @@ const SUMMARIES = atom({ plugin: 'news', key: 'summaries' } as const, State.INIT
 const BAND = atom({ plugin: 'news', key: 'band' } as const, State.INITIAL_STATE.band)
 const PANE = atom({ plugin: 'news', key: 'pane' } as const, State.INITIAL_STATE.pane)
 const STATUS = atom({ plugin: 'news', key: 'status' } as const, State.INITIAL_STATE.status)
+const STACK_STATE = atom({ plugin: 'news', key: 'stack' } as const, State.INITIAL_STATE.stack)
 
 // Bounds the mod's model calls for summaries, at most two in flight; other model work may share it.
 const MODEL_LIMITER = Summaries.limiterOf(Summaries.SUMMARY_LIMITS.concurrentRequests)
@@ -64,6 +65,10 @@ function hostOf($: EngineInterface): Host {
       band: { read: () => read($, BAND), update: change => update($, BAND, change) },
       pane: { read: () => read($, PANE), update: change => update($, PANE, change) },
       status: { read: () => read($, STATUS), update: change => update($, STATUS, change) },
+      stack: {
+        read: () => read($, STACK_STATE),
+        update: change => update($, STACK_STATE, change),
+      },
     },
     userLanguage: async () => Store.userLanguageOf(await $.settings.read()),
     debug: text => $.ui.log(text, { to: 'debug' }),

@@ -18,12 +18,24 @@ describe('settings-of', () => {
 
   test('unusable fields fall back to the defaults', () => {
     expect(
-      Store.settingsOf({ refreshMinutes: 0, rotateSeconds: '20', lang: ' ', template: 7 }),
+      Store.settingsOf({
+        refreshMinutes: 0,
+        rotateSeconds: '20',
+        lang: ' ',
+        template: 7,
+        depsTemplate: ' ',
+      }),
     ).toEqual(Defaults.DEFAULT_SETTINGS)
   })
 
   test('a whole stored object is read back as stored', () => {
-    const own = { refreshMinutes: 10, rotateSeconds: 30, lang: 'user', template: '{url}' }
+    const own = {
+      refreshMinutes: 10,
+      rotateSeconds: 30,
+      lang: 'user',
+      template: '{url}',
+      depsTemplate: '{pkg} {new}',
+    }
 
     expect(Store.settingsOf(own)).toEqual(own)
   })

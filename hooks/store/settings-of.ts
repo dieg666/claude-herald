@@ -33,5 +33,6 @@ export function settingsOf(value: unknown): Settings {
     rotateSeconds: positiveOf(stored.rotateSeconds) ?? DEFAULT_SETTINGS.rotateSeconds,
     lang: filledOf(stored.lang)?.trim() ?? DEFAULT_SETTINGS.lang,
     template: filledOf(stored.template) ?? DEFAULT_SETTINGS.template,
+    depsTemplate: filledOf(stored.depsTemplate) ?? DEFAULT_SETTINGS.depsTemplate,
   }
 }

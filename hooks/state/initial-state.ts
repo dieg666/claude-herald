@@ -1,4 +1,5 @@
 import type { NewsState } from './news-state.js'
+import { DEFAULT_DEPS_SETTINGS } from '../defaults/default-deps-settings.js'
 import { DEFAULT_SETTINGS } from '../defaults/default-settings.js'
 
 /**
@@ -13,4 +14,5 @@ export const INITIAL_STATE: Readonly<NewsState> = {
   band: { offset: 0, selected: 0, isPaused: false },
   pane: { tab: '', selected: 0 },
   status: { lastRefreshAt: null, isRefreshing: false, errors: {} },
+  stack: { root: null, settings: { ...DEFAULT_DEPS_SETTINGS }, items: [], filter: '' },
 }
