@@ -2,7 +2,9 @@ import { describe, expect, test } from 'claude-code/testing'
 
 import type { DepsSettings, DepsToastLevel, StackProject } from '../../../types/index.js'
 import type { Dependency } from '../../../types/index.js'
+import Resolve from '../../../hooks/deps/resolve'
 import Stack from '../../../hooks/deps/stack'
+import type { Host } from '../../../hooks/host'
 import Store from '../../../hooks/store'
 import Summaries from '../../../hooks/summaries'
 import Fixtures from '../../fixtures'
@@ -270,6 +272,99 @@ describe('refresh-stack', () => {
     await refresh()
 
     expect(fetched).toEqual([REGISTRY, GONE, REGISTRY])
+  })
+
+  /** Makes every request to these addresses hang, noting each. */
+  const hangOn = (host: { httpFetch: Host['httpFetch'] }, hung: Set<string>, asked: string[]) => {
+    const fetch = host.httpFetch
+
+    host.httpFetch = (url, init) => {
+      if (!hung.has(url)) {
+        return fetch(url, init)
+      }
+
+      asked.push(url)
+
+      return new Promise(() => {})
+    }
+  }
+
+  const DEADLINE = Resolve.RESOLVE_LIMITS.requestTimeoutMs
+
+  test('a release feed that never answers ends the run at the deadline, spares the other feeds and waits out the hour', async () => {
+    const vite = Fixtures.depAt('vite', { versionInUse: '5.0.0' })
+    const { host, web, stored, logs, loop, clock, refresh } = stackAt([REACT, vite])
+    const asked: string[] = []
+
+    web.set(feedOf('vite'), { status: 200, text: Feeds.releasesAtomOf('vite', [['v5.1.0']]) })
+    hangOn(host, new Set([feedOf('react')]), asked)
+
+    const run = refresh()
+
+    await clock.advance(DEADLINE - 1)
+    expect(loop.running).toBeDefined()
+
+    await clock.advance(1)
+
+    expect((await run).checked).toEqual(['npm:vite'])
+    expect(loop.running).toBeUndefined()
+    expect(keptOf(stored, 'npm:vite')?.items.length).toBe(1)
+    expect(keptOf(stored)).toBeUndefined()
+    expect(logs).toEqual(['news: deps: npm:react: release feed: timed out'])
+    expect(asked).toEqual([feedOf('react')])
+
+    await clock.advance(Stack.STACK_LIMITS.failureWindowMs - DEADLINE - 1)
+    await refresh()
+    expect(asked.length).toBe(1)
+
+    await clock.advance(1)
+
+    const next = refresh()
+
+    await clock.advance(DEADLINE)
+    await next
+    expect(asked.length).toBe(2)
+  })
+
+  test('a registry that never answers ends the run at the deadline, spares the other lookups and waits out the hour', async () => {
+    const vite = Fixtures.depAt('vite', { versionInUse: '5.0.0' })
+    const REGISTRY = 'https://registry.npmjs.org/react/latest'
+    const { host, web, stored, logs, loop, clock, refresh } = stackAt(
+      [REACT, vite],
+      {},
+      { depFeeds: {} },
+    )
+    const asked: string[] = []
+
+    web.set('https://registry.npmjs.org/vite/latest', {
+      status: 200,
+      text: '{"repository":{"url":"git+https://github.com/owner/vite.git"}}',
+    })
+    web.set(feedOf('vite'), { status: 200, text: Feeds.releasesAtomOf('vite', [['v5.1.0']]) })
+    hangOn(host, new Set([REGISTRY]), asked)
+
+    const run = refresh()
+
+    await clock.advance(DEADLINE)
+
+    expect((await run).checked).toEqual(['npm:vite'])
+    expect(loop.running).toBeUndefined()
+    expect(keptOf(stored, 'npm:vite')?.items.length).toBe(1)
+    expect(Object.keys(stored.get('depFeeds') as object)).toEqual(['npm:vite'])
+    expect(logs).toEqual(['news: deps: could not resolve npm:react: timed out'])
+    expect(asked).toEqual([REGISTRY])
+
+    await clock.advance(Stack.STACK_LIMITS.failureWindowMs - DEADLINE - 1)
+    await refresh()
+    expect(asked.length).toBe(1)
+
+    await clock.advance(1)
+
+    const next = refresh()
+
+    await clock.advance(DEADLINE)
+    await next
+    expect(asked.length).toBe(2)
   })
 
   test('one run reads at most a few feeds and looks up at most a few packages, the rest in later runs', async () => {

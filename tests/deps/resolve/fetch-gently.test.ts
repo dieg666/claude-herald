@@ -22,6 +22,10 @@ describe('fetch-gently', () => {
     return { ...clocked, times }
   }
 
+  /** The waits asked for backoff, the per-request deadlines left out. */
+  const backoffsOf = (clock: { waitsAsked: () => number[] }) =>
+    clock.waitsAsked().filter(ms => ms !== Resolve.RESOLVE_LIMITS.requestTimeoutMs)
+
   test('a 429 waits the backoff, then retries and succeeds', async () => {
     const { host, clock, times } = scripted([429, 200])
     let outcome: unknown
@@ -50,7 +54,7 @@ describe('fetch-gently', () => {
     await clock.advance(60_000)
 
     expect(Resolve.RESOLVE_LIMITS.retries).toBe(3)
-    expect(clock.waitsAsked()).toEqual([1000, 2000, 4000])
+    expect(backoffsOf(clock)).toEqual([1000, 2000, 4000])
     expect(times).toEqual([0, 1000, 3000, 7000])
     expect(outcome).toEqual({ kind: 'failed', reason: 'HTTP 503' })
   })
@@ -64,7 +68,7 @@ describe('fetch-gently', () => {
 
       expect(await Resolve.fetchGently(host, URL)).toEqual(outcome)
       expect(times).toEqual([0])
-      expect(clock.waitsAsked()).toEqual([])
+      expect(backoffsOf(clock)).toEqual([])
     }
   })
 
@@ -94,5 +98,63 @@ describe('fetch-gently', () => {
 
     await clock.advance(60_000)
     expect(times).toEqual([0])
+  })
+
+  test('a request that never answers fails as timed out when the deadline passes, and is not retried', async () => {
+    const { host, clock, times } = scripted([200])
+    let outcome: unknown
+
+    host.httpFetch = async () => {
+      times.push(clock.now())
+
+      return new Promise(() => {})
+    }
+
+    void Resolve.fetchGently(host, URL).then(value => {
+      outcome = value
+    })
+
+    await clock.advance(Resolve.RESOLVE_LIMITS.requestTimeoutMs - 1)
+    expect(outcome).toBeUndefined()
+
+    await clock.advance(1)
+    expect(outcome).toEqual({ kind: 'failed', reason: 'timed out' })
+
+    await clock.advance(60_000)
+    expect(times).toEqual([0])
+    expect(backoffsOf(clock)).toEqual([])
+  })
+
+  test('an answer after the deadline changes nothing, and a late failure is not an unhandled rejection', async () => {
+    for (const settle of ['resolve', 'reject'] as const) {
+      const { host, clock } = scripted([200])
+      let late: () => void = () => {}
+
+      host.httpFetch = () =>
+        new Promise((resolve, reject) => {
+          late = () =>
+            settle === 'resolve'
+              ? resolve({ status: 200, ok: true, text: '{}' })
+              : reject(new Error('socket closed'))
+        })
+
+      const outcome = Resolve.fetchGently(host, URL)
+
+      await clock.advance(Resolve.RESOLVE_LIMITS.requestTimeoutMs)
+      expect(await outcome).toEqual({ kind: 'failed', reason: 'timed out' })
+
+      late()
+      await clock.settle()
+    }
+  })
+
+  test('a request that answers in time cancels its deadline', async () => {
+    const { host, clock } = scripted([200])
+
+    expect(await Resolve.fetchGently(host, URL)).toEqual({ kind: 'ok', text: '{}' })
+    expect(clock.waitsAsked()).toEqual([Resolve.RESOLVE_LIMITS.requestTimeoutMs])
+
+    await clock.advance(Resolve.RESOLVE_LIMITS.requestTimeoutMs)
+    expect(clock.pendingWaits()).toBe(0)
   })
 })

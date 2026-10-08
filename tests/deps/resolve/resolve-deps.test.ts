@@ -237,7 +237,9 @@ describe('resolve-deps', () => {
     expect(resolutions).toBeUndefined()
 
     await clock.advance(1)
-    expect(clock.waitsAsked()).toEqual([1000])
+    expect(clock.waitsAsked().filter(ms => ms !== Resolve.RESOLVE_LIMITS.requestTimeoutMs)).toEqual(
+      [1000],
+    )
     expect(fetched).toEqual([REQUESTS, PSF_RELEASES])
     expect((resolutions as { status: string }[])[0]?.status).toBe('resolved')
   })

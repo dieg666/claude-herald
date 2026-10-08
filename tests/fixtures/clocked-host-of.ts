@@ -64,6 +64,8 @@ export function clockedHostOf(entries: Readonly<Record<string, unknown>> = {}, s
       now = end
       await settle()
     },
+    /** How many waits are neither fired nor cancelled. */
+    pendingWaits: () => waits.filter(wait => !wait.isDone).length,
     /** The lengths of every wait asked for so far, in order. */
     waitsAsked: () => waits.map(wait => wait.ms),
   }
