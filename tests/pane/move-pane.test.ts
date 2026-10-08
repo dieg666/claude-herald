@@ -37,6 +37,7 @@ describe('move-pane', () => {
   test('a move inside the window writes the selection and hands the selected item alone when it has no summary; one that moves the window hands it, the selected item first', async () => {
     const { host, state, shown, onShown } = await paneWith()
 
+    await host.state.pane.update(() => ({ tab: 'a', selected: 0 }))
     await host.state.summaries.update(() => ({ 'a:3': 'Kept.' }))
 
     expect(await Pane.movePane(host, 'down', 4, onShown)).toBeUndefined()
@@ -56,6 +57,7 @@ describe('move-pane', () => {
   test('a move inside the window to an item without text hands nothing', async () => {
     const { host, shown, onShown } = await paneWith()
 
+    await host.state.pane.update(() => ({ tab: 'a', selected: 0 }))
     await host.state.items.update(items => ({
       ...items,
       a: (items.a ?? []).map(item => (item.id === 'a:2' ? { ...item, text: '' } : item)),
@@ -68,6 +70,7 @@ describe('move-pane', () => {
   test('a tab switch records the tab left and the tab shown as viewed; a move within a tab does not', async () => {
     const { host, stored, state, onShown } = await paneWith()
 
+    await host.state.pane.update(() => ({ tab: 'a', selected: 0 }))
     await Pane.movePane(host, 'down', 4, onShown)
 
     expect(stored.get('viewed')).toBeUndefined()
@@ -85,6 +88,24 @@ describe('move-pane', () => {
     await Pane.movePane(host, { tab: 'saved' }, 4, onShown)
 
     expect(stored.get('viewed')).toEqual(viewed)
+  })
+
+  test('the pane starts on All, which moves like a news tab over every source and is never recorded as viewed; leaving it records only the tab shown', async () => {
+    const { host, stored, state, shown, onShown } = await paneWith()
+
+    expect(await Pane.movePane(host, 'down', 4, onShown)).toBeUndefined()
+    expect(state.pane).toEqual({ tab: '@all', selected: 1 })
+    expect(shown).toEqual([['b:1']])
+    expect(stored.get('viewed')).toBeUndefined()
+
+    await Pane.movePane(host, { tab: 'b' }, 4, onShown)
+
+    expect(stored.get('viewed')).toEqual({ b: ['b:1'] })
+
+    await Pane.movePane(host, { tab: '@all' }, 4, onShown)
+
+    expect(state.pane).toEqual({ tab: '@all', selected: 0 })
+    expect(stored.get('viewed')).toEqual({ b: ['b:1'] })
   })
 
   test('a move that changes nothing writes nothing', async () => {

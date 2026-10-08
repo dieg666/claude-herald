@@ -37,9 +37,11 @@ describe('show-herald', () => {
     })
   }
 
-  test('opening the pane records the tab it shows as viewed; a pane waiting for room does not', async ($, on) => {
+  test('opening the pane on All records nothing as viewed, so the source tabs keep their new counts; reopened on a source tab it records that tab; a pane waiting for room does not', async ($, on) => {
+    mock.clock(on)
+
     const placed = Fixtures.storeOn(on, STORE)
-    let result: UiOpenResult = { isPlaced: false, reason: 'the terminal is 80 columns wide' }
+    let result: UiOpenResult = { isPlaced: true }
 
     on('session.surfaces', () => ({ value: ['terminal'] }))
     on('ui.open', () => ({ value: result }))
@@ -47,6 +49,21 @@ describe('show-herald', () => {
     on('classic.SessionStart', () => ({}))
 
     await $.classic.SessionStart({ source: 'clear' })
+    await $.command.run(Fixtures.heraldOf(''))
+
+    expect(placed.get('viewed')).toBeUndefined()
+
+    const ui = await $.ui.mount({
+      plugin: 'herald',
+      component: 'Pane',
+      requestId: 'herald',
+      props: Fixtures.PANE_PROPS,
+      surface: 'terminal',
+    })
+
+    await ui.press({ key: 'tab-feed' })
+    placed.delete('viewed')
+    result = { isPlaced: false, reason: 'the terminal is 80 columns wide' }
     await $.command.run(Fixtures.heraldOf(''))
 
     expect(placed.get('viewed')).toBeUndefined()

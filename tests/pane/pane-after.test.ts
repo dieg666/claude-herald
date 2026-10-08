@@ -22,8 +22,8 @@ describe('pane-after', () => {
     expect(Pane.paneAfter(pageOf('a', 0), 'up')).toEqual({ tab: 'a', selected: 0 })
   })
 
-  test('a move from no tab writes the tab it fell back to', () => {
-    expect(Pane.paneAfter(pageOf('', 0), 'down')).toEqual({ tab: 'a', selected: 1 })
+  test('a move from no tab writes the tab it fell back to, All', () => {
+    expect(Pane.paneAfter(pageOf('', 0), 'down')).toEqual({ tab: '@all', selected: 1 })
   })
 
   test('an empty tab stays at 0', () => {

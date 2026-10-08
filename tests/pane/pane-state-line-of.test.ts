@@ -58,7 +58,7 @@ describe('pane-state-line-of', () => {
   })
 
   test('prose names a factory source in full, not by its tab label', () => {
-    const [sdk] = Pane.paneTabsOf(
+    const [, sdk] = Pane.paneTabsOf(
       Defaults.FACTORY_SOURCES.filter(source => source.id === 'claude-agent-sdk-ts'),
     )
 

@@ -1,9 +1,6 @@
 import type { SavedItem, Source } from '../../types/index.js'
 import { httpUrlOf } from '../commands/http-url-of.js'
-import { sourceLabelOf } from '../defaults/source-label-of.js'
 import { isStackItem } from '../deps/stack/is-stack-item.js'
-import { stackHeadlineOf } from '../deps/stack/stack-headline-of.js'
-import { stackIconOf } from '../deps/stack/stack-icon-of.js'
 import { stackNoteOf } from '../deps/stack/stack-note-of.js'
 import { collapsedTextOf } from '../page/collapsed-text-of.js'
 import { summaryTextOf } from '../summaries/summary-text-of.js'
@@ -14,16 +11,9 @@ import type { BandPage } from './band-page.js'
 import { displayWidthOf } from './display-width-of.js'
 import { fitColumns } from './fit-columns.js'
 import { GROUP_GAP_COLUMNS } from './group-gap-columns.js'
-import { ICON_COLUMNS } from './icon-columns.js'
-import { isReleaseNews } from './is-release-news.js'
 import { LEAD_COLUMNS } from './lead-columns.js'
 import { rangeLabelOf } from './range-label-of.js'
-import { sourceColumnOf } from './source-column-of.js'
-import { SOURCE_COLUMNS } from './source-columns.js'
-import { stackLabelOf } from './stack-label-of.js'
-
-/** The cells a stack row's package takes: the source column less the glyph and its gap. */
-const PACKAGE_COLUMNS = SOURCE_COLUMNS - ICON_COLUMNS - 1
+import { sourceHeadOf } from './source-head-of.js'
 
 /**
  * Feed text as one line, invisible characters and line breaks gone.
@@ -77,24 +67,7 @@ export function bandModelOf(
   const rows = page.items.map((item, index) => {
     const stack = isStackItem(item) ? item : undefined
     const href = httpUrlOf(item.url)?.href
-    const source = byId.get(item.sourceId)
-    const title = lineOf(item.title)
-    const headline =
-      stack === undefined
-        ? {
-            ...sourceColumnOf(lineOf(sourceLabelOf(source)), SOURCE_COLUMNS),
-            ...(isReleaseNews(title, source) ? { isRelease: true as const } : {}),
-            title: fitColumns(title, room),
-          }
-        : {
-            icon: fitColumns(stackIconOf(stack.release), ICON_COLUMNS),
-            ...sourceColumnOf(
-              stackLabelOf(lineOf(stack.release.name), PACKAGE_COLUMNS),
-              PACKAGE_COLUMNS,
-            ),
-            isRelease: true as const,
-            title: fitColumns(stackHeadlineOf(stack), room),
-          }
+    const headline = sourceHeadOf(item, byId.get(item.sourceId), room)
     const row = {
       id: item.id,
       ...headline,

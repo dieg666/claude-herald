@@ -6,7 +6,7 @@ import Pane from '../../hooks/pane'
 import Fixtures from '../fixtures'
 
 describe('pane-tabs-of', () => {
-  test('enabled sources in order with digits, then Saved on 0', () => {
+  test('All first on l, then enabled sources in order with digits, then Saved on 0', () => {
     expect(
       Pane.paneTabsOf([
         Fixtures.sourceAt('a', { name: 'Alpha' }),
@@ -14,14 +14,16 @@ describe('pane-tabs-of', () => {
         Fixtures.sourceAt('b', { name: 'Beta' }),
       ]),
     ).toEqual([
+      { id: '@all', name: 'All', label: 'All', short: 'All', hotkey: 'l' },
       { id: 'a', name: 'Alpha', label: 'Alpha', short: 'Alpha', hotkey: '1' },
       { id: 'b', name: 'Beta', label: 'Beta', short: 'Beta', hotkey: '2' },
       { id: 'saved', name: 'Saved', label: 'Saved', short: 'Saved', hotkey: '0' },
     ])
   })
 
-  test('no sources leaves the saved tab alone', () => {
+  test('no sources leaves the All and saved tabs alone', () => {
     expect(Pane.paneTabsOf([])).toEqual([
+      { id: '@all', name: 'All', label: 'All', short: 'All', hotkey: 'l' },
       { id: 'saved', name: 'Saved', label: 'Saved', short: 'Saved', hotkey: '0' },
     ])
   })
@@ -30,6 +32,7 @@ describe('pane-tabs-of', () => {
     const tabs = Pane.paneTabsOf(Array.from({ length: 11 }, (_, i) => Fixtures.sourceAt(`s${i}`)))
 
     expect(tabs.map(tab => tab.hotkey)).toEqual([
+      'l',
       '1',
       '2',
       '3',
@@ -48,11 +51,11 @@ describe('pane-tabs-of', () => {
   test('a source whose id is the saved tab never gets a tab of its own', () => {
     expect(
       Pane.paneTabsOf([Fixtures.sourceAt('saved'), Fixtures.sourceAt('a')]).map(tab => tab.id),
-    ).toEqual(['a', 'saved'])
+    ).toEqual(['@all', 'a', 'saved'])
   })
 
   test('names become one line, kept whole and also cut to sixteen cells, wide characters counting two; a blank name shows the id', () => {
-    const [long, edge, wide, blank] = Pane.paneTabsOf([
+    const [, long, edge, wide, blank] = Pane.paneTabsOf([
       Fixtures.sourceAt('long', { name: 'Claude Code\nreleases' }),
       Fixtures.sourceAt('edge', { name: 'AINews (smol.ai)' }),
       Fixtures.sourceAt('wide', { name: '日本語のニュースサイト' }),
@@ -76,7 +79,7 @@ describe('pane-tabs-of', () => {
       Fixtures.sourceAt('agent', { name: 'Agent SDK' }),
     ])
 
-    expect(tabs.slice(0, 5).map(tab => [tab.id, tab.name, tab.label, tab.short])).toEqual([
+    expect(tabs.slice(1, 6).map(tab => [tab.id, tab.name, tab.label, tab.short])).toEqual([
       ['claude-code-releases', 'Claude Code releases', 'Claude Code', 'Claude Code'],
       ['claude-agent-sdk-ts', 'Claude Agent SDK (TS)', 'Agent SDK', 'Agent SDK'],
       ['anthropic-sdk-python', 'My Python SDK', 'My Python SDK', 'My Python SDK'],
@@ -91,16 +94,17 @@ describe('pane-tabs-of', () => {
     const saved = [1, 2].map(n => ({ ...Fixtures.itemAt(`k${n}`), savedAt: n }))
 
     expect(Pane.paneTabsOf(sources, stack, saved).map(tab => [tab.id, tab.count])).toEqual([
+      ['@all', undefined],
       ['a', undefined],
       ['@stack', 7],
       ['saved', 2],
     ])
     expect(
       Pane.paneTabsOf(sources, { ...stack, items: [] }, []).map(tab => Object.hasOwn(tab, 'count')),
-    ).toEqual([false, false, false])
+    ).toEqual([false, false, false, false])
   })
 
-  test('a source tab counts its new items; none for zero or for a source not given', () => {
+  test('a source tab counts its new items and All adds them up; none for zero or for a source not given', () => {
     const sources = [
       Fixtures.sourceAt('a', { name: 'Alpha' }),
       Fixtures.sourceAt('b', { name: 'Beta' }),
@@ -113,14 +117,24 @@ describe('pane-tabs-of', () => {
         tab.count,
       ]),
     ).toEqual([
+      ['@all', 2],
       ['a', 2],
       ['b', undefined],
       ['c', undefined],
       ['saved', undefined],
     ])
-    expect(Pane.paneTabCountTextOf(Pane.paneTabsOf(sources, undefined, [], { a: 14 })[0]!)).toBe(
-      '•14',
-    )
+    expect(
+      Pane.paneTabsOf(sources, undefined, [], { a: 2, c: 3, off: 4 }).map(tab => tab.count),
+    ).toEqual([5, 2, undefined, 3, undefined])
+    expect(
+      Pane.paneTabsOf([...sources, Fixtures.sourceAt('off', { isEnabled: false })], undefined, [], {
+        a: 1,
+        off: 4,
+      })[0]?.count,
+    ).toBe(1)
+    expect(
+      Pane.paneTabsOf(sources, undefined, [], { a: 14 }).map(tab => Pane.paneTabCountTextOf(tab)),
+    ).toEqual(['•14', '•14', '', '', ''])
   })
 
   test('the stack tab, when there is one, comes before Saved on y, a hotkey no other pane Button takes', () => {
@@ -131,6 +145,7 @@ describe('pane-tabs-of', () => {
     })
 
     expect(tabs).toEqual([
+      { id: '@all', name: 'All', label: 'All', short: 'All', hotkey: 'l' },
       { id: 'a', name: 'Alpha', label: 'Alpha', short: 'Alpha', hotkey: '1' },
       { id: '@stack', name: 'Your stack', label: 'Your stack', short: 'Your stack', hotkey: 'y' },
       { id: 'saved', name: 'Saved', label: 'Saved', short: 'Saved', hotkey: '0' },
@@ -140,5 +155,16 @@ describe('pane-tabs-of', () => {
 
     expect(others.filter(key => key === 'y').length).toBe(1)
     expect(new Set(others).size).toBe(others.length)
+  })
+
+  test('the All tab takes l, a key no band or pane Button takes', () => {
+    const keys = [
+      ...Object.values(Names.PANE_HOTKEYS),
+      ...Object.values(Names.ACTION_HOTKEYS),
+      ...Object.values(Names.BAND_HOTKEYS),
+    ]
+
+    expect(Pane.paneTabsOf([])[0]?.hotkey).toBe('l')
+    expect(keys.filter(key => key === 'l').length).toBe(1)
   })
 })

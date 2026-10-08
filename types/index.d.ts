@@ -110,7 +110,7 @@ export type BandState = {
 }
 
 /**
- * The pane's active tab (a source id or `saved`) and its selected row.
+ * The pane's active tab (`@all`, a source id, `@stack` or `saved`; empty before the first move, which shows All) and its selected row.
  */
 export type PaneState = {
   tab: string

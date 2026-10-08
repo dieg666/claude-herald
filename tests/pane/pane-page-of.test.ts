@@ -28,22 +28,39 @@ describe('pane-page-of', () => {
       ['b:1', 'b:2'],
       1,
     ])
-    expect(page.tabs.map(tab => tab.id)).toEqual(['a', 'b', 'saved'])
+    expect(page.tabs.map(tab => tab.id)).toEqual(['@all', 'a', 'b', 'saved'])
     expect(page.shown).toEqual(page.items)
   })
 
-  test('no tab, a disabled source and a removed one show the first tab from the top', () => {
+  test('no tab, a disabled source and a removed one show the first tab, All, from the top', () => {
     for (const tab of ['', 'off', 'gone']) {
       const page = pageOf(tab, 3)
 
-      expect([page.tab.id, page.selected]).toEqual(['a', 0])
+      expect([page.tab.id, page.selected]).toEqual(['@all', 0])
     }
   })
 
-  test('with every source off the saved tab is the first', () => {
+  test('with every source off the All tab is the first and lists nothing', () => {
     const page = Pane.panePageOf({ tab: 'a', selected: 0 }, [], ITEMS, SAVED, 10)
 
-    expect([page.tab.id, page.items]).toEqual(['saved', SAVED])
+    expect([page.tab.id, page.items, page.tabs.map(tab => tab.id)]).toEqual([
+      '@all',
+      [],
+      ['@all', 'saved'],
+    ])
+  })
+
+  test("the All tab lists the band's list, the stack's releases among it, in a window like a news tab's", () => {
+    const stack = { items: Fixtures.STACK_SAMPLE, filter: '', expanded: [] }
+    const page = Pane.panePageOf({ tab: '@all', selected: 6 }, SOURCES, ITEMS, SAVED, 3, stack)
+
+    expect(page.items).toEqual(Pane.allTabItemsOf(SOURCES, ITEMS, Fixtures.STACK_SAMPLE))
+    expect(page.items.length).toBe(5 + 2 + Fixtures.STACK_SAMPLE.length)
+    expect(page.items.some(item => item.sourceId === 'off')).toBe(false)
+    expect(page.span.count).toBe(3)
+    expect(page.span.start + page.span.selected).toBe(6)
+    expect(page.shown).toEqual(page.items.slice(page.span.start, page.span.start + 3))
+    expect(page.stack).toBeUndefined()
   })
 
   test('a selection past the end, negative or not a whole number comes back inside', () => {
@@ -78,7 +95,7 @@ describe('pane-page-of', () => {
   test('the stack tab lists a package per row grouped by ecosystem, flagged then by level, filtered; without a stack there is no such tab', () => {
     const page = Pane.panePageOf({ tab: '@stack', selected: 0 }, SOURCES, ITEMS, SAVED, 20, STACK)
 
-    expect(page.tabs.map(tab => tab.id)).toEqual(['a', 'b', '@stack', 'saved'])
+    expect(page.tabs.map(tab => tab.id)).toEqual(['@all', 'a', 'b', '@stack', 'saved'])
     expect(page.items.map(item => item.title)).toEqual([
       'React 19',
       'v16.0.0-rc.1',
@@ -96,7 +113,7 @@ describe('pane-page-of', () => {
     })
 
     expect([filtered.items.map(item => item.title), filtered.selected]).toEqual([['v2.31.1'], 0])
-    expect(pageOf('@stack', 0).tab.id).toBe('a')
+    expect(pageOf('@stack', 0).tab.id).toBe('@all')
   })
 
   test("the stack tab's window counts lines, one per row, less the summary, the filter and one heading per ecosystem", () => {

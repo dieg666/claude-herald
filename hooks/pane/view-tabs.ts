@@ -1,11 +1,12 @@
 import type { Host } from '../host/host.js'
+import { ALL_TAB } from '../names/all-tab.js'
 import { SAVED_TAB } from '../names/saved-tab.js'
 import { STACK_TAB } from '../names/stack-tab.js'
 import { messageOf } from '../refresh/message-of.js'
 import { addViewed } from '../store/add-viewed.js'
 
 /**
- * Records the items each of those source tabs holds now as viewed, in the store and then in state, so their new counts start over; the stack and saved tabs are skipped; a failure is logged to debug, never thrown.
+ * Records the items each of those source tabs holds now as viewed, in the store and then in state, so their new counts start over; the All, stack and saved tabs are skipped (the All tab's count is the source tabs' added up, so it falls as they are viewed); a failure is logged to debug, never thrown.
  *
  * @param host the engine
  * @param tabIds the tabs shown, or left
@@ -15,7 +16,7 @@ export async function viewTabs(host: Host, tabIds: readonly string[]): Promise<v
     const items = await host.state.items.read()
 
     for (const id of new Set(tabIds)) {
-      if (id === SAVED_TAB || id === STACK_TAB || !Object.hasOwn(items, id)) {
+      if (id === ALL_TAB || id === SAVED_TAB || id === STACK_TAB || !Object.hasOwn(items, id)) {
         continue
       }
 

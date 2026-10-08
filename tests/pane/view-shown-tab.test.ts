@@ -4,7 +4,7 @@ import Pane from '../../hooks/pane'
 import Fixtures from '../fixtures'
 
 describe('view-shown-tab', () => {
-  test('records the tab the pane shows as viewed: its own, or the first when it names none', async () => {
+  test('records the source tab the pane shows as viewed; the All tab, shown when it names none, records nothing', async () => {
     const { host, stored } = Fixtures.fakeHostOf()
 
     await host.state.sources.update(() => [Fixtures.sourceAt('a'), Fixtures.sourceAt('b')])
@@ -15,12 +15,12 @@ describe('view-shown-tab', () => {
 
     await Pane.viewShownTab(host)
 
-    expect(stored.get('viewed')).toEqual({ a: ['a:1'] })
+    expect(stored.get('viewed')).toBeUndefined()
 
     await host.state.pane.update(() => ({ tab: 'b', selected: 0 }))
     await Pane.viewShownTab(host)
 
-    expect(stored.get('viewed')).toEqual({ a: ['a:1'], b: ['b:1'] })
+    expect(stored.get('viewed')).toEqual({ b: ['b:1'] })
   })
 
   test('a failing state read is logged, never thrown', async () => {

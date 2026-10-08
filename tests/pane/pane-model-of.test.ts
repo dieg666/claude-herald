@@ -14,6 +14,7 @@ describe('pane-model-of', () => {
     const model = Pane.paneModelOf(page, SOURCES, { 'a:2': 'Short.' }, [], 80, true)
 
     expect(model.tabs.map(tab => [tab.id, tab.isActive])).toEqual([
+      ['@all', false],
       ['a', true],
       ['saved', false],
     ])
@@ -70,6 +71,7 @@ describe('pane-model-of', () => {
     })
 
     expect(Pane.paneModelOf(page, SOURCES, {}, [], 80, true).tabs.map(tab => tab.count)).toEqual([
+      3,
       3,
       undefined,
     ])
@@ -316,6 +318,7 @@ describe('pane-model-of', () => {
     const model = Pane.paneModelOf(page, SOURCES, {}, saved, 80, true)
 
     expect(model.tabs.map(tab => [tab.id, tab.count, tab.isActive])).toEqual([
+      ['@all', undefined, false],
       ['a', undefined, false],
       ['@stack', 7, false],
       ['saved', 1, true],
@@ -414,6 +417,7 @@ describe('pane-model-of', () => {
     }
 
     expect(footerOf('a', true)).toEqual([undefined, ['open', 'summarize', 'save', 'copy']])
+    expect(footerOf('@all', true)).toEqual([undefined, ['open', 'summarize', 'save', 'copy']])
     expect(footerOf('a', false)).toEqual([
       'ctrl+x tab to use these keys:',
       ['open', 'summarize', 'save', 'copy'],
@@ -431,5 +435,139 @@ describe('pane-model-of', () => {
     expect(footerOf('a', false, 20)[0]).toBe('ctrl+x tab to use t…')
     expect(footerOf('a', false, 80, {})).toEqual([undefined, []])
     expect(footerOf('a', true, 80, {})).toEqual([undefined, []])
+  })
+
+  test("on the All tab each row starts with the band's source column: the name dim or a release's in the release color, a stack row's glyph and package, then the headline, a read item marked, the date at the right", () => {
+    const sources = [
+      Fixtures.sourceAt('a', { name: 'Alpha' }),
+      Fixtures.sourceAt('code', {
+        name: 'A source with a long name',
+        url: 'https://github.com/owner/code/releases.atom',
+      }),
+    ]
+    const items = {
+      a: Fixtures.datedItemsOf('a', 2),
+      code: [{ ...Fixtures.datedItemsOf('code', 1, 3)[0]!, title: 'v2.0.0' }],
+    }
+    const [react] = Fixtures.STACK_SAMPLE
+    const stack = { items: [react!], filter: '', expanded: [] }
+    const page = Pane.panePageOf({ tab: '@all', selected: 0 }, sources, items, [], 10, stack)
+    const model = Pane.paneModelOf(page, sources, {}, [], 80, false, '', true, { a: ['a:2'] })
+
+    expect(model.rows.map(row => row.id)).toEqual(
+      Pane.allTabItemsOf(sources, items, [react!]).map(item => item.id),
+    )
+    expect(
+      model.rows.map(row => [
+        row.icon,
+        row.sourceColumn,
+        row.sourceColumnGap?.length,
+        row.isRelease,
+        row.title,
+        row.isRead,
+        row.date,
+      ]),
+    ).toEqual([
+      ['⚠', 'react', 6, true, '18.2.0 → 19.0.0 · React 19', undefined, 'Jan 6'],
+      [undefined, 'Alpha', 9, undefined, 'a 1', undefined, 'Jan 2'],
+      [undefined, 'A source wi…', 2, true, 'v2.0.0', undefined, 'Jan 1'],
+      [undefined, 'Alpha', 9, undefined, 'a 2', true, 'Jan 1'],
+    ])
+    expect([model.keys, model.filter, model.position]).toEqual([
+      ['open', 'summarize', 'save', 'copy'],
+      undefined,
+      '1–4 of 4',
+    ])
+    // The column is the band's: the same label, gap and release mark for each item.
+    const band = Band.bandModelOf(
+      Band.bandPageOf({ offset: 0, selected: 0, isPaused: true }, page.items, 4),
+      sources,
+      {},
+      [],
+      80,
+      false,
+      0,
+    )
+
+    expect(model.rows.map(row => [row.sourceColumn, row.sourceColumnGap, row.isRelease])).toEqual(
+      band.rows.map(row => [row.source, row.sourceGap, row.isRelease]),
+    )
+  })
+
+  test('an All row fits the width with its source column and date; another tab draws no source column', () => {
+    const page = Pane.panePageOf(
+      { tab: '@all', selected: 0 },
+      SOURCES,
+      {
+        a: [{ ...Fixtures.datedItemsOf('a', 1)[0]!, title: 'x'.repeat(80) }],
+      },
+      [],
+      10,
+    )
+    const [row] = Pane.paneModelOf(page, SOURCES, {}, [], 40, false).rows
+
+    // The mark, the twelve-cell column and its two-cell gap, then the title, then a space and the six-cell date.
+    expect(Band.displayWidthOf(row!.title)).toBe(40 - 2 - 12 - 2 - 7)
+    expect(row!.title.endsWith('…')).toBe(true)
+
+    const own = Pane.panePageOf({ tab: 'a', selected: 0 }, SOURCES, ITEMS, [], 10)
+
+    expect(
+      Pane.paneModelOf(own, SOURCES, {}, [], 80, false).rows.some(
+        row => row.sourceColumn !== undefined,
+      ),
+    ).toBe(false)
+  })
+
+  test('the All tab says which sources failed above its rows, and what an empty one lacks', () => {
+    const sources = [...SOURCES, Fixtures.sourceAt('b', { name: 'Beta' })]
+    const modelOf = (items: ItemsBySource, health: Parameters<typeof Pane.panePageOf>[7]) =>
+      Pane.paneModelOf(
+        Pane.panePageOf(
+          { tab: '@all', selected: 0 },
+          sources,
+          items,
+          [],
+          10,
+          undefined,
+          {},
+          health,
+        ),
+        sources,
+        {},
+        [],
+        80,
+        false,
+      )
+
+    expect(modelOf(ITEMS, { errors: { b: 'HTTP 503' } }).notice).toBe(
+      "Couldn't refresh Beta: HTTP 503",
+    )
+    expect(modelOf(ITEMS, { errors: { a: 'x', b: 'y' } }).notice).toBe(
+      "Couldn't refresh 2 sources: Alpha, Beta",
+    )
+    expect(modelOf(ITEMS, { errors: {} }).notice).toBeUndefined()
+    expect(modelOf({}, { errors: {}, isRefreshing: true }).empty).toBe('Loading the news…')
+    expect(modelOf({}, { errors: {}, refreshMinutes: 5 }).empty).toBe(
+      'Nothing from any source yet. Herald checks the sources every 5 min.',
+    )
+    expect(modelOf({}, { errors: {}, refreshedAt: { a: 0 } }).empty).toBe(
+      'No source has items right now.',
+    )
+    expect(modelOf({}, { errors: { b: 'HTTP 503' } }).empty).toBe("Couldn't refresh Beta: HTTP 503")
+    expect(modelOf({}, { errors: {} }).keys).toEqual([])
+
+    const off = sources.map(source => ({ ...source, isEnabled: false }))
+
+    expect(
+      Pane.paneModelOf(
+        Pane.panePageOf({ tab: '', selected: 0 }, off, ITEMS, [], 10),
+        off,
+        {},
+        [],
+        80,
+        false,
+      ).empty,
+    ).toBe('Every source is off. /herald enable <name> turns one on.')
   })
 })

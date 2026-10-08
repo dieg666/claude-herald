@@ -26,10 +26,10 @@ describe('view-tabs', () => {
     expect(state.viewed).toEqual(viewed)
   })
 
-  test('the stack and saved tabs and a source with no items in state are skipped', async () => {
+  test('the All, stack and saved tabs and a source with no items in state are skipped', async () => {
     const { host, sets } = await withItems()
 
-    await Pane.viewTabs(host, ['@stack', 'saved', 'gone'])
+    await Pane.viewTabs(host, ['@all', '@stack', 'saved', 'gone'])
 
     expect(sets).toEqual([])
   })

@@ -4,8 +4,10 @@ import { stackRowItemOf } from '../deps/stack/stack-row-item-of.js'
 import { stackRowsOf } from '../deps/stack/stack-rows-of.js'
 import { stackSummaryOf } from '../deps/stack/stack-summary-of.js'
 import { stackTabPackagesOf } from '../deps/stack/stack-tab-packages-of.js'
+import { ALL_TAB } from '../names/all-tab.js'
 import { SAVED_TAB } from '../names/saved-tab.js'
 import { STACK_TAB } from '../names/stack-tab.js'
+import { allTabItemsOf } from './all-tab-items-of.js'
 import type { PaneHealth } from './pane-health.js'
 import type { PanePage } from './pane-page.js'
 import { paneRoomOf } from './pane-room-of.js'
@@ -34,7 +36,7 @@ function releasesShownOf(stack: Omit<PaneStackPage, 'summary'>): Item[] {
 }
 
 /**
- * The page a pane state shows: its tab, or the first when it names none, a disabled or a removed source, or a stack tab that is gone (the selection then back at the top); the selection brought inside the list; the tab's state line. A news or saved tab's window holds `size` one-line items, one fewer when a state line is drawn above them; the stack tab lists a one-line row per package and per release of an expanded package, in the lines that window and the selected item's summary would take, less its summary line, its filter and its ecosystem headings.
+ * The page a pane state shows: its tab, or the first (the All tab) when it names none, a disabled or a removed source, or a stack tab that is gone (the selection then back at the top); the selection brought inside the list; the tab's state line. The All tab lists the band's list with the items read kept (`allTabItemsOf`). A news, All or saved tab's window holds `size` one-line items, one fewer when a state line is drawn above them; the stack tab lists a one-line row per package and per release of an expanded package, in the lines that window and the selected item's summary would take, less its summary line, its filter and its ecosystem headings.
  *
  * @param pane the pane state
  * @param sources every source, in order
@@ -63,16 +65,18 @@ export function panePageOf(
   const rows = isStack ? stackRowsOf(packages, stack.expanded) : []
   const list: readonly Item[] = isStack
     ? rows.map(stackRowItemOf)
-    : tab.id === SAVED_TAB
-      ? saved
-      : Object.hasOwn(items, tab.id)
-        ? (items[tab.id] ?? [])
-        : []
+    : tab.id === ALL_TAB
+      ? allTabItemsOf(sources, items, stack?.items)
+      : tab.id === SAVED_TAB
+        ? saved
+        : Object.hasOwn(items, tab.id)
+          ? (items[tab.id] ?? [])
+          : []
 
   const asked =
     tab.id === pane.tab && Number.isInteger(pane.selected) && pane.selected > 0 ? pane.selected : 0
   const selected = Math.min(asked, Math.max(0, list.length - 1))
-  const stateLine = paneStateLineOf(tab, list, health, stack)
+  const stateLine = paneStateLineOf(tab, list, health, stack, sources)
   const summary = isStack ? stackSummaryOf(stackPackagesOf(stack.items)) : ''
   // The stack tab has no summary under its selected row; it draws its summary line, its filter and a heading per ecosystem instead.
   const extraLines = (summary === '' ? 0 : 1) + 1 + new Set(packages.map(pkg => pkg.ecosystem)).size

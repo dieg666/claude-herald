@@ -175,6 +175,11 @@ describe('pane-view', () => {
           return (await newsRowsOf(ui)).length
         }
 
+        expect(await shown()).toBe(5)
+
+        await ui.press({ key: 'tab-a' })
+        await clock.settle()
+
         expect(await shown()).toBe(3)
 
         await ui.press({ key: 'down' })
@@ -206,10 +211,10 @@ describe('pane-view', () => {
 
   for (const surface of SURFACES) {
     test(
-      `on ${surface}: a tab per enabled source then Saved, the first active; its items one line each, linked and dated; the selected one's summary under it, pending or summarized`,
+      `on ${surface}: All first and active on opening, then a tab per enabled source, then Saved; every source's items one line each in the band's order, the source column first, linked and dated; the selected one's summary under it, pending or summarized`,
       { timeoutMs: 20_000 },
       async ($, on) => {
-        mock.clock(on)
+        const clock = mock.clock(on)
 
         const { asked } = Fixtures.bandOn(on, {
           settings: Fixtures.SUMMARIES_ON,
@@ -230,27 +235,31 @@ describe('pane-view', () => {
         const ui = await $.ui.mount({ ...PANE, surface })
 
         expect(await tabsOf(ui)).toEqual([
-          ['tab-a', activeOf(surface, '1', 'Alpha'), undefined, 'active'],
+          ['tab-@all', activeOf(surface, 'l', 'All'), undefined, 'active'],
+          ['tab-a', 'Alpha', '1', 'dim'],
           ['tab-b', 'Beta', '2', 'dim'],
           ['tab-saved', 'Saved', '0', 'dim'],
         ])
-        expect(await positionOf(ui)).toBe('1–3 of 3')
+        expect(await positionOf(ui)).toBe('1–5 of 5')
         expect(await linksOf(ui)).toEqual([
           'https://example.com/a/1',
+          'https://example.com/b/1',
           'https://example.com/a/2',
+          'https://example.com/b/2',
           'https://example.com/a/3',
         ])
-        expect(await ui.find({ type: 'Text', text: /^Jan 2$/ })).toBeDefined()
-        expect((await ui.findAll({ type: 'Text', text: /^Jan 1$/ })).length).toBe(2)
         expect(await newsRowsOf(ui)).toEqual([
-          ['› a 1', 'Jan 2'],
-          ['a 2', 'Jan 1'],
-          ['a 3', 'Jan 1'],
+          ['› Alpha a 1', 'Jan 2'],
+          ['Beta b 1', 'Jan 2'],
+          ['Alpha a 2', 'Jan 1'],
+          ['Beta b 2', 'Jan 1'],
+          ['Alpha a 3', 'Jan 1'],
         ])
-        expect(await summariesOf(ui)).toEqual([[['› a 1', 'Jan 2'], ['…']]])
+        expect(await summariesOf(ui)).toEqual([[['› Alpha a 1', 'Jan 2'], ['…']]])
         expect(await ui.find({ type: 'Text', text: 'Second, in short.' })).toBeUndefined()
         expect(await selectedOf(ui)).toBe('https://example.com/a/1')
         expect(await keysOf(ui)).toEqual([
+          'tab-a',
           'tab-b',
           'tab-saved',
           'up',
@@ -262,9 +271,19 @@ describe('pane-view', () => {
         ])
 
         await ui.press({ key: 'down' })
+        await ui.press({ key: 'down' })
+        await clock.settle()
 
-        expect(await summariesOf(ui)).toEqual([[['› a 2', 'Jan 1'], ['Second, in short.']]])
-        expect(asked).toEqual([])
+        expect(await summariesOf(ui)).toEqual([[['› Alpha a 2', 'Jan 1'], ['Second, in short.']]])
+        expect(asked).toEqual(['b 1'])
+
+        await ui.press({ key: 'tab-a' })
+
+        expect(await newsRowsOf(ui)).toEqual([
+          ['› a 1', 'Jan 2'],
+          ['a 2', 'Jan 1'],
+          ['a 3', 'Jan 1'],
+        ])
       },
     )
 
@@ -290,12 +309,13 @@ describe('pane-view', () => {
         const summaryLines = async () =>
           (await ui.findAll({ type: 'Box' })).filter(box => box.props.paddingLeft === 4).length
 
+        await ui.press({ key: 'tab-a' })
+
         expect(await linksOf(ui)).toEqual([
           'https://example.com/a/1',
           'https://example.com/a/2',
           'https://example.com/a/3',
         ])
-        expect((await ui.findAll({ type: 'Text', text: /^…$/ })).length).toBe(1)
         expect(await summaryLines()).toBe(1)
 
         await ui.press({ key: 'tab-b' })
@@ -363,6 +383,7 @@ describe('pane-view', () => {
       expect(await positionOf(ui)).toBe('1–2 of 2')
       expect(await selectedOf(ui)).toBe('https://example.com/b/1')
       expect((await tabsOf(ui)).map(([key, , , look]) => [key, look])).toEqual([
+        ['tab-@all', 'dim'],
         ['tab-a', 'dim'],
         ['tab-b', 'active'],
         ['tab-saved', 'dim'],
@@ -389,19 +410,21 @@ describe('pane-view', () => {
       const ui = await $.ui.mount({ ...PANE, surface })
 
       expect(await tabsOf(ui)).toEqual([
-        ['tab-a', activeOf(surface, '1', 'Alpha'), undefined, 'active'],
+        ['tab-@all', activeOf(surface, 'l', 'All'), undefined, 'active'],
+        ['tab-a', 'Alpha', '1', 'dim'],
         ['tab-long', 'Claude Code releases', '2', 'dim'],
         ['tab-saved', 'Saved (2)', '0', 'dim'],
       ])
-      expect((await ui.find({ key: 'tab-a' }))?.type).toBe('Box')
-      expect(lineOf(await ui.find({ key: 'tab-a' }))).toBe(
-        surface === 'terminal' ? '1: Alpha' : 'Alpha',
+      expect((await ui.find({ key: 'tab-@all' }))?.type).toBe('Box')
+      expect(lineOf(await ui.find({ key: 'tab-@all' }))).toBe(
+        surface === 'terminal' ? 'l: All' : 'All',
       )
-      expect(await ui.find({ type: 'Button', key: 'tab-a' })).toBeUndefined()
+      expect(await ui.find({ type: 'Button', key: 'tab-@all' })).toBeUndefined()
 
       await ui.press({ key: 'tab-long' })
 
       expect(await tabsOf(ui)).toEqual([
+        ['tab-@all', 'All', 'l', 'dim'],
         ['tab-a', 'Alpha', '1', 'dim'],
         ['tab-long', activeOf(surface, '2', 'Claude Code releases'), undefined, 'active'],
         ['tab-saved', 'Saved (2)', '0', 'dim'],
@@ -460,9 +483,9 @@ describe('pane-view', () => {
       expect([end?.props.flexGrow, end?.props.justifyContent, lineOf(end)]).toEqual([
         1,
         'flex-end',
-        '1–3 of 3',
+        '1–5 of 5',
       ])
-      expect(lineOf(title)).not.toContain('Alpha')
+      expect(lineOf(title)).not.toContain('All')
 
       await ui.press({ key: 'tab-b' })
 
@@ -489,7 +512,8 @@ describe('pane-view', () => {
       })
 
       expect(await tabsOf(ui)).toEqual([
-        ['tab-anthropic-news', activeOf(surface, '1', 'Anthropic'), undefined, 'active'],
+        ['tab-@all', activeOf(surface, 'l', 'All'), undefined, 'active'],
+        ['tab-anthropic-news', 'Anthropic', '1', 'dim'],
         ['tab-claude-code-releases', 'CC releases', '2', 'dim'],
         ['tab-claude-agent-sdk-ts', 'Agent SDK', '3', 'dim'],
         ['tab-a', 'Alpha', '4', 'dim'],
@@ -498,7 +522,7 @@ describe('pane-view', () => {
 
       await ui.press({ key: 'tab-claude-agent-sdk-ts' })
 
-      expect((await tabsOf(ui))[2]).toEqual([
+      expect((await tabsOf(ui))[3]).toEqual([
         'tab-claude-agent-sdk-ts',
         activeOf(surface, '3', 'Agent SDK'),
         undefined,
@@ -526,11 +550,12 @@ describe('pane-view', () => {
           props: { ...Fixtures.PANE_PROPS, bodyColumns, scroll: { offset: 0, bodyRows: 16 } },
         })
 
-      // Cut, `1: Alpha`, `2: Beta`, `3: Claude Code rel…` and `0: Saved (2)` with three two-cell gaps take fifty-two cells; full, fifty-six.
-      const wide = await mountAt(52)
+      // Cut, `l: All`, `1: Alpha`, `2: Beta`, `3: Claude Code rel…` and `0: Saved (2)` with four two-cell gaps take sixty cells; full, sixty-four.
+      const wide = await mountAt(60)
 
       expect(await tabsOf(wide)).toEqual([
-        ['tab-a', activeOf(surface, '1', 'Alpha'), undefined, 'active'],
+        ['tab-@all', activeOf(surface, 'l', 'All'), undefined, 'active'],
+        ['tab-a', 'Alpha', '1', 'dim'],
         ['tab-b', 'Beta', '2', 'dim'],
         ['tab-long', 'Claude Code rel…', '3', 'dim'],
         ['tab-saved', 'Saved (2)', '0', 'dim'],
@@ -542,6 +567,7 @@ describe('pane-view', () => {
       await wide.press({ key: 'tab-long' })
 
       expect((await tabsOf(wide)).map(([key, text]) => [key, text])).toEqual([
+        ['tab-@all', 'All'],
         ['tab-a', 'Alpha'],
         ['tab-b', 'Beta'],
         ['tab-long', activeOf(surface, '3', 'Claude Code rel…')],
@@ -551,18 +577,20 @@ describe('pane-view', () => {
       await wide.press({ key: 'tab-a' })
       await wide.unmount()
 
-      // One cell less, cut names take two lines as full ones do, so the full names come back and the window loses a row.
-      const narrow = await mountAt(51)
+      // One cell less, cut names take two lines as full ones do, so the full names come back and the window loses a row; the pane keeps the tab last shown.
+      const narrow = await mountAt(59)
 
       expect(await tabsOf(narrow)).toEqual([
+        ['tab-@all', 'All', 'l', 'dim'],
         ['tab-a', activeOf(surface, '1', 'Alpha'), undefined, 'active'],
         ['tab-b', 'Beta', '2', 'dim'],
         ['tab-long', 'Claude Code releases', '3', 'dim'],
         ['tab-saved', 'Saved (2)', '0', 'dim'],
       ])
-      expect([(await linksOf(narrow)).length, await positionOf(narrow)]).toEqual([7, '1–7 of 20'])
-      // Without the count, `0: Saved` is four cells shorter and the cut row fits forty-eight.
-      expect(Pane.paneWindowSizeOf([ALPHA, BETA, long], 48, 16)).toBe(8)
+      expect([(await linksOf(narrow)).length, await positionOf(narrow)]).toEqual([8, '1–8 of 20'])
+      // Without the count, `0: Saved` is four cells shorter and the cut row fits fifty-six.
+      expect(Pane.paneWindowSizeOf([ALPHA, BETA, long], 56, 16)).toBe(9)
+      expect(Pane.paneWindowSizeOf([ALPHA, BETA, long], 55, 16)).toBe(8)
     })
 
     test(`on ${surface}: a source's own tab draws no source mark; Saved draws the name dim, then the date`, async ($, on) => {
@@ -582,6 +610,9 @@ describe('pane-view', () => {
       await $.classic.SessionStart({ source: 'clear' })
 
       const ui = await $.ui.mount({ ...PANE, surface })
+
+      await ui.press({ key: 'tab-a' })
+
       // The source names drawn on rows, leaving out the active tab's text, which on desktop is the bare name.
       const namesOf = async (name: string) =>
         (await ui.findAll({ type: 'Text', text: new RegExp(`^${name}$`) }))
@@ -662,6 +693,8 @@ describe('pane-view', () => {
 
         const ui = await $.ui.mount({ ...PANE, surface })
 
+        await ui.press({ key: 'tab-a' })
+
         expect(await ui.find({ key: 'read' })).toBeUndefined()
 
         await ui.press({ key: 'down' })
@@ -695,7 +728,7 @@ describe('pane-view', () => {
       },
     )
 
-    test(`on ${surface}: a tab whose source is removed or turned off falls back to the first, from the top`, async ($, on) => {
+    test(`on ${surface}: a tab whose source is removed or turned off falls back to the first, All, from the top`, async ($, on) => {
       mock.clock(on)
       Fixtures.bandOn(on, STORE)
 
@@ -707,17 +740,23 @@ describe('pane-view', () => {
       await ui.press({ key: 'down' })
       await $.command.run(Fixtures.heraldOf('remove Beta'))
 
-      expect((await tabsOf(ui)).map(([key]) => key)).toEqual(['tab-a', 'tab-saved'])
+      expect((await tabsOf(ui)).map(([key, , , look]) => [key, look])).toEqual([
+        ['tab-@all', 'active'],
+        ['tab-a', 'dim'],
+        ['tab-saved', 'dim'],
+      ])
       expect([await positionOf(ui), await selectedOf(ui)]).toEqual([
         '1–3 of 3',
         'https://example.com/a/1',
       ])
 
+      await ui.press({ key: 'tab-a' })
       await ui.press({ key: 'down' })
       await $.command.run(Fixtures.heraldOf('disable Alpha'))
 
       expect(await tabsOf(ui)).toEqual([
-        ['tab-saved', activeOf(surface, '0', 'Saved'), undefined, 'active'],
+        ['tab-@all', activeOf(surface, 'l', 'All'), undefined, 'active'],
+        ['tab-saved', 'Saved', '0', 'dim'],
       ])
       expect(await positionOf(ui)).toBeUndefined()
     })
@@ -762,7 +801,7 @@ describe('pane-view', () => {
     })
 
     test(
-      `on ${surface}: one line per item, the date at its right end; only the selected item has its summary, on at most three lines; moving the selection moves it, asks for a missing one and keeps the window`,
+      `on ${surface}: one line per item, the date at its right end; only the selected item has its summary, on at most three lines; entering the tab asks for the window's missing ones; moving the selection moves the summary and keeps the window`,
       { timeoutMs: 20_000 },
       async ($, on) => {
         const clock = mock.clock(on)
@@ -807,6 +846,10 @@ describe('pane-view', () => {
               childOf(box, 1)?.props.justifyContent,
             ])
 
+        await ui.press({ key: 'tab-a' })
+        await clock.settle()
+
+        expect([...asked].sort()).toEqual(['a 3', 'a 4', 'x'.repeat(40)])
         expect(await positionOf(ui)).toBe('1–4 of 10')
         // Thirty-two cells less the mark and its space and the seven-cell date column leave twenty-three for the headline.
         expect(await newsRowsOf(ui)).toEqual([
@@ -827,7 +870,7 @@ describe('pane-view', () => {
         await ui.press({ key: 'down' })
         await clock.settle()
 
-        expect(asked).toEqual(['x'.repeat(40)])
+        expect(asked.length).toBe(3)
         expect(await positionOf(ui)).toBe('1–4 of 10')
         expect(await summariesOf(ui)).toEqual([
           // The model's line wraps too, its forty-one-cell word cut at twenty-eight.
@@ -840,7 +883,7 @@ describe('pane-view', () => {
 
         await ui.press({ key: 'up' })
 
-        expect(asked.length).toBe(1)
+        expect(asked.length).toBe(3)
         expect((await summariesOf(ui))[0]?.[0]).toEqual(['› a 1', 'Jan 2'])
         expect(await linksOf(ui)).toEqual([
           'https://example.com/a/1',
@@ -1021,12 +1064,12 @@ describe('pane-view', () => {
 
       const ui = await $.ui.mount({ ...PANE, surface })
 
-      // The active first tab is text that still spells its digit; the others are Buttons on theirs.
+      // The active All tab is text that still spells its letter; the sources are Buttons on their digits.
       expect((await tabsOf(ui)).map(([key, text, hotkey]) => [key, text, hotkey])).toEqual([
-        ['tab-s1', activeOf(surface, '1', 's1'), undefined],
+        ['tab-@all', activeOf(surface, 'l', 'All'), undefined],
         ...sources
-          .slice(1, 9)
-          .map((source, index) => [`tab-${source.id}`, source.id, String(index + 2)]),
+          .slice(0, 9)
+          .map((source, index) => [`tab-${source.id}`, source.id, String(index + 1)]),
         ['tab-s10', 's10', undefined],
         ['tab-saved', 'Saved', '0'],
       ])
@@ -1054,10 +1097,20 @@ describe('pane-view', () => {
       expect(
         await ui.find({
           type: 'Text',
+          text: 'Nothing from any source yet. Herald checks the sources every 5 min.',
+        }),
+      ).toBeDefined()
+      expect(await keysOf(ui)).toEqual(['tab-a', 'tab-saved', 'up', 'down'])
+
+      await ui.press({ key: 'tab-a' })
+
+      expect(
+        await ui.find({
+          type: 'Text',
           text: 'Nothing from Alpha yet. Herald checks it every 5 min.',
         }),
       ).toBeDefined()
-      expect(await keysOf(ui)).toEqual(['tab-saved', 'up', 'down'])
+      expect(await keysOf(ui)).toEqual(['tab-@all', 'tab-saved', 'up', 'down'])
 
       await ui.press({ key: 'tab-saved' })
 
@@ -1072,6 +1125,7 @@ describe('pane-view', () => {
       await $.command.run(Fixtures.heraldOf('remove Alpha'))
 
       expect(await tabsOf(ui)).toEqual([
+        ['tab-@all', 'All', 'l', 'dim'],
         ['tab-saved', activeOf(surface, '0', 'Saved'), undefined, 'active'],
       ])
     })
@@ -1099,6 +1153,8 @@ describe('pane-view', () => {
         surface,
         props: { ...Fixtures.PANE_PROPS, bodyColumns: 20 },
       })
+
+      await ui.press({ key: 'tab-a' })
 
       // Twenty cells less the mark and its space and the seven-cell date column leave eleven for a headline.
       expect(
@@ -1195,6 +1251,7 @@ describe('pane-view', () => {
 
         const ui = await $.ui.mount({ ...PANE, surface })
 
+        await ui.press({ key: 'tab-a' })
         await ui.press({ key: 'save' })
         await ui.press({ key: 'copy' })
 
@@ -1216,7 +1273,7 @@ describe('pane-view', () => {
     )
 
     test(
-      `on ${surface}: a source tab counts the items that arrived since it was last shown; showing it clears the count`,
+      `on ${surface}: a source tab counts the items that arrived since it was last shown and All adds them up; showing the source tab clears its count`,
       { timeoutMs: 20_000 },
       async ($, on) => {
         mock.clock(on)
@@ -1231,7 +1288,8 @@ describe('pane-view', () => {
         const ui = await $.ui.mount({ ...PANE, surface })
 
         expect(await tabsOf(ui)).toEqual([
-          ['tab-a', activeOf(surface, '1', 'Alpha'), undefined, 'active'],
+          ['tab-@all', activeOf(surface, 'l', 'All •1'), undefined, 'active'],
+          ['tab-a', 'Alpha', '1', 'dim'],
           ['tab-b', 'Beta •1', '2', 'dim'],
           ['tab-saved', 'Saved', '0', 'dim'],
         ])
@@ -1239,6 +1297,7 @@ describe('pane-view', () => {
         await ui.press({ key: 'tab-b' })
 
         expect(await tabsOf(ui)).toEqual([
+          ['tab-@all', 'All', 'l', 'dim'],
           ['tab-a', 'Alpha', '1', 'dim'],
           ['tab-b', activeOf(surface, '2', 'Beta'), undefined, 'active'],
           ['tab-saved', 'Saved', '0', 'dim'],
@@ -1247,7 +1306,7 @@ describe('pane-view', () => {
 
         await ui.press({ key: 'tab-a' })
 
-        expect((await tabsOf(ui))[1]).toEqual(['tab-b', 'Beta', '2', 'dim'])
+        expect((await tabsOf(ui))[2]).toEqual(['tab-b', 'Beta', '2', 'dim'])
       },
     )
 
@@ -1285,6 +1344,7 @@ describe('pane-view', () => {
             })
 
         expect(await tokensOf()).toEqual([
+          ['tab-@all', '•1', 'claude', undefined, 1],
           ['tab-b', '•1', 'claude', undefined, 1],
           ['tab-saved', '(2)', undefined, true, 1],
         ])
@@ -1320,12 +1380,12 @@ describe('pane-view', () => {
         const ui = await $.ui.mount({
           ...PANE,
           surface,
-          props: { ...Fixtures.PANE_PROPS, bodyColumns: 30, scroll: { offset: 0, bodyRows: 30 } },
+          props: { ...Fixtures.PANE_PROPS, bodyColumns: 40, scroll: { offset: 0, bodyRows: 30 } },
         })
         const sizeOf = (counts: Record<string, number>) =>
-          Pane.paneWindowSizeOf([ALPHA, BETA], 30, 30, undefined, [], counts)
+          Pane.paneWindowSizeOf([ALPHA, BETA], 40, 30, undefined, [], counts)
 
-        // `1: Alpha •20  2: Beta •2  0: Saved` takes thirty-four cells and wraps; without the counts it takes twenty-seven.
+        // `l: All •22  1: Alpha •20  2: Beta •2  0: Saved` takes forty-five cells and wraps; without the counts it takes thirty-five.
         expect(sizeOf({ a: 20, b: 2 })).toBe(sizeOf({}) - 1)
         expect(sizeOf({})).toBeLessThan(30)
         expect((await linksOf(ui)).length).toBe(sizeOf({ a: 20, b: 2 }))
@@ -1334,6 +1394,7 @@ describe('pane-view', () => {
         await ui.press({ key: 'tab-a' })
 
         expect((await tabsOf(ui)).map(([key, text]) => [key, text])).toEqual([
+          ['tab-@all', 'All'],
           ['tab-a', activeOf(surface, '1', 'Alpha')],
           ['tab-b', 'Beta'],
           ['tab-saved', 'Saved'],
@@ -1360,10 +1421,15 @@ describe('pane-view', () => {
 
           expect(await dimLinksOf(ui)).toEqual(['https://example.com/a/2'])
           expect(await tabsOf(ui)).toEqual([
-            ['tab-a', activeOf(surface, '1', 'Alpha •1'), undefined, 'active'],
+            ['tab-@all', activeOf(surface, 'l', 'All •3'), undefined, 'active'],
+            ['tab-a', 'Alpha •1', '1', 'dim'],
             ['tab-b', 'Beta •2', '2', 'dim'],
             ['tab-saved', 'Saved', '0', 'dim'],
           ])
+
+          await ui.press({ key: 'tab-a' })
+
+          expect(await dimLinksOf(ui)).toEqual(['https://example.com/a/2'])
         },
       )
     }
@@ -1404,7 +1470,8 @@ describe('pane-view', () => {
         const ui = await $.ui.mount({ ...PANE, surface })
 
         expect(await tabsOf(ui)).toEqual([
-          ['tab-a', activeOf(surface, '1', 'Alpha'), undefined, 'active'],
+          ['tab-@all', activeOf(surface, 'l', 'All'), undefined, 'active'],
+          ['tab-a', 'Alpha', '1', 'dim'],
           ['tab-b', 'Beta', '2', 'dim'],
           ['tab-@stack', 'Your stack (4)', 'y', 'dim'],
           ['tab-saved', 'Saved', '0', 'dim'],
@@ -1479,14 +1546,18 @@ describe('pane-view', () => {
         const ui = await $.ui.mount({ ...PANE, surface })
 
         expect((await tabsOf(ui)).map(([key, text]) => [key, text])).toEqual([
-          ['tab-a', activeOf(surface, '1', 'Alpha')],
+          ['tab-@all', activeOf(surface, 'l', 'All')],
+          ['tab-a', 'Alpha'],
           ['tab-b', 'Beta'],
           ['tab-@stack', 'Your stack'],
           ['tab-saved', 'Saved'],
         ])
+        // All lists no release of a stack that is off.
         expect(await linksOf(ui)).toEqual([
           'https://example.com/a/1',
+          'https://example.com/b/1',
           'https://example.com/a/2',
+          'https://example.com/b/2',
           'https://example.com/a/3',
         ])
 
@@ -1847,6 +1918,8 @@ describe('pane-view', () => {
 
     const ui = await $.ui.mount({ ...PANE, surface: 'mobile' })
 
+    await ui.press({ key: 'tab-a' })
+
     expect(await newsRowsOf(ui)).toEqual([
       ['› a 1', 'Jan 2'],
       ['a 2', 'Jan 1'],
@@ -1982,7 +2055,7 @@ describe('pane-view', () => {
       .every(text => text.props.color === 'inverseText' && text.props.dimColor !== true)
 
   for (const surface of SURFACES) {
-    test(`on ${surface}: the selected news row is filled and its Texts inverse across headline and date, the summary stays dim, and moving the selection moves the highlight`, async ($, on) => {
+    test(`on ${surface}: the selected news row, on All and on a source tab, is filled and its Texts inverse across source column, headline and date, the summary stays dim, and moving the selection moves the highlight`, async ($, on) => {
       mock.clock(on)
       Fixtures.bandOn(on, { ...STORE, settings: Fixtures.SUMMARIES_ON })
 
@@ -1990,8 +2063,8 @@ describe('pane-view', () => {
 
       const ui = await $.ui.mount({ ...PANE, surface })
 
-      expect(await filledRowsOf(ui)).toEqual(['› a 1Jan 2'])
-      expect(await inverseTextsOf(ui)).toEqual(['›', 'a 1', 'Jan 2'])
+      expect(await filledRowsOf(ui)).toEqual(['› Alpha a 1Jan 2'])
+      expect(await inverseTextsOf(ui)).toEqual(['›', 'Alpha', 'a 1', 'Jan 2'])
       expect(await isFilledRowsInverse(ui)).toBe(true)
       expect(await ui.find({ type: 'Text', text: '…' })).toMatchObject({
         props: { dimColor: true },
@@ -1999,16 +2072,27 @@ describe('pane-view', () => {
 
       await ui.press({ key: 'down' })
 
-      expect(await filledRowsOf(ui)).toEqual(['› a 2Jan 1'])
-      expect(await inverseTextsOf(ui)).toEqual(['›', 'a 2', 'Jan 1'])
+      expect(await filledRowsOf(ui)).toEqual(['› Beta b 1Jan 2'])
+      expect(await inverseTextsOf(ui)).toEqual(['›', 'Beta', 'b 1', 'Jan 2'])
 
       await ui.press({ key: 'down' })
 
-      expect(await filledRowsOf(ui)).toEqual(['› a 3Jan 1'])
+      expect(await filledRowsOf(ui)).toEqual(['› Alpha a 2Jan 1'])
 
       await ui.press({ key: 'up' })
 
+      expect(await filledRowsOf(ui)).toEqual(['› Beta b 1Jan 2'])
+
+      await ui.press({ key: 'tab-a' })
+
+      expect(await filledRowsOf(ui)).toEqual(['› a 1Jan 2'])
+      expect(await inverseTextsOf(ui)).toEqual(['›', 'a 1', 'Jan 2'])
+      expect(await isFilledRowsInverse(ui)).toBe(true)
+
+      await ui.press({ key: 'down' })
+
       expect(await filledRowsOf(ui)).toEqual(['› a 2Jan 1'])
+      expect(await inverseTextsOf(ui)).toEqual(['›', 'a 2', 'Jan 1'])
     })
 
     test(`on ${surface}: on Saved the selected row's source name and date are inverse with its headline, and the others are not`, async ($, on) => {
@@ -2193,7 +2277,7 @@ describe('pane-view', () => {
       ])
       expect([footerKeyOf(footer), footer?.props.flexShrink]).toEqual(['footer', 0])
       // Every row sits in the growing Box, none after the footer.
-      expect((await newsRowsOf(ui)).length).toBe(3)
+      expect((await newsRowsOf(ui)).length).toBe(5)
       expect(lineOf(rows)).toContain('a 3')
       expect(lineOf(footer)).not.toContain('a 3')
 
@@ -2394,6 +2478,9 @@ describe('pane-view', () => {
           surface,
           props: { ...Fixtures.PANE_PROPS, scroll: { offset: 0, bodyRows: 12 } },
         })
+
+        await ui.press({ key: 'tab-a' })
+
         const before = (await linksOf(ui)).length
 
         expect(await dimLineOf(ui, /^Couldn't refresh/)).toBeUndefined()
@@ -2406,6 +2493,12 @@ describe('pane-view', () => {
         expect((await linksOf(ui)).length).toBe(before - 1)
         expect(await positionOf(ui)).toBe(`1–${before - 1} of 30`)
         expect(await ui.find({ key: 'open' })).toBeDefined()
+
+        // All names the source that failed, above its rows, and gives that line its row too.
+        await ui.press({ key: 'tab-@all' })
+
+        expect(await dimLineOf(ui, /^Couldn't refresh Alpha: \S/)).toBeDefined()
+        expect((await linksOf(ui)).length).toBe(before - 1)
       },
     )
 
@@ -2420,6 +2513,15 @@ describe('pane-view', () => {
         await $.classic.SessionStart({ source: 'clear' })
 
         const ui = await $.ui.mount({ ...PANE, surface })
+
+        expect(
+          await dimLineOf(
+            ui,
+            /^No source has items right now\. Herald checks the sources every 5 min\.$/,
+          ),
+        ).toBeDefined()
+
+        await ui.press({ key: 'tab-a' })
 
         expect(
           await dimLineOf(ui, /^Nothing from Alpha yet\. Herald checks it every 5 min\.$/),
@@ -2439,7 +2541,18 @@ describe('pane-view', () => {
         await ui.press({ key: 'tab-a' })
 
         expect(await dimLineOf(ui, /^Couldn't refresh: [^·]+$/)).toBeDefined()
-        expect(await keysOf(ui)).toEqual(['tab-b', 'tab-@stack', 'tab-saved', 'up', 'down'])
+        expect(await keysOf(ui)).toEqual([
+          'tab-@all',
+          'tab-b',
+          'tab-@stack',
+          'tab-saved',
+          'up',
+          'down',
+        ])
+
+        await ui.press({ key: 'tab-@all' })
+
+        expect(await dimLineOf(ui, /^Couldn't refresh 2 sources: Alpha, Beta$/)).toBeDefined()
       },
     )
   }
@@ -2508,5 +2621,128 @@ describe('pane-view', () => {
         },
       )
     }
+  }
+
+  for (const surface of SURFACES) {
+    test(
+      `on ${surface}: All, on l, leads with the stack's flagged releases then mixes the sources as the band does, each row naming its source; o, s, v and c act on the item under the row, a release as on the stack tab, and a news item read stays listed, dim`,
+      { timeoutMs: 30_000 },
+      async ($, on) => {
+        const clock = mock.clock(on)
+        const runs: (readonly string[])[] = []
+        const copies: string[] = []
+        const { stored, logs } = stackPaneOn(on, {})
+
+        on('env.get', () => ({ value: undefined }))
+        on('process.run', ($, e) => {
+          runs.push(e.argv)
+
+          return {
+            value: {
+              exitCode: 0,
+              stdout: e.argv[0] === 'uname' ? 'Darwin\n' : '',
+              stderr: '',
+              isStdoutTruncated: false,
+              isStderrTruncated: false,
+            },
+          }
+        })
+        on('ui.copy', ($, e) => {
+          copies.push(e.text)
+
+          return { value: { isCopied: true } }
+        })
+
+        await $.session.start(Fixtures.SESSION)
+        await clock.settle()
+
+        const ui = await $.ui.mount({ ...PANE, surface, props: WIDE })
+        // Each row's source column as drawn: its text, and the release color or dim.
+        const columnsOf = async () =>
+          (await ui.findAll({ type: 'Text' }))
+            .filter(
+              text =>
+                isPart(text) &&
+                /^(Alpha|Beta|react|requests|vite|zod)$/.test(lineOf(text)) &&
+                text.props.underline !== true,
+            )
+            .map(text => [
+              lineOf(text),
+              text.props.color === 'inverseText'
+                ? 'selected'
+                : text.props.color === 'claude'
+                  ? 'release'
+                  : text.props.dimColor === true
+                    ? 'dim'
+                    : 'plain',
+            ])
+
+        expect((await tabsOf(ui))[0]).toEqual([
+          'tab-@all',
+          activeOf(surface, 'l', 'All'),
+          undefined,
+          'active',
+        ])
+        expect((await linksOf(ui)).slice(0, 4)).toEqual([
+          'https://github.com/owner/react/releases/tag/v19.0.0',
+          'https://github.com/owner/requests/releases/tag/v2.31.1',
+          'https://example.com/a/1',
+          'https://example.com/b/1',
+        ])
+        expect((await linksOf(ui)).length).toBe(5 + 4)
+        expect((await columnsOf()).slice(0, 4)).toEqual([
+          ['react', 'selected'],
+          ['requests', 'release'],
+          ['Alpha', 'dim'],
+          ['Beta', 'dim'],
+        ])
+        expect(await keysOf(ui)).toContain('save')
+        expect(await ui.find({ key: 'releases' })).toBeUndefined()
+        expect(await ui.find({ key: 'filter' })).toBeUndefined()
+
+        await ui.press({ key: 'copy' })
+        await ui.press({ key: 'save' })
+        await ui.press({ key: 'open' })
+
+        expect(copies).toEqual([
+          "We use react 18.2.0. react 19.0.0 is out: https://github.com/owner/react/releases/tag/v19.0.0\nCheck whether it affects this project and what we'd need to change.",
+        ])
+        expect((stored.get('saved') as { id: string }[]).map(item => item.id)).toEqual([
+          expect.stringContaining('npm:react|'),
+        ])
+        expect((await ui.find({ key: 'save' }))?.props.label).toBe('Saved')
+        expect(runs.at(-1)).toEqual(['open', 'https://github.com/owner/react/releases/tag/v19.0.0'])
+
+        await ui.press({ key: 'down' })
+        await ui.press({ key: 'down' })
+
+        expect(await selectedOf(ui)).toBe('https://example.com/a/1')
+
+        await ui.press({ key: 'open' })
+        await ui.press({ key: 'down' })
+        await ui.press({ key: 'summarize' })
+
+        expect(runs.at(-1)).toEqual(['open', 'https://example.com/a/1'])
+        expect(stored.get('read')).toEqual({ a: ['a:1'] })
+        expect(await dimLinksOf(ui)).toEqual(['https://example.com/a/1'])
+        expect(logs.filter(line => line.startsWith('transcript: '))).toEqual([
+          'transcript: b 1',
+          'transcript: b 1 one.',
+          'transcript: b 1 two.',
+          'transcript: b 1 three.',
+        ])
+
+        // Back from a source tab, All starts at its top, the read item still listed, dim.
+        await ui.press({ key: 'tab-a' })
+
+        expect((await ui.find({ type: 'Button', key: 'tab-@all' }))?.props.hotkey).toBe('l')
+
+        await ui.press({ key: 'tab-@all' })
+
+        expect(await selectedOf(ui)).toBe('https://github.com/owner/react/releases/tag/v19.0.0')
+        expect((await linksOf(ui)).length).toBe(9)
+        expect(await dimLinksOf(ui)).toEqual(['https://example.com/a/1'])
+      },
+    )
   }
 })

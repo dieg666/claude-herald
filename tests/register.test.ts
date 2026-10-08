@@ -1562,10 +1562,10 @@ describe('register', () => {
     { plugins: [Fixtures.PANE_CLOSER], timeoutMs: 30_000 },
     async ($, on) => {
       const clock = mock.clock(on)
-      // The pane opens on the older source's tab, whose newest item the band's first page shares.
+      // The pane opens on All, whose first window holds the band's first twenty items; the band turns past them.
       const { asked } = Fixtures.bandOn(on, {
         sources: [Fixtures.sourceAt('a'), Fixtures.sourceAt('b')],
-        items: { a: Fixtures.datedItemsOf('a', 2, 100), b: Fixtures.datedItemsOf('b', 12) },
+        items: { a: Fixtures.datedItemsOf('a', 2, 100), b: Fixtures.datedItemsOf('b', 40) },
         settings: { ...Fixtures.SUMMARIES_ON, rotateSeconds: 20 },
       })
 
@@ -1588,9 +1588,12 @@ describe('register', () => {
 
       const opened = asked.length
 
-      expect(asked.slice(3)).toEqual(['a 2'])
+      // The band's order is b 1, a 1, b 2, a 2, then b 3 on; the first three were asked for already, and the line saying the offline sources failed takes the twentieth row.
+      expect([...asked.slice(3)].sort()).toEqual(
+        ['a 2', ...Array.from({ length: 15 }, (_, i) => `b ${i + 3}`)].sort(),
+      )
 
-      await clock.advance(3 * 20_000)
+      await clock.advance(8 * 20_000)
       await clock.settle()
 
       expect(asked.slice(opened)).toEqual([])
@@ -1598,11 +1601,11 @@ describe('register', () => {
       await $.command.run(Fixtures.CLOSE_PANE)
       await clock.settle()
 
-      expect(asked.slice(opened).sort()).toEqual(['b 10', 'b 8', 'b 9'])
+      expect(asked.slice(opened).sort()).toEqual(['b 23', 'b 24', 'b 25'])
       expect((await ui.findAll({ type: 'Link' })).map(link => link.children.join(''))).toEqual([
-        'b 8',
-        'b 9',
-        'b 10',
+        'b 23',
+        'b 24',
+        'b 25',
       ])
 
       await ui.unmount()

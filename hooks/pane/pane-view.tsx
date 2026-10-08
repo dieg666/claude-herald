@@ -26,7 +26,7 @@ import type { PaneTabView } from './pane-tab-view.js'
 import type { PaneUi } from './pane-ui.js'
 
 /**
- * One item on one line: the selection mark, the headline (a release row has its glyph before it; dim once read, unless selected), on the saved tab the source name dim, and the date in a column at the right end; the selected item's summary dim beneath, `…` while pending, nothing for an item without one (no text, or replies rejected for now); a stack tab row keeps its columns after the headline, a release under its package indented.
+ * One item on one line: the selection mark, on the All tab the band's source column (the name dim, or in the release color for a release, a stack row's glyph and package), the headline (a release row has its glyph before it; dim once read, unless selected), on the saved tab the source name dim, and the date in a column at the right end; the selected item's summary dim beneath, `…` while pending, nothing for an item without one (no text, or replies rejected for now); a stack tab row keeps its columns after the headline, a release under its package indented.
  *
  * @param ui the elements
  * @param row the item as drawn
@@ -49,6 +49,22 @@ function rowView(ui: BandUi, row: PaneRow): RenderElement {
             {row.icon}
           </Text>,
           iconGapOf(row.icon),
+        ]),
+    ...(row.sourceColumn === undefined
+      ? []
+      : [
+          row.sourceColumn === '' ? (
+            ''
+          ) : row.isRelease === true ? (
+            <Text color="claude" {...style}>
+              {row.sourceColumn}
+            </Text>
+          ) : (
+            <Text dimColor={!row.isSelected} {...style}>
+              {row.sourceColumn}
+            </Text>
+          ),
+          row.sourceColumnGap ?? '',
         ]),
     <Text
       bold={row.isSelected}

@@ -35,24 +35,24 @@ describe('pane-window-size-of', () => {
     const saved = [1, 2].map(n => ({ ...Fixtures.itemAt(`k${n}`), savedAt: n }))
     const stack = { items: Fixtures.STACK_RELEASES, filter: '', expanded: [] }
 
-    // Full, `1: Alpha  2: Claude Code releases  0: Saved (2)` is forty-seven cells and fits one line.
-    expect(Pane.paneWindowSizeOf(sources, 47, 20, undefined, saved)).toBe(12)
-    // Cut, it is forty-three cells, one line where the full names take two; the footer takes three lines from forty cells to fifty-one.
-    expect(Pane.paneWindowSizeOf(sources, 43, 20, undefined, saved)).toBe(12)
-    expect(Pane.paneWindowSizeOf(sources, 42, 20, undefined, saved)).toBe(11)
-    expect(Pane.paneWindowSizeOf(sources, 40, 20)).toBe(12)
-    // `y: Your stack (7)` adds nineteen cells with its gap, so the cut row is sixty-two; from fifty-two cells the footer takes two lines.
-    expect(Pane.paneWindowSizeOf(sources, 62, 20, stack, saved)).toBe(13)
-    expect(Pane.paneWindowSizeOf(sources, 61, 20, stack, saved)).toBe(12)
+    // Full, `l: All  1: Alpha  2: Claude Code releases  0: Saved (2)` is fifty-five cells and fits one line; from fifty-two cells the footer takes two lines.
+    expect(Pane.paneWindowSizeOf(sources, 55, 20, undefined, saved)).toBe(13)
+    // Cut, it is fifty-one cells, one line where the full names take two; the footer takes three lines from forty cells to fifty-one.
+    expect(Pane.paneWindowSizeOf(sources, 51, 20, undefined, saved)).toBe(12)
+    expect(Pane.paneWindowSizeOf(sources, 50, 20, undefined, saved)).toBe(11)
+    expect(Pane.paneWindowSizeOf(sources, 48, 20)).toBe(12)
+    // `y: Your stack (7)` adds nineteen cells with its gap, so the cut row is seventy.
+    expect(Pane.paneWindowSizeOf(sources, 70, 20, stack, saved)).toBe(13)
+    expect(Pane.paneWindowSizeOf(sources, 69, 20, stack, saved)).toBe(12)
   })
 
   test("the source tabs' new counts are spelled as drawn too, so a count that wraps the tab row takes a line", () => {
-    // `1: Alpha  0: Saved` is eighteen cells; `1: Alpha •14  0: Saved` is twenty-two.
-    expect(Pane.paneWindowSizeOf(ONE, 22, 40, undefined, [], { a: 14 })).toBe(
-      Pane.paneWindowSizeOf(ONE, 22, 40),
+    // `l: All  1: Alpha  0: Saved` is twenty-six cells; `l: All •14  1: Alpha •14  0: Saved` is thirty-four, All counting the sum.
+    expect(Pane.paneWindowSizeOf(ONE, 34, 40, undefined, [], { a: 14 })).toBe(
+      Pane.paneWindowSizeOf(ONE, 34, 40),
     )
-    expect(Pane.paneWindowSizeOf(ONE, 21, 40, undefined, [], { a: 14 })).toBe(
-      Pane.paneWindowSizeOf(ONE, 21, 40) - 1,
+    expect(Pane.paneWindowSizeOf(ONE, 33, 40, undefined, [], { a: 14 })).toBe(
+      Pane.paneWindowSizeOf(ONE, 33, 40) - 1,
     )
   })
 
