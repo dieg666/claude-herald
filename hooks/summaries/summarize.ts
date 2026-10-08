@@ -6,12 +6,15 @@ import { putSummary } from '../store/put-summary.js'
 import { summaryKeyOf } from '../store/summary-key-of.js'
 import { summaryOf } from '../store/summary-of.js'
 import { currentSummaryLang } from './current-summary-lang.js'
+import { isMetaReply } from './is-meta-reply.js'
 import { longSummaryOf } from './long-summary-of.js'
 import { runLimited } from './run-limited.js'
 import { shortSummaryOf } from './short-summary-of.js'
 import type { SummaryJobs } from './summary-jobs.js'
 import { SUMMARY_LIMITS } from './summary-limits.js'
+import { SUMMARY_PROMPT_VERSION } from './summary-prompt-version.js'
 import { summaryRequestOf } from './summary-request-of.js'
+import { summaryTextOf } from './summary-text-of.js'
 
 /**
  * The cached text of an item in a language and kind, read from the store now.
@@ -50,7 +53,13 @@ async function keep(
 ): Promise<void> {
   try {
     await jobs.serially(async () => {
-      await putSummary(host, { itemId: item.id, lang, kind, text })
+      await putSummary(host, {
+        itemId: item.id,
+        lang,
+        kind,
+        version: SUMMARY_PROMPT_VERSION,
+        text,
+      })
 
       // The language may have changed while the model answered; state holds the current one only.
       if (kind === 'short' && (await currentSummaryLang(host)) === lang) {
@@ -112,6 +121,12 @@ async function requestOf(
     return undefined
   }
 
+  if (isMetaReply(reply.text)) {
+    host.debug(`herald: no ${kind} summary of ${item.id}: the reply describes the item`)
+
+    return undefined
+  }
+
   const text = isShort ? shortSummaryOf(reply.text) : longSummaryOf(reply.text)
 
   if (text === undefined) {
@@ -126,7 +141,7 @@ async function requestOf(
 }
 
 /**
- * An item's summary in a resolved language: the cached one with no model call, else one Haiku request through the limiter (shared with a request for the same key already in flight), cached when answered; undefined on any failure, which is not cached, so a later call retries; never throws.
+ * An item's summary in a resolved language: nothing, with no model call, for an item without usable text; else the cached one with no model call, else one Haiku request through the limiter (shared with a request for the same key already in flight), cached when answered; undefined on any failure or on a reply that describes the item instead of the story, which is not cached, so a later call retries; never throws.
  *
  * @param host the engine
  * @param jobs the limiter and write queue
@@ -144,6 +159,10 @@ export async function summarize(
   signal?: AbortSignal,
 ): Promise<string | undefined> {
   try {
+    if (summaryTextOf(item) === '') {
+      return undefined
+    }
+
     const cached = await cachedOf(host, item, lang, kind)
 
     if (cached !== undefined) {

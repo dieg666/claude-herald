@@ -3,10 +3,12 @@ import type { Host } from '../host/host.js'
 import { messageOf } from '../refresh/message-of.js'
 import { summarizeLong } from '../summaries/summarize-long.js'
 import type { SummaryJobs } from '../summaries/summary-jobs.js'
+import { summaryTextOf } from '../summaries/summary-text-of.js'
+import { NO_TEXT_LINE } from './no-text-line.js'
 import { titleLineOf } from './title-line-of.js'
 
 /**
- * Shows an item's 3-5 line summary in the transcript, its title first, one dim line each, without starting a turn; toasts when there is none; never throws.
+ * Shows an item's 3-5 line summary in the transcript, its title first, one dim line each, without starting a turn; an item without usable text gets a line saying so, with no model call; toasts when there is no summary; never throws.
  *
  * @param host the engine
  * @param jobs the limiter and write queue the summaries share
@@ -17,6 +19,13 @@ export async function summarizeItem(host: Host, jobs: SummaryJobs, item: Item): 
   const title = titleLineOf(item.title)
 
   try {
+    if (summaryTextOf(item) === '') {
+      host.log(title)
+      host.log(NO_TEXT_LINE)
+
+      return false
+    }
+
     const summary = await summarizeLong(host, jobs, item)
 
     if (summary === undefined) {

@@ -6,7 +6,7 @@ import { summarize } from './summarize.js'
 import type { SummaryJobs } from './summary-jobs.js'
 
 /**
- * An item's 3-5 line summary in the current language, cached under kind `long`; undefined when the model gives none; never throws.
+ * An item's 3-5 line summary in the current language, cached under kind `long`; undefined, with no model call, for an item without usable text, and undefined when the model gives none; never throws.
  *
  * @param host the engine
  * @param jobs the limiter and write queue

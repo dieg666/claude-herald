@@ -12,6 +12,7 @@ import { stackNoteOf } from '../deps/stack/stack-note-of.js'
 import { SAVED_TAB } from '../names/saved-tab.js'
 import { STACK_TAB } from '../names/stack-tab.js'
 import { collapsedTextOf } from '../page/collapsed-text-of.js'
+import { summaryTextOf } from '../summaries/summary-text-of.js'
 import { PANE_HEADING_RESERVE } from './pane-heading-reserve.js'
 import type { PaneModel } from './pane-model.js'
 import type { PanePage } from './pane-page.js'
@@ -29,7 +30,7 @@ function lineOf(text: string): string {
 }
 
 /**
- * One item as the pane draws it, every line fitted to `columns` cells; a stack item shows 📦 (⚠ when breaking or security), `pkg current → new` and its ecosystem, level and flags.
+ * One item as the pane draws it, every line fitted to `columns` cells; a stack item shows 📦 (⚠ when breaking or security), `pkg current → new` and its ecosystem, level and flags; a news item without usable text shows no summary.
  *
  * @param item the item
  * @param icon its source's glyph, fitted
@@ -46,7 +47,8 @@ function rowOf(
 ): PaneRow {
   const stack = isStackItem(item) ? item : undefined
   const glyph = stack === undefined ? icon : fitColumns(stackIconOf(stack.release), ICON_COLUMNS)
-  const note = stack === undefined ? summary : stackNoteOf(stack.release)
+  const isTextless = stack === undefined && summaryTextOf(item) === ''
+  const note = stack !== undefined ? stackNoteOf(stack.release) : isTextless ? undefined : summary
   const href = httpUrlOf(item.url)?.href
   const date = shortDateOf(item.publishedAt)
   const dated = date === undefined ? 0 : displayWidthOf(date) + 1
@@ -58,6 +60,7 @@ function rowOf(
     title: fitColumns(title, columns - ICON_COLUMNS - 3 - dated),
     ...(href === undefined ? {} : { href }),
     ...(note === undefined ? {} : { summary: fitColumns(lineOf(note), columns - SUMMARY_INDENT) }),
+    ...(isTextless ? { isTextless: true as const } : {}),
     ...(date === undefined ? {} : { date }),
     isSelected,
   }

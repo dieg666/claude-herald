@@ -5,6 +5,7 @@ import { stackIconOf } from '../deps/stack/stack-icon-of.js'
 import { stackLineOf } from '../deps/stack/stack-line-of.js'
 import { stackNoteOf } from '../deps/stack/stack-note-of.js'
 import { collapsedTextOf } from '../page/collapsed-text-of.js'
+import { summaryTextOf } from '../summaries/summary-text-of.js'
 import type { BandModel } from './band-model.js'
 import type { BandPage } from './band-page.js'
 import { fitColumns } from './fit-columns.js'
@@ -22,7 +23,7 @@ function lineOf(text: string): string {
 }
 
 /**
- * What the band draws for a page, every line fitted to `columns` cells; a stack item shows 📦 (⚠ when breaking or security), `pkg current → new` and its ecosystem, level and flags.
+ * What the band draws for a page, every line fitted to `columns` cells; a stack item shows 📦 (⚠ when breaking or security), `pkg current → new` and its ecosystem, level and flags; a news item without usable text shows no summary.
  *
  * @param page the page shown
  * @param sources every source, for the glyphs
@@ -47,10 +48,11 @@ export function bandModelOf(
       ICON_COLUMNS,
     )
     const href = httpUrlOf(item.url)?.href
+    const isTextless = stack === undefined && summaryTextOf(item) === ''
     const summary =
       stack !== undefined
         ? stackNoteOf(stack.release)
-        : Object.hasOwn(summaries, item.id)
+        : !isTextless && Object.hasOwn(summaries, item.id)
           ? summaries[item.id]
           : undefined
     const title = stack === undefined ? lineOf(item.title) : stackLineOf(stack)
@@ -63,6 +65,7 @@ export function bandModelOf(
       ...(summary === undefined
         ? {}
         : { summary: fitColumns(lineOf(summary), columns - SUMMARY_INDENT) }),
+      ...(isTextless ? { isTextless: true as const } : {}),
       isSelected: index === page.span.selected,
     }
   })

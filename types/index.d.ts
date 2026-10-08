@@ -67,6 +67,8 @@ export type SummaryEntry = {
   /** The resolved language the text is in (never `user`). */
   lang: string
   kind: SummaryKind
+  /** The version of the prompts that wrote it; 0 for an entry from before versions. */
+  version: number
   text: string
 }
 

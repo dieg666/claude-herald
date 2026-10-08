@@ -11,9 +11,27 @@ describe('ensure-visible-summaries', () => {
   test('cached summaries make no model call and land in state', async () => {
     const { host, asked, state } = Fixtures.fakeHostOf({
       summaries: [
-        { itemId: A.id, lang: 'feed', kind: 'short', text: 'A.' },
-        { itemId: B.id, lang: 'feed', kind: 'short', text: 'B.' },
-        { itemId: A.id, lang: 'feed', kind: 'long', text: 'A long.' },
+        {
+          itemId: A.id,
+          lang: 'feed',
+          kind: 'short',
+          version: Summaries.SUMMARY_PROMPT_VERSION,
+          text: 'A.',
+        },
+        {
+          itemId: B.id,
+          lang: 'feed',
+          kind: 'short',
+          version: Summaries.SUMMARY_PROMPT_VERSION,
+          text: 'B.',
+        },
+        {
+          itemId: A.id,
+          lang: 'feed',
+          kind: 'long',
+          version: Summaries.SUMMARY_PROMPT_VERSION,
+          text: 'A long.',
+        },
       ],
     })
 
@@ -46,8 +64,8 @@ describe('ensure-visible-summaries', () => {
     const entries = Store.summaryEntriesOf(stored.get('summaries'))
 
     expect(entries.map(entry => Store.summaryKeyOf(entry.itemId, entry.lang, entry.kind))).toEqual([
-      `${A.id}|es|short`,
-      `${A.id}|fr|short`,
+      `${A.id}|es|short|${Summaries.SUMMARY_PROMPT_VERSION}`,
+      `${A.id}|fr|short|${Summaries.SUMMARY_PROMPT_VERSION}`,
     ])
 
     stored.set('settings', { lang: 'es' })
@@ -68,11 +86,23 @@ describe('ensure-visible-summaries', () => {
     await Summaries.ensureVisibleSummaries(unset.host, Summaries.summaryJobsOf(), [A])
 
     expect(japanese.stored.get('summaries')).toEqual([
-      { itemId: A.id, lang: 'japanese', kind: 'short', text: 'Mijikai.' },
+      {
+        itemId: A.id,
+        lang: 'japanese',
+        kind: 'short',
+        version: Summaries.SUMMARY_PROMPT_VERSION,
+        text: 'Mijikai.',
+      },
     ])
     expect(japanese.asked[0]?.request.system).toContain('"japanese"')
     expect(unset.stored.get('summaries')).toEqual([
-      { itemId: A.id, lang: 'feed', kind: 'short', text: 'Short.' },
+      {
+        itemId: A.id,
+        lang: 'feed',
+        kind: 'short',
+        version: Summaries.SUMMARY_PROMPT_VERSION,
+        text: 'Short.',
+      },
     ])
     expect(unset.asked[0]?.request.system).toContain('the language the item itself is written in')
   })
@@ -139,5 +169,27 @@ describe('ensure-visible-summaries', () => {
     expect(await Summaries.ensureVisibleSummaries(host, Summaries.summaryJobsOf(), [A])).toEqual({})
     expect(asked).toEqual([])
     expect(logs).toEqual(['herald: could not summarize the shown items: store unavailable'])
+  })
+
+  test('a shown item without usable text gets no summary and no call, even with one cached', async () => {
+    const bare = { ...A, text: '' }
+    const { host, asked, replies } = Fixtures.fakeHostOf({
+      summaries: [
+        {
+          itemId: A.id,
+          lang: 'feed',
+          kind: 'short',
+          version: Summaries.SUMMARY_PROMPT_VERSION,
+          text: 'A.',
+        },
+      ],
+    })
+
+    replies.push(Fixtures.answerOf('B.'))
+
+    expect(
+      await Summaries.ensureVisibleSummaries(host, Summaries.summaryJobsOf(), [bare, B]),
+    ).toEqual({ [B.id]: 'B.' })
+    expect(asked.length).toBe(1)
   })
 })

@@ -14,7 +14,7 @@ import { SUMMARY_INDENT } from './summary-indent.js'
 import { SUMMARY_PLACEHOLDER } from './summary-placeholder.js'
 
 /**
- * One item: the selection mark, the source glyph and the headline, then the summary dim beneath.
+ * One item: the selection mark, the source glyph and the headline, then the summary dim beneath, or an empty line for an item without text so the band keeps its height as it turns.
  *
  * @param ui the elements
  * @param row the item as drawn
@@ -32,11 +32,15 @@ function rowView(ui: BandUi, row: BandRow): RenderElement {
           {row.href === undefined ? row.title : <Link href={row.href}>{row.title}</Link>}
         </Text>
       </Text>
-      <Box paddingLeft={SUMMARY_INDENT}>
-        <Text dimColor wrap="truncate-end">
-          {row.summary ?? SUMMARY_PLACEHOLDER}
-        </Text>
-      </Box>
+      {row.isTextless === true ? (
+        <Box height={1} />
+      ) : (
+        <Box paddingLeft={SUMMARY_INDENT}>
+          <Text dimColor wrap="truncate-end">
+            {row.summary ?? SUMMARY_PLACEHOLDER}
+          </Text>
+        </Box>
+      )}
     </Box>
   )
 }

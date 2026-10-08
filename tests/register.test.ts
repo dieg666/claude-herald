@@ -3,6 +3,7 @@ import { describe, expect, mock, test } from 'claude-code/testing'
 
 import Defaults from '../hooks/defaults'
 import Store from '../hooks/store'
+import Summaries from '../hooks/summaries'
 import Fixtures from './fixtures'
 import Go from './fixtures/deps/go'
 import Feeds from './fixtures/feeds'
@@ -15,7 +16,15 @@ describe('register', () => {
     settings: { lang: 'es', rotateSeconds: 40 },
     items: { own: [Fixtures.itemAt('a')] },
     saved: [{ ...Fixtures.itemAt('s'), savedAt: 9 }],
-    summaries: [{ itemId: 'src:a', lang: 'es', kind: 'short', text: 'corto' }],
+    summaries: [
+      {
+        itemId: 'src:a',
+        lang: 'es',
+        kind: 'short',
+        version: Summaries.SUMMARY_PROMPT_VERSION,
+        text: 'corto',
+      },
+    ],
   }
 
   const EXPECTED = {
@@ -121,8 +130,20 @@ describe('register', () => {
         ...STORE,
         settings: { lang: 'user' },
         summaries: [
-          { itemId: 'src:a', lang: 'es', kind: 'short', text: 'corto' },
-          { itemId: 'src:a', lang: 'japanese', kind: 'short', text: 'mijikai' },
+          {
+            itemId: 'src:a',
+            lang: 'es',
+            kind: 'short',
+            version: Summaries.SUMMARY_PROMPT_VERSION,
+            text: 'corto',
+          },
+          {
+            itemId: 'src:a',
+            lang: 'japanese',
+            kind: 'short',
+            version: Summaries.SUMMARY_PROMPT_VERSION,
+            text: 'mijikai',
+          },
         ],
       })
       on('settings.read', () => ({ value: { language: 'japanese' } }))
@@ -375,6 +396,7 @@ describe('register', () => {
         itemId: NEW,
         lang: 'feed',
         kind: 'short',
+        version: Summaries.SUMMARY_PROMPT_VERSION,
         text: 'One line. Another line.',
       })
       expect((stored.get('summaries') as unknown[]).length).toBe(4)
@@ -824,6 +846,7 @@ describe('register', () => {
         itemId: item.id,
         lang: 'es',
         kind: 'short',
+        version: Summaries.SUMMARY_PROMPT_VERSION,
         text: 'Corto.',
       })),
     })
@@ -847,7 +870,13 @@ describe('register', () => {
     const { asked } = Fixtures.bandOn(on, {
       sources: [Fixtures.sourceAt('old'), Fixtures.sourceAt('new')],
       items: { old: Fixtures.datedItemsOf('old', 5, 10), new: Fixtures.datedItemsOf('new', 2) },
-      summaries: shown.map(itemId => ({ itemId, lang: 'feed', kind: 'short', text: 'Cached.' })),
+      summaries: shown.map(itemId => ({
+        itemId,
+        lang: 'feed',
+        kind: 'short',
+        version: Summaries.SUMMARY_PROMPT_VERSION,
+        text: 'Cached.',
+      })),
     })
 
     await $.classic.SessionStart({ source: 'clear' })
@@ -874,6 +903,7 @@ describe('register', () => {
         itemId,
         lang: 'feed',
         kind: 'short',
+        version: Summaries.SUMMARY_PROMPT_VERSION,
         text: `Cached ${itemId}.`,
       })),
     })

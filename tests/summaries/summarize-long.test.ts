@@ -19,7 +19,15 @@ describe('summarize-long', () => {
 
     expect(lines).toEqual(['Uno.', 'Dos.', 'Tres.', 'Cuatro.', 'Cinco.'])
     expect(asked[0]?.request.system).toContain('Write 3 to 5 lines')
-    expect(stored.get('summaries')).toEqual([{ itemId: ITEM.id, lang: 'es', kind: 'long', text }])
+    expect(stored.get('summaries')).toEqual([
+      {
+        itemId: ITEM.id,
+        lang: 'es',
+        kind: 'long',
+        version: Summaries.SUMMARY_PROMPT_VERSION,
+        text,
+      },
+    ])
     expect(state.summaries).toEqual({})
 
     expect(await Summaries.summarizeLong(host, jobs, ITEM)).toBe(text)
@@ -43,5 +51,14 @@ describe('summarize-long', () => {
 
     expect(await Summaries.summarizeLong(host, Summaries.summaryJobsOf(), ITEM)).toBeUndefined()
     expect(stored.get('summaries')).toBeUndefined()
+  })
+
+  test('an item without usable text gives nothing, with no model call', async () => {
+    const { host, asked } = Fixtures.fakeHostOf()
+
+    expect(
+      await Summaries.summarizeLong(host, Summaries.summaryJobsOf(), { ...ITEM, text: '' }),
+    ).toBeUndefined()
+    expect(asked).toEqual([])
   })
 })

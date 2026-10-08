@@ -56,6 +56,21 @@ describe('pane-model-of', () => {
     expect([model.isSavedTab, model.isSelectedSaved]).toEqual([true, true])
   })
 
+  test('an item without usable text is marked so and shows no summary, even a cached one', () => {
+    const items = {
+      a: Fixtures.datedItemsOf('a', 2).map((item, index) =>
+        index === 0 ? { ...item, text: '' } : item,
+      ),
+    }
+    const page = Pane.panePageOf({ tab: 'a', selected: 0 }, SOURCES, items, [], 10)
+    const model = Pane.paneModelOf(page, SOURCES, { 'a:1': 'Meta.', 'a:2': 'Real.' }, [], 80)
+
+    expect(model.rows.map(row => [row.id, row.summary, row.isTextless, row.date])).toEqual([
+      ['a:1', undefined, true, 'Jan 2'],
+      ['a:2', 'Real.', undefined, 'Jan 1'],
+    ])
+  })
+
   test('an empty tab names itself and says so', () => {
     const empty = Pane.paneModelOf(
       Pane.panePageOf({ tab: 'a', selected: 0 }, SOURCES, {}, [], 10),

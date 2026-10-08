@@ -65,6 +65,27 @@ describe('band-model-of', () => {
     expect(row).toMatchObject({ icon: '*', title: 'Line one…', summary: 'x yx yx y…' })
   })
 
+  test('an item without usable text is marked so and shows no summary, even a cached one', () => {
+    const page = Band.bandPageOf({ offset: 0, selected: 0, isPaused: false }, [
+      { ...Fixtures.itemAt('a'), text: '' },
+      { ...Fixtures.itemAt('b'), text: 'b' },
+      Fixtures.itemAt('c'),
+    ])
+    const rows = Band.bandModelOf(
+      page,
+      SOURCES,
+      { 'src:a': 'Meta.', 'src:b': 'Meta.', 'src:c': 'Real.' },
+      [],
+      80,
+    ).rows
+
+    expect(rows.map(row => [row.id, row.summary, row.isTextless])).toEqual([
+      ['src:a', undefined, true],
+      ['src:b', undefined, true],
+      ['src:c', 'Real.', undefined],
+    ])
+  })
+
   test('the selected item reads saved when it is in the saved list', () => {
     const [, second] = ITEMS
     const saved = second === undefined ? [] : [{ ...second, savedAt: 1 }]

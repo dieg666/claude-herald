@@ -41,4 +41,21 @@ describe('summarize-new', () => {
 
     expect(asked.length).toBe(Summaries.SUMMARY_LIMITS.newPerRun)
   })
+
+  test('new items without usable text make no call and leave room for those with text', async () => {
+    const textless = Array.from({ length: Summaries.SUMMARY_LIMITS.newPerRun }, (_, index) => ({
+      ...Fixtures.itemAt(`bare${index}`),
+      text: '',
+    }))
+    const { host, asked, replies, state } = Fixtures.fakeHostOf()
+
+    replies.push(Fixtures.answerOf('With text.'))
+    await Summaries.summarizeNew(host, Summaries.summaryJobsOf(), [
+      ...textless,
+      Fixtures.itemAt('a'),
+    ])
+
+    expect(asked.length).toBe(1)
+    expect(state.summaries).toEqual({ 'src:a': 'With text.' })
+  })
 })

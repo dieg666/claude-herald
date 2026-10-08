@@ -3,9 +3,10 @@ import type { Host } from '../host/host.js'
 import { ensureVisibleSummaries } from './ensure-visible-summaries.js'
 import type { SummaryJobs } from './summary-jobs.js'
 import { SUMMARY_LIMITS } from './summary-limits.js'
+import { summaryTextOf } from './summary-text-of.js'
 
 /**
- * One-line summaries for the items a refresh run reports as new (none on a first load), the newest few only; never throws.
+ * One-line summaries for the items a refresh run reports as new (none on a first load), the newest few with usable text only; never throws.
  *
  * @param host the engine
  * @param jobs the limiter and write queue
@@ -18,7 +19,9 @@ export async function summarizeNew(
   items: readonly Item[],
   signal?: AbortSignal,
 ): Promise<void> {
-  if (items.length > 0) {
-    await ensureVisibleSummaries(host, jobs, items.slice(0, SUMMARY_LIMITS.newPerRun), signal)
+  const withText = items.filter(item => summaryTextOf(item) !== '')
+
+  if (withText.length > 0) {
+    await ensureVisibleSummaries(host, jobs, withText.slice(0, SUMMARY_LIMITS.newPerRun), signal)
   }
 }

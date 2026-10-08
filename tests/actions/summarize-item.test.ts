@@ -41,6 +41,22 @@ describe('summarize-item', () => {
     expect(toasts).toEqual(['No summary of "Two lines" right now; try again later.'])
   })
 
+  test('an item without usable text logs its title and the no-text line, with no model call or toast', async () => {
+    const { host, asked, transcript, toasts } = Fixtures.fakeHostOf()
+
+    expect(
+      await Actions.summarizeItem(host, Summaries.summaryJobsOf(), {
+        ...Fixtures.itemAt('a'),
+        title: 'Introducing Claude Sonnet 5.5',
+        text: '',
+      }),
+    ).toBe(false)
+    expect(asked).toEqual([])
+    expect(transcript).toEqual(['Introducing Claude Sonnet 5.5', Actions.NO_TEXT_LINE])
+    expect(Actions.NO_TEXT_LINE).toBe('No text to summarize; Open shows the page.')
+    expect(toasts).toEqual([])
+  })
+
   test("s in the band logs the selected item's long summary with ui.log and starts no turn", async ($, on) => {
     mock.clock(on)
 

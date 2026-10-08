@@ -2,6 +2,7 @@ import { describe, expect, test } from 'claude-code/testing'
 
 import Defaults from '../../hooks/defaults'
 import State from '../../hooks/state'
+import Summaries from '../../hooks/summaries'
 import Fixtures from '../fixtures'
 
 describe('hydrate', () => {
@@ -13,9 +14,27 @@ describe('hydrate', () => {
     items: { own: [Fixtures.itemAt('a')] },
     saved: [{ ...Fixtures.itemAt('s'), savedAt: 9 }],
     summaries: [
-      { itemId: 'src:a', lang: 'es', kind: 'short', text: 'corto' },
-      { itemId: 'src:a', lang: 'es', kind: 'long', text: 'largo' },
-      { itemId: 'src:a', lang: 'en', kind: 'short', text: 'short' },
+      {
+        itemId: 'src:a',
+        lang: 'es',
+        kind: 'short',
+        version: Summaries.SUMMARY_PROMPT_VERSION,
+        text: 'corto',
+      },
+      {
+        itemId: 'src:a',
+        lang: 'es',
+        kind: 'long',
+        version: Summaries.SUMMARY_PROMPT_VERSION,
+        text: 'largo',
+      },
+      {
+        itemId: 'src:a',
+        lang: 'en',
+        kind: 'short',
+        version: Summaries.SUMMARY_PROMPT_VERSION,
+        text: 'short',
+      },
     ],
   }
 
@@ -29,6 +48,20 @@ describe('hydrate', () => {
     expect(state.items).toEqual({ own: [Fixtures.itemAt('a')] })
     expect(state.saved).toEqual([{ ...Fixtures.itemAt('s'), savedAt: 9 }])
     expect(state.summaries).toEqual({ 'src:a': 'corto' })
+  })
+
+  test('a short summary an older prompt version wrote stays out of state', async () => {
+    const { host, state } = Fixtures.fakeHostOf({
+      ...STORE,
+      summaries: [
+        { itemId: 'src:a', lang: 'es', kind: 'short', text: 'según el título' },
+        { itemId: 'src:b', lang: 'es', kind: 'short', version: 0, text: 'viejo' },
+      ],
+    })
+
+    await State.hydrate(host)
+
+    expect(state.summaries).toEqual({})
   })
 
   test('an empty store seeds the factory sources into state and store', async () => {

@@ -2,7 +2,7 @@ import type { SummaryEntry } from '../../types/index.js'
 import { isRecord } from './is-record.js'
 
 /**
- * The stored summary cache, oldest first, dropping entries that are not a summary.
+ * The stored summary cache, oldest first, dropping entries that are not a summary; an entry without a whole version number reads as version 0.
  *
  * @param value what the store holds under `summaries`
  */
@@ -17,7 +17,15 @@ export function summaryEntriesOf(value: unknown): SummaryEntry[] {
     typeof entry.lang === 'string' &&
     (entry.kind === 'short' || entry.kind === 'long') &&
     typeof entry.text === 'string'
-      ? [{ itemId: entry.itemId, lang: entry.lang, kind: entry.kind, text: entry.text }]
+      ? [
+          {
+            itemId: entry.itemId,
+            lang: entry.lang,
+            kind: entry.kind,
+            version: Number.isSafeInteger(entry.version) ? (entry.version as number) : 0,
+            text: entry.text,
+          },
+        ]
       : [],
   )
 }

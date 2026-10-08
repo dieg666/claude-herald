@@ -1,8 +1,10 @@
 import type { ElementQuery, FoundElement } from 'claude-code/testing'
 import { describe, expect, mock, test } from 'claude-code/testing'
 
+import Actions from '../../hooks/actions'
 import Names from '../../hooks/names'
 import Pane from '../../hooks/pane'
+import Summaries from '../../hooks/summaries'
 import Fixtures from '../fixtures'
 
 describe('pane-view', () => {
@@ -67,7 +69,15 @@ describe('pane-view', () => {
         mock.clock(on)
         Fixtures.bandOn(on, {
           ...STORE,
-          summaries: [{ itemId: 'a:1', lang: 'feed', kind: 'short', text: 'First, in short.' }],
+          summaries: [
+            {
+              itemId: 'a:1',
+              lang: 'feed',
+              kind: 'short',
+              version: Summaries.SUMMARY_PROMPT_VERSION,
+              text: 'First, in short.',
+            },
+          ],
         })
 
         await $.classic.SessionStart({ source: 'clear' })
@@ -100,6 +110,56 @@ describe('pane-view', () => {
           'summarize',
           'save',
           'copy',
+        ])
+      },
+    )
+
+    test(
+      `on ${surface}: an item without text is its headline row alone, with no summary or placeholder, and is never sent to the model`,
+      { timeoutMs: 20_000 },
+      async ($, on) => {
+        const clock = mock.clock(on)
+        const { asked, logs } = Fixtures.bandOn(on, {
+          ...STORE,
+          items: {
+            ...STORE.items,
+            a: Fixtures.datedItemsOf('a', 3).map(item =>
+              item.id === 'a:2' ? { ...item, text: '' } : item,
+            ),
+          },
+        })
+
+        await $.classic.SessionStart({ source: 'clear' })
+
+        const ui = await $.ui.mount({ ...PANE, surface })
+        const summaryLines = async () =>
+          (await ui.findAll({ type: 'Box' })).filter(box => box.props.paddingLeft === 4).length
+
+        expect(await linksOf(ui)).toEqual([
+          'https://example.com/a/1',
+          'https://example.com/a/2',
+          'https://example.com/a/3',
+        ])
+        expect((await ui.findAll({ type: 'Text', text: /^…$/ })).length).toBe(2)
+        expect(await summaryLines()).toBe(2)
+
+        await ui.press({ key: 'tab-b' })
+        await ui.press({ key: 'tab-a' })
+        await clock.settle()
+
+        const askedOfAlpha = () => asked.filter(title => title.startsWith('a ')).sort()
+
+        expect(askedOfAlpha()).toEqual(['a 1', 'a 3'])
+        expect(await ui.find({ type: 'Text', text: /^…$/ })).toBeUndefined()
+        expect(await summaryLines()).toBe(2)
+
+        await ui.press({ key: 'down' })
+        await ui.press({ key: 'summarize' })
+
+        expect(askedOfAlpha()).toEqual(['a 1', 'a 3'])
+        expect(logs.filter(line => line.startsWith('transcript: '))).toEqual([
+          'transcript: a 2',
+          `transcript: ${Actions.NO_TEXT_LINE}`,
         ])
       },
     )
@@ -392,6 +452,7 @@ describe('pane-view', () => {
             itemId: item.id,
             lang: 'feed',
             kind: 'short',
+            version: Summaries.SUMMARY_PROMPT_VERSION,
             text: `Cached ${item.title}.`,
           })),
         })

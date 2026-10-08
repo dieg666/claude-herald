@@ -2,12 +2,14 @@ import type { SummaryEntry } from '../../types/index.js'
 import { describe, expect, test } from 'claude-code/testing'
 
 import Store from '../../hooks/store'
+import Summaries from '../../hooks/summaries'
 
 describe('with-summary', () => {
   const entryOf = (itemId: string, text = itemId): SummaryEntry => ({
     itemId,
     lang: 'es',
     kind: 'short',
+    version: Summaries.SUMMARY_PROMPT_VERSION,
     text,
   })
 
@@ -19,6 +21,15 @@ describe('with-summary', () => {
     expect(Store.withSummary([entryOf('a'), entryOf('b')], entryOf('a', 'again'))).toEqual([
       entryOf('b'),
       entryOf('a', 'again'),
+    ])
+  })
+
+  test('replaces the entry of the same item, language and kind an older prompt version wrote', () => {
+    const old = { ...entryOf('a', 'old'), version: 0 }
+
+    expect(Store.withSummary([old, entryOf('b')], entryOf('a'))).toEqual([
+      entryOf('b'),
+      entryOf('a'),
     ])
   })
 

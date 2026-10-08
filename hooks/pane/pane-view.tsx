@@ -15,7 +15,7 @@ import type { PaneRow } from './pane-row.js'
 import type { PaneUi } from './pane-ui.js'
 
 /**
- * One item: the selection mark, the source glyph, the headline and its date, then the summary dim beneath; a stack tab row is one line, its columns after the headline, a release under its package indented.
+ * One item: the selection mark, the source glyph, the headline and its date, then the summary dim beneath; an item without text is the headline row alone; a stack tab row is one line, its columns after the headline, a release under its package indented.
  *
  * @param ui the elements
  * @param row the item as drawn
@@ -46,11 +46,15 @@ function rowView(ui: BandUi, row: PaneRow): RenderElement {
   return (
     <Box flexDirection="column">
       {line}
-      <Box paddingLeft={SUMMARY_INDENT}>
-        <Text dimColor wrap="truncate-end">
-          {row.summary ?? SUMMARY_PLACEHOLDER}
-        </Text>
-      </Box>
+      {row.isTextless === true
+        ? []
+        : [
+            <Box paddingLeft={SUMMARY_INDENT}>
+              <Text dimColor wrap="truncate-end">
+                {row.summary ?? SUMMARY_PLACEHOLDER}
+              </Text>
+            </Box>,
+          ]}
     </Box>
   )
 }

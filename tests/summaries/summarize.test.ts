@@ -9,7 +9,15 @@ describe('summarize', () => {
 
   test('a cached summary is returned with no model call', async () => {
     const { host, asked } = Fixtures.fakeHostOf({
-      summaries: [{ itemId: ITEM.id, lang: 'es', kind: 'short', text: 'corto' }],
+      summaries: [
+        {
+          itemId: ITEM.id,
+          lang: 'es',
+          kind: 'short',
+          version: Summaries.SUMMARY_PROMPT_VERSION,
+          text: 'corto',
+        },
+      ],
     })
 
     const text = await Summaries.summarize(host, Summaries.summaryJobsOf(), ITEM, 'es', 'short')
@@ -44,7 +52,13 @@ describe('summarize', () => {
     })
     expect(asked[0]?.request.maxTokens).toBeLessThanOrEqual(150)
     expect(stored.get('summaries')).toEqual([
-      { itemId: ITEM.id, lang: 'es', kind: 'short', text: 'Short.' },
+      {
+        itemId: ITEM.id,
+        lang: 'es',
+        kind: 'short',
+        version: Summaries.SUMMARY_PROMPT_VERSION,
+        text: 'Short.',
+      },
     ])
   })
 
@@ -177,9 +191,96 @@ describe('summarize', () => {
       timeoutMs: Summaries.SUMMARY_LIMITS.longTimeoutMs,
     })
     expect(stored.get('summaries')).toEqual([
-      { itemId: ITEM.id, lang: 'feed', kind: 'long', text: 'One.\nTwo.\nThree.' },
+      {
+        itemId: ITEM.id,
+        lang: 'feed',
+        kind: 'long',
+        version: Summaries.SUMMARY_PROMPT_VERSION,
+        text: 'One.\nTwo.\nThree.',
+      },
     ])
     expect(state.summaries).toEqual({})
+  })
+
+  test('an item without usable text gets nothing, with no model call and no cache read or write', async () => {
+    const textless = { ...ITEM, text: '' }
+    const { host, asked, replies, stored, logs } = Fixtures.fakeHostOf({
+      summaries: [
+        {
+          itemId: ITEM.id,
+          lang: 'feed',
+          kind: 'short',
+          version: Summaries.SUMMARY_PROMPT_VERSION,
+          text: 'Kept from when it had text.',
+        },
+      ],
+    })
+    const jobs = Summaries.summaryJobsOf()
+
+    replies.push(Fixtures.answerOf('Never asked.'))
+
+    for (const kind of ['short', 'long'] as const) {
+      expect(await Summaries.summarize(host, jobs, textless, 'feed', kind)).toBeUndefined()
+    }
+
+    expect(asked).toEqual([])
+    expect(Store.summaryEntriesOf(stored.get('summaries')).length).toBe(1)
+    expect(logs).toEqual([])
+  })
+
+  test('a reply that describes the item or shows reasoning is not cached; the next call asks again', async () => {
+    const { host, asked, replies, stored, state, logs } = Fixtures.fakeHostOf()
+    const jobs = Summaries.summaryJobsOf()
+
+    replies.push(
+      Fixtures.answerOf('Anthropic announces a model, according to the title alone.'),
+      Fixtures.answerOf('Anthropic expands a vetting program. Wait, the item giv'),
+      Fixtures.answerOf('One.\nThe text gives no details.\nThree.'),
+    )
+
+    expect(await Summaries.summarize(host, jobs, ITEM, 'feed', 'short')).toBeUndefined()
+    expect(await Summaries.summarize(host, jobs, ITEM, 'feed', 'short')).toBeUndefined()
+    expect(await Summaries.summarize(host, jobs, ITEM, 'feed', 'long')).toBeUndefined()
+    expect(stored.get('summaries')).toBeUndefined()
+    expect(state.summaries).toEqual({})
+    expect(logs).toEqual([
+      `herald: no short summary of ${ITEM.id}: the reply describes the item`,
+      `herald: no short summary of ${ITEM.id}: the reply describes the item`,
+      `herald: no long summary of ${ITEM.id}: the reply describes the item`,
+    ])
+
+    replies.push(Fixtures.answerOf('Security researchers get wider access to models.'))
+
+    expect(await Summaries.summarize(host, jobs, ITEM, 'feed', 'short')).toBe(
+      'Security researchers get wider access to models.',
+    )
+    expect(asked.length).toBe(4)
+  })
+
+  test('a summary an older prompt version wrote is not reused, and the new one replaces it', async () => {
+    const { host, asked, replies, stored } = Fixtures.fakeHostOf({
+      summaries: [
+        { itemId: ITEM.id, lang: 'feed', kind: 'short', text: 'Unversioned.' },
+        { itemId: 'src:other', lang: 'feed', kind: 'short', text: 'Other, unversioned.' },
+      ],
+    })
+
+    replies.push(Fixtures.answerOf('Fresh.'))
+
+    expect(await Summaries.summarize(host, Summaries.summaryJobsOf(), ITEM, 'feed', 'short')).toBe(
+      'Fresh.',
+    )
+    expect(asked.length).toBe(1)
+    expect(stored.get('summaries')).toEqual([
+      { itemId: 'src:other', lang: 'feed', kind: 'short', version: 0, text: 'Other, unversioned.' },
+      {
+        itemId: ITEM.id,
+        lang: 'feed',
+        kind: 'short',
+        version: Summaries.SUMMARY_PROMPT_VERSION,
+        text: 'Fresh.',
+      },
+    ])
   })
 
   test('a failed cache write is logged and the text still returned', async () => {

@@ -1,7 +1,9 @@
 import type { ElementQuery, FoundElement } from 'claude-code/testing'
 import { describe, expect, mock, test } from 'claude-code/testing'
 
+import Actions from '../../hooks/actions'
 import Band from '../../hooks/band'
+import Summaries from '../../hooks/summaries'
 import Fixtures from '../fixtures'
 
 describe('band-view', () => {
@@ -42,7 +44,15 @@ describe('band-view', () => {
         mock.clock(on)
         Fixtures.bandOn(on, {
           ...STORE,
-          summaries: [{ itemId: 'src:1', lang: 'feed', kind: 'short', text: 'First, in short.' }],
+          summaries: [
+            {
+              itemId: 'src:1',
+              lang: 'feed',
+              kind: 'short',
+              version: Summaries.SUMMARY_PROMPT_VERSION,
+              text: 'First, in short.',
+            },
+          ],
         })
 
         await $.classic.SessionStart({ source: 'clear' })
@@ -315,7 +325,15 @@ describe('band-view', () => {
             title: index === 0 ? 'a'.repeat(50) : '漢'.repeat(30),
           })),
         },
-        summaries: [{ itemId: 'src:1', lang: 'feed', kind: 'short', text: 'b'.repeat(40) }],
+        summaries: [
+          {
+            itemId: 'src:1',
+            lang: 'feed',
+            kind: 'short',
+            version: Summaries.SUMMARY_PROMPT_VERSION,
+            text: 'b'.repeat(40),
+          },
+        ],
       })
 
       await $.classic.SessionStart({ source: 'clear' })
@@ -552,5 +570,63 @@ describe('band-view', () => {
       expect(leads.length).toBe(3)
       expect(leads.map(lead => Band.displayWidthOf(lead))).toEqual([5, 5, 5])
     })
+  }
+
+  for (const surface of SURFACES) {
+    test(
+      `on ${surface}: an item without text draws no summary and no placeholder, keeps its second line empty, and is never sent to the model`,
+      { timeoutMs: 20_000 },
+      async ($, on) => {
+        const clock = mock.clock(on)
+        const items = Fixtures.datedItemsOf('src', 7).map(item =>
+          item.id === 'src:2' || item.id === 'src:5' ? { ...item, text: '' } : item,
+        )
+        const { asked, logs } = Fixtures.bandOn(on, {
+          sources: [SOURCE],
+          items: { src: items },
+          summaries: [
+            {
+              itemId: 'src:2',
+              lang: 'feed',
+              kind: 'short',
+              version: Summaries.SUMMARY_PROMPT_VERSION,
+              text: 'Restates the headline, according to the title alone.',
+            },
+          ],
+        })
+
+        await $.classic.SessionStart({ source: 'clear' })
+
+        const ui = await $.ui.mount({ ...BAND, surface })
+        const spacers = async () =>
+          (await ui.findAll({ type: 'Box' })).filter(box => box.props.height === 1)
+
+        expect(await linksOf(ui)).toEqual([
+          ['https://example.com/src/1', 'src 1'],
+          ['https://example.com/src/2', 'src 2'],
+          ['https://example.com/src/3', 'src 3'],
+        ])
+        expect((await ui.findAll({ type: 'Text', text: /^…$/ })).length).toBe(2)
+        expect(await ui.find({ type: 'Text', text: /according to the title/ })).toBeUndefined()
+        expect((await spacers()).length).toBe(1)
+
+        await ui.press({ key: 'next' })
+        await clock.settle()
+
+        expect([...asked].sort()).toEqual(['src 4', 'src 6'])
+        expect(await ui.find({ type: 'Text', text: 'Summary of src 4.' })).toBeDefined()
+        expect(await ui.find({ type: 'Text', text: /^…$/ })).toBeUndefined()
+        expect((await spacers()).length).toBe(1)
+
+        await ui.press({ key: 'down' })
+        await ui.press({ key: 'summarize' })
+
+        expect([...asked].sort()).toEqual(['src 4', 'src 6'])
+        expect(logs.filter(line => line.startsWith('transcript: '))).toEqual([
+          'transcript: src 5',
+          `transcript: ${Actions.NO_TEXT_LINE}`,
+        ])
+      },
+    )
   }
 })

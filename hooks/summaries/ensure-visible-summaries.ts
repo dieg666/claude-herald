@@ -6,6 +6,7 @@ import { summariesFor } from '../store/summaries-for.js'
 import { currentSummaryLang } from './current-summary-lang.js'
 import { summarize } from './summarize.js'
 import type { SummaryJobs } from './summary-jobs.js'
+import { summaryTextOf } from './summary-text-of.js'
 
 /**
  * Whether two summary maps hold the same texts under the same ids.
@@ -20,7 +21,7 @@ function isSame(a: Readonly<Record<string, string>>, b: Readonly<Record<string, 
 }
 
 /**
- * One-line summaries for the items a view shows: state is first made to hold the cached summaries of the current language (replacing another language's), then every shown item without one is summarized through the limiter; never throws.
+ * One-line summaries for the items a view shows: state is first made to hold the cached summaries of the current language (replacing another language's), then every shown item without one is summarized through the limiter; an item without usable text gets none and no model call; never throws.
  *
  * @param host the engine
  * @param jobs the limiter and write queue
@@ -46,7 +47,9 @@ export async function ensureVisibleSummaries(
       return { lang, cached }
     })
 
-    const shown = [...new Map(items.map(item => [item.id, item])).values()]
+    const shown = [...new Map(items.map(item => [item.id, item])).values()].filter(
+      item => summaryTextOf(item) !== '',
+    )
 
     const texts = await Promise.all(
       shown.map(async item => {

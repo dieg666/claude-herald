@@ -1,12 +1,31 @@
 import { describe, expect, test } from 'claude-code/testing'
 
+import Summaries from '../../hooks/summaries'
 import Fixtures from '../fixtures'
 
 describe('set-lang', () => {
   const SUMMARIES = [
-    { itemId: 'src:a', lang: 'es', kind: 'short', text: 'corto' },
-    { itemId: 'src:a', lang: 'pt-BR', kind: 'short', text: 'curto' },
-    { itemId: 'src:a', lang: 'feed', kind: 'short', text: 'short' },
+    {
+      itemId: 'src:a',
+      lang: 'es',
+      kind: 'short',
+      version: Summaries.SUMMARY_PROMPT_VERSION,
+      text: 'corto',
+    },
+    {
+      itemId: 'src:a',
+      lang: 'pt-BR',
+      kind: 'short',
+      version: Summaries.SUMMARY_PROMPT_VERSION,
+      text: 'curto',
+    },
+    {
+      itemId: 'src:a',
+      lang: 'feed',
+      kind: 'short',
+      version: Summaries.SUMMARY_PROMPT_VERSION,
+      text: 'short',
+    },
   ]
 
   const peeked = (text: string | undefined) =>
