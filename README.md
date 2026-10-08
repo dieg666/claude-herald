@@ -134,6 +134,7 @@ For every command and setting, see the [Reference](docs/reference.md#commands).
 - [Your stack](docs/your-stack.md): which packages Herald follows, how it finds and classifies releases, and the `/herald deps` subcommands.
 - [Reference](docs/reference.md): terms, commands, sources, templates, summaries, Haiku calls, stored data and limitations.
 - [Security and privacy details](docs/security.md): hooks, calls, hosts, files read, commands run, telemetry, untrusted content and accepted risks.
+- [Privacy policy](docs/privacy.md): what Herald reads, sends and stores, in short.
 - [Design decisions and deviations](docs/design.md): why Herald behaves as it does.
 - [Development](docs/development.md): run the checks and change the mod. [README media](docs/media/README.md) says how the screenshots and recordings are made.
 

@@ -1,10 +1,16 @@
 {
   "name": "herald",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Herald: news and releases for your stack, right above the prompt.",
   "author": {
     "name": "Diego"
   },
   "types": "./types/index.d.ts",
-  "license": "MIT"
+  "license": "MIT",
+  "homepage": "https://github.com/dieg666/claude-herald",
+  "repository": "https://github.com/dieg666/claude-herald",
+  "documentationUrl": "https://github.com/dieg666/claude-herald#readme",
+  "supportUrl": "https://github.com/dieg666/claude-herald/issues",
+  "privacyPolicyUrl": "https://github.com/dieg666/claude-herald/blob/main/docs/privacy.md",
+  "termsOfServiceUrl": "https://github.com/dieg666/claude-herald/blob/main/LICENSE"
 }
