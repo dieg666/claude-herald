@@ -9,13 +9,19 @@ import type { Rotation } from './rotation.js'
  * @param host the engine
  * @param rotation the rotation
  * @param items the page's items
+ * @param signal aborts what `onPage` starts
  */
-export function handPage(host: Host, rotation: Rotation, items: readonly Item[]): void {
+export function handPage(
+  host: Host,
+  rotation: Rotation,
+  items: readonly Item[],
+  signal?: AbortSignal,
+): void {
   if (items.length === 0) {
     return
   }
 
-  rotation.onPage(host, items).catch((error: unknown) => {
+  rotation.onPage(host, items, signal).catch((error: unknown) => {
     host.debug(`news: band: ${messageOf(error)}`)
   })
 }

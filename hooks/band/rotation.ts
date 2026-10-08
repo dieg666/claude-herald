@@ -9,6 +9,6 @@ import type { Host } from '../host/host.js'
 export type Rotation = {
   /** The interval timer, once started. */
   timer: Timer | undefined
-  /** Called, not awaited, with the items of each page the band turns to. */
-  readonly onPage: (host: Host, items: readonly Item[]) => Promise<unknown>
+  /** Called, not awaited, with the items of each page the band turns to, and a signal when a run hands them over. */
+  readonly onPage: (host: Host, items: readonly Item[], signal?: AbortSignal) => Promise<unknown>
 }

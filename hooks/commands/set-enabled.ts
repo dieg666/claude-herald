@@ -7,7 +7,7 @@ import type { CommandReply } from './command-reply.js'
 import { findSource } from './find-source.js'
 
 /**
- * `/news enable|disable <name>`: turns a source on (refreshing it at once, not awaited) or off, keeping it either way.
+ * `/news enable|disable <name>`: turns a source on (refreshing it at once, not awaited) or off, keeping it either way, and asks for the items the band now shows to be summarized.
  *
  * @param host the engine
  * @param rest what follows `enable` or `disable`
@@ -44,5 +44,6 @@ export async function setEnabled(
     text: isEnabled
       ? `Enabled "${source.name}"; it refreshes now.`
       : `Disabled "${source.name}"; it is kept but no longer fetched or shown.`,
+    resyncSummaries: true,
   }
 }

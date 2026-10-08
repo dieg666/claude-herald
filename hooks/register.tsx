@@ -28,15 +28,16 @@ const MODEL_LIMITER = Summaries.limiterOf(Summaries.SUMMARY_LIMITS.concurrentReq
 // The summary requests in flight and the queue ordering their writes, for this load of the module.
 const SUMMARY_JOBS = Summaries.summaryJobsOf(MODEL_LIMITER)
 
-// The refresh timer and the run in flight, for this load of the module; new items get one-line summaries.
-const REFRESH = Refresh.refreshLoopOf((host, run, signal) =>
-  Summaries.summarizeNew(host, SUMMARY_JOBS, run.newItems, signal),
+// The band's rotation timer, for this load of the module; each page the band turns to gets one-line summaries.
+const ROTATION = Band.rotationOf((host, items, signal) =>
+  Summaries.ensureVisibleSummaries(host, SUMMARY_JOBS, items, signal),
 )
 
-// The band's rotation timer, for this load of the module; each page the band turns to gets one-line summaries.
-const ROTATION = Band.rotationOf((host, items) =>
-  Summaries.ensureVisibleSummaries(host, SUMMARY_JOBS, items),
-)
+// The refresh timer and the run in flight, for this load of the module; new items and the page the band shows get one-line summaries.
+const REFRESH = Refresh.refreshLoopOf(async (host, run, signal) => {
+  await Summaries.summarizeNew(host, SUMMARY_JOBS, run.newItems, signal)
+  await Band.handShownPage(host, ROTATION, signal)
+})
 
 /**
  * Binds the Host from a hook's `$`, each engine call spelled in full.

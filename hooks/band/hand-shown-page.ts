@@ -11,14 +11,19 @@ import type { Rotation } from './rotation.js'
  *
  * @param host the engine
  * @param rotation the rotation
+ * @param signal aborts what `onPage` starts
  * @returns the page's items
  */
-export async function handShownPage(host: Host, rotation: Rotation): Promise<readonly Item[]> {
+export async function handShownPage(
+  host: Host,
+  rotation: Rotation,
+  signal?: AbortSignal,
+): Promise<readonly Item[]> {
   try {
     const items = bandItemsOf(await host.state.sources.read(), await host.state.items.read())
     const page = bandPageOf(await host.state.band.read(), items)
 
-    handPage(host, rotation, page.items)
+    handPage(host, rotation, page.items, signal)
 
     return page.items
   } catch (error) {

@@ -8,7 +8,7 @@ import { dropSources } from './drop-sources.js'
 import { findSource } from './find-source.js'
 
 /**
- * `/news remove <name|url>`: removes a source and forgets its items, seen ids and page hash; saved items stay.
+ * `/news remove <name|url>`: removes a source and forgets its items, seen ids and page hash; saved items stay; asks for the items the band now shows to be summarized.
  *
  * @param host the engine
  * @param rest what follows `remove`
@@ -32,5 +32,6 @@ export async function removeSource(host: Host, rest: string): Promise<CommandRep
     text: source.isFactory
       ? `Removed "${source.name}". /${COMMAND_NAME} reset brings the factory sources back.`
       : `Removed "${source.name}".`,
+    resyncSummaries: true,
   }
 }

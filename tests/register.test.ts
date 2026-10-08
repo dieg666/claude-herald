@@ -281,10 +281,10 @@ describe('register', () => {
     await clock.settle()
 
     expect(stored.get('items')).toEqual(kept)
-    // One line per failed source, and one per shown item the band could not summarize.
+    // One line per failed source; each shown item fails once at the start and again after the run.
     expect(logs.filter(line => !line.includes(' summary of ')).length).toBe(2)
-    expect(logs.filter(line => line.includes('no short summary of ')).length).toBe(2)
-    expect(logs.length).toBe(4)
+    expect(logs.filter(line => line.includes('no short summary of ')).length).toBe(4)
+    expect(logs.length).toBe(6)
     expect(logs.every(line => line.startsWith('debug: news: '))).toBe(true)
 
     await clock.advance(PERIOD)
@@ -336,14 +336,20 @@ describe('register', () => {
     expect(Object.keys(stored.get('items') as object)).toEqual(['feed'])
   })
   test(
-    'a first load makes no summary call; a later run with one new item makes exactly one, cached and in state',
+    'a first load summarizes only the page the band shows; a later run with one new item makes exactly one more, cached and in state',
     { plugins: [Fixtures.STATE_PEEK] },
     async ($, on) => {
       const clock = mock.clock(on)
-      const pages = new Map([[FEED.url, Feeds.rssWithItems(2)]])
-      const stored = Fixtures.storeOn(on, { sources: [FEED], settings: { refreshMinutes: 2 } })
+      const pages = new Map([[FEED.url, Feeds.rssWithItems(5)]])
+      // The band keeps its first page meanwhile, so only refresh runs ask for summaries.
+      const stored = Fixtures.storeOn(on, {
+        sources: [FEED],
+        settings: { refreshMinutes: 2, rotateSeconds: 3600 },
+      })
       const asked: string[] = []
-      const NEW = 'feed:https://example.com/2'
+      const NEW = 'feed:https://example.com/5'
+      const titlesOf = (prompts: string[]) =>
+        prompts.map(prompt => /^Title: (.*)$/m.exec(prompt)?.[1])
 
       webOn(on, pages)
       on('ui.toast', () => ({ value: undefined }))
@@ -357,25 +363,63 @@ describe('register', () => {
       await $.session.start(Fixtures.SESSION)
       await clock.settle()
 
-      expect(asked).toEqual([])
+      // The three items on the band's page, none of the two behind it.
+      expect(titlesOf(asked).sort()).toEqual(['Item 0 & more', 'Item 1 & more', 'Item 2 & more'])
 
-      pages.set(FEED.url, Feeds.rssWithItems(3))
+      pages.set(FEED.url, Feeds.rssWithItems(6))
       await clock.advance(PERIOD)
 
-      expect(asked.length).toBe(1)
-      expect(asked[0]).toContain('Title: Item 2 & more')
-      expect(stored.get('summaries')).toEqual([
-        { itemId: NEW, lang: 'feed', kind: 'short', text: 'One line. Another line.' },
-      ])
+      expect(titlesOf(asked.slice(3))).toEqual(['Item 5 & more'])
+      expect(stored.get('summaries')).toContainEqual({
+        itemId: NEW,
+        lang: 'feed',
+        kind: 'short',
+        text: 'One line. Another line.',
+      })
+      expect((stored.get('summaries') as unknown[]).length).toBe(4)
       expect(peeked((await $.command.run(Fixtures.PEEK)).text)).toMatchObject({
         summaries: { [NEW]: 'One line. Another line.' },
       })
 
       await clock.advance(PERIOD)
 
-      expect(asked.length).toBe(1)
+      expect(asked.length).toBe(4)
     },
   )
+
+  test('a first refresh with nothing seen yet summarizes the three items the band shows, once', async ($, on) => {
+    const clock = mock.clock(on)
+    const asked: string[] = []
+
+    Fixtures.storeOn(on, { sources: [FEED], settings: { refreshMinutes: 2, rotateSeconds: 3600 } })
+    webOn(on, new Map([[FEED.url, Feeds.rssWithItems(7)]]))
+    on('ui.render', () => Fixtures.BELOW_BAND)
+    on('model.complete', ($, e) => {
+      asked.push(/^Title: (.*)$/m.exec(e.prompt)?.[1] ?? '')
+
+      return { value: Fixtures.answerOf('Short.') }
+    })
+    on('session.start', () => ({ cwd: '/work' }))
+
+    await $.session.start(Fixtures.SESSION)
+    await clock.settle()
+
+    const ui = await $.ui.mount({
+      plugin: 'news',
+      component: 'AbovePrompt',
+      props: Fixtures.BAND_PROPS,
+      surface: 'terminal',
+    })
+    const shown = (await ui.findAll({ type: 'Link' })).map(link => link.children.join(''))
+
+    expect(shown.length).toBe(3)
+    expect([...asked].sort()).toEqual([...shown].sort())
+    expect(await ui.find({ type: 'Text', text: /^…$/ })).toBeUndefined()
+
+    await clock.advance(2 * PERIOD)
+
+    expect(asked.length).toBe(3)
+  })
 
   test(
     'summary requests for new items run at most two at a time',
@@ -403,25 +447,30 @@ describe('register', () => {
 
       await $.session.start(Fixtures.SESSION)
       await clock.settle()
+      // The first load's one item is on the page the band shows, so it is summarized first.
+      await clock.advance(1000)
+
+      expect([calls, inFlight]).toEqual([1, 0])
 
       pages.set(FEED.url, Feeds.rssWithItems(6))
-      await clock.advance(PERIOD)
+      await clock.advance(PERIOD - 1000)
 
-      expect([calls, inFlight]).toEqual([2, 2])
-
-      await clock.advance(1000)
-
-      expect([calls, inFlight]).toEqual([4, 2])
+      expect([calls, inFlight]).toEqual([3, 2])
 
       await clock.advance(1000)
 
-      expect([calls, inFlight]).toEqual([5, 1])
+      expect([calls, inFlight]).toEqual([5, 2])
+
+      await clock.advance(1000)
+
+      expect([calls, inFlight]).toEqual([6, 1])
 
       await clock.advance(1000)
 
       expect(inFlight).toBe(0)
+      expect(calls).toBe(6)
       expect(most).toBe(2)
-      expect((stored.get('summaries') as unknown[]).length).toBe(5)
+      expect((stored.get('summaries') as unknown[]).length).toBe(6)
     },
   )
 
@@ -730,6 +779,61 @@ describe('register', () => {
     await clock.advance(20_000)
 
     expect(await rangeOf(ui)).toBe('4-6 of 7')
+  })
+
+  test('/news reset summarizes the items shown in the default language', async ($, on) => {
+    const clock = mock.clock(on)
+    const factory = Defaults.FACTORY_SOURCES.find(source => source.isEnabled)
+    const id = factory?.id ?? ''
+    const items = Fixtures.datedItemsOf(id, 3)
+    const { asked } = Fixtures.bandOn(on, {
+      sources: [factory],
+      items: { [id]: items },
+      settings: { lang: 'es', rotateSeconds: 600 },
+      summaries: items.map(item => ({
+        itemId: item.id,
+        lang: 'es',
+        kind: 'short',
+        text: 'Corto.',
+      })),
+    })
+
+    await $.classic.SessionStart({ source: 'clear' })
+
+    const ui = await $.ui.mount(BAND)
+
+    expect((await ui.findAll({ type: 'Text', text: /^Corto\.$/ })).length).toBe(3)
+
+    await $.command.run(Fixtures.newsOf('reset'))
+    await clock.settle()
+
+    expect([...asked].sort()).toEqual(items.map(item => item.title).sort())
+    expect(await ui.find({ type: 'Text', text: `Summary of ${items[1]?.title}.` })).toBeDefined()
+  })
+
+  test('/news disable summarizes the page the band shows now, once per item', async ($, on) => {
+    const clock = mock.clock(on)
+    const shown = ['new:1', 'new:2', 'old:1']
+    const { asked } = Fixtures.bandOn(on, {
+      sources: [Fixtures.sourceAt('old'), Fixtures.sourceAt('new')],
+      items: { old: Fixtures.datedItemsOf('old', 5, 10), new: Fixtures.datedItemsOf('new', 2) },
+      summaries: shown.map(itemId => ({ itemId, lang: 'feed', kind: 'short', text: 'Cached.' })),
+    })
+
+    await $.classic.SessionStart({ source: 'clear' })
+
+    const ui = await $.ui.mount(BAND)
+
+    await $.command.run(Fixtures.newsOf('disable new'))
+    await clock.settle()
+
+    expect([...asked].sort()).toEqual(['old 2', 'old 3'])
+    expect(await ui.find({ type: 'Text', text: 'Summary of old 3.' })).toBeDefined()
+
+    await $.command.run(Fixtures.newsOf('disable new'))
+    await clock.settle()
+
+    expect(asked.length).toBe(2)
   })
 
   test('/news lang summarizes the items shown in the new language', async ($, on) => {
