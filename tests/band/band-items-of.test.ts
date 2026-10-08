@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'claude-code/testing'
 
 import Band from '../../hooks/band'
+import Stack from '../../hooks/deps/stack'
 import Fixtures from '../fixtures'
 
 describe('band-items-of', () => {
@@ -64,7 +65,7 @@ describe('band-items-of', () => {
     ).toEqual([react?.id])
   })
 
-  test('stack items count as one source and take their turn by date', () => {
+  test("a breaking stack release leads, and the stack's other releases take their turns by date as one source", () => {
     const [react, vite] = Fixtures.STACK_SAMPLE
     const items = { a: Fixtures.datedItemsOf('a', 2, 24 * 4 + 12) }
 
@@ -100,6 +101,92 @@ describe('band-items-of', () => {
       stack[1]?.id,
       'anthropic:2',
     ])
+  })
+
+  test('breaking and security stack releases lead, newest first, however old; the rest stay mixed with no page repeating a source after them', () => {
+    const { sources, items, stack } = Fixtures.FLAGGED_BAND
+    const [vite, , requests, jsdom] = stack
+    const list = Band.bandItemsOf(sources, items, stack)
+    const sourceIds = list.map(item => item.sourceId)
+
+    expect(list).toHaveLength(29)
+    expect(list.slice(0, 6).map(item => item.id)).toEqual([
+      requests?.id,
+      jsdom?.id,
+      'hn:1',
+      'sdk:1',
+      vite?.id,
+      'anthropic:1',
+    ])
+    expect(Fixtures.pageRepeatsOf(sourceIds)).toEqual(['page 1: @stack'])
+    expect(Band.bandItemsOf(sources, items, [...stack].reverse())).toEqual(list)
+  })
+
+  test('the rows that lead are drawn with ⚠, and an undated flagged release comes after a dated one', () => {
+    const { sources, items, stack } = Fixtures.FLAGGED_BAND
+    const [vite, react, requests] = stack
+    const undated = Fixtures.stackItemAt('undici', '7.0.0', { current: '6.0.0', breaking: true })
+    const list = Band.bandItemsOf(sources, items, [undated, vite!, react!, requests!])
+
+    expect(list.slice(0, 2).map(item => item.id)).toEqual([requests?.id, undated.id])
+    expect(
+      list.map(item => Stack.isStackItem(item) && Stack.stackIconOf(item.release) === '⚠'),
+    ).toEqual(list.map((_, index) => index < 2))
+  })
+
+  test('at most two flagged releases lead, so page 1 keeps a place for another source; the others take the stack turns', () => {
+    const { sources, items, stack } = Fixtures.FLAGGED_BAND
+    const lodash = Fixtures.stackItemAt('lodash', '5.0.0', {
+      current: '4.17.21',
+      level: 'major',
+      security: true,
+      publishedAt: '2026-01-01T10:00:00Z',
+    })
+    const undici = Fixtures.stackItemAt('undici', '7.0.0', {
+      current: '6.0.0',
+      level: 'major',
+      breaking: true,
+      publishedAt: '2025-12-25T00:00:00Z',
+    })
+    const [vite, react, requests, jsdom] = stack
+    const all = [vite!, lodash, react!, requests!, undici, jsdom!]
+    const list = Band.bandItemsOf(sources, items, all)
+    const ids = list.map(item => item.id)
+    const stackIds = list.filter(item => item.sourceId === '@stack').map(item => item.id)
+
+    expect(list).toHaveLength(31)
+    expect(ids.slice(0, 3)).toEqual([lodash.id, requests?.id, 'hn:1'])
+    expect(stackIds).toEqual([lodash.id, requests?.id, vite?.id, react?.id, undici.id, jsdom?.id])
+    expect(ids.indexOf(undici.id)).toBeGreaterThan(2)
+    expect(Fixtures.pageRepeatsOf(list.map(item => item.sourceId))).toEqual(['page 1: @stack'])
+    expect(Band.bandItemsOf(sources, items, [...all].reverse())).toEqual(list)
+  })
+
+  test('a read breaking or security release is still left out, and the rest lead', () => {
+    const { sources, items, stack } = Fixtures.FLAGGED_BAND
+    const [vite, , requests, jsdom] = stack
+    const read = { '@stack': [requests?.id ?? ''], hn: ['hn:1'] }
+    const list = Band.bandItemsOf(sources, items, stack, read)
+
+    expect(list).toHaveLength(27)
+    expect(list.slice(0, 4).map(item => item.id)).toEqual([jsdom?.id, 'hn:2', 'sdk:1', vite?.id])
+    expect(list.map(item => item.id)).not.toContain(requests?.id)
+    expect(Fixtures.pageRepeatsOf(list.map(item => item.sourceId))).toEqual([])
+  })
+
+  test('once every item is read, all come back with the breaking and security releases leading', () => {
+    const { sources, items, stack } = Fixtures.FLAGGED_BAND
+    const read = Object.fromEntries(
+      [...Object.values(items), stack].map(list => [
+        list[0]?.sourceId ?? '',
+        list.map(item => item.id),
+      ]),
+    )
+
+    const list = Band.bandItemsOf(sources, items, stack, read)
+
+    expect(list).toEqual(Band.bandItemsOf(sources, items, stack))
+    expect(list.slice(0, 3).map(item => item.id)).toEqual([stack[2]?.id, stack[3]?.id, 'hn:1'])
   })
 
   test('undated items come after the mixed dated ones, in source order', () => {

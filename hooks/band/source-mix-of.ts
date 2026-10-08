@@ -27,11 +27,12 @@ function isBefore(a: Entry, b: Entry): boolean {
 }
 
 /**
- * Items in rounds over their sources: each round takes every source's newest remaining item (ties in the order given), the newest of them first, ties by source id then item id; a source taken in the last `BAND_PAGE_SIZE - 1` places waits while another source has items, so no page repeats a source while others remain.
+ * Items in rounds over their sources: each round takes every source's newest remaining item (ties in the order given), the newest of them first, ties by source id then item id; a source taken in the last `BAND_PAGE_SIZE - 1` places, those of the items placed before these included, waits while another source has items, so no page repeats a source while others remain.
  *
  * @param items the items, in any order
+ * @param before the source ids of the items placed right before these, in order
  */
-export function sourceMixOf(items: readonly Item[]): Item[] {
+export function sourceMixOf(items: readonly Item[], before: readonly string[] = []): Item[] {
   const queues = new Map<string, Entry[]>()
 
   items.forEach((item, index) => {
@@ -47,7 +48,7 @@ export function sourceMixOf(items: readonly Item[]): Item[] {
 
   const mixed: Item[] = []
   const taken = new Set<string>()
-  const recent: string[] = []
+  const recent = before.slice(Math.max(0, before.length - GUARD))
   const rankOf = (sourceId: string) =>
     (recent.includes(sourceId) ? 2 : 0) + (taken.has(sourceId) ? 1 : 0)
 

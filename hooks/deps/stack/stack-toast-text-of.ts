@@ -1,5 +1,6 @@
 import type { StackItem } from '../../../types/index.js'
 import { fitToast } from '../../refresh/fit-toast.js'
+import { isFlaggedRelease } from './is-flagged-release.js'
 import { stackVersionsOf } from './stack-versions-of.js'
 
 /**
@@ -10,7 +11,7 @@ import { stackVersionsOf } from './stack-versions-of.js'
 function nameOf(item: StackItem): string {
   const { release } = item
 
-  return `${stackVersionsOf(release)}${release.breaking || release.security ? ' ⚠' : ''}`
+  return `${stackVersionsOf(release)}${isFlaggedRelease(release) ? ' ⚠' : ''}`
 }
 
 /**

@@ -91,6 +91,20 @@ describe('source-mix-of', () => {
     expect(Fixtures.pageRepeatsOf(mixed.map(id => id.slice(0, 1)))).toEqual([])
   })
 
+  test('the sources of the last two items placed right before the list wait as if just taken, so the first page does not repeat them', () => {
+    const list = [
+      ...Fixtures.datedItemsOf('a', 2),
+      ...Fixtures.datedItemsOf('b', 1, 1),
+      ...Fixtures.datedItemsOf('c', 1, 2),
+    ]
+    const idsOf = (before: readonly string[]) => Band.sourceMixOf(list, before).map(item => item.id)
+
+    expect(idsOf([])).toEqual(['a:1', 'b:1', 'c:1', 'a:2'])
+    expect(idsOf(['a'])).toEqual(['b:1', 'c:1', 'a:1', 'a:2'])
+    expect(idsOf(['a', 'b'])).toEqual(['c:1', 'a:1', 'b:1', 'a:2'])
+    expect(idsOf(['a', 'b', 'x'])).toEqual(idsOf([]))
+  })
+
   test('a page never repeats a source while others have items, for many sources of uneven sizes', () => {
     const uneven = Array.from({ length: 7 }, (_, source) =>
       Fixtures.datedItemsOf(`s${source}`, 1 + ((source * 5) % 9), source * 3),

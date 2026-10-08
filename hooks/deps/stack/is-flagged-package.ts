@@ -1,4 +1,5 @@
 import type { StackPackage } from './stack-package.js'
+import { isFlaggedRelease } from './is-flagged-release.js'
 
 /**
  * Whether any release shown of a package is breaking or fixes a security issue.
@@ -6,5 +7,5 @@ import type { StackPackage } from './stack-package.js'
  * @param pkg the package
  */
 export function isFlaggedPackage(pkg: StackPackage): boolean {
-  return pkg.releases.some(item => item.release.breaking || item.release.security)
+  return pkg.releases.some(item => isFlaggedRelease(item.release))
 }

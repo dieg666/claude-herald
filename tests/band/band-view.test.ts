@@ -907,8 +907,8 @@ describe('band-view', () => {
   }
 
   const SHOWN = {
-    all: ['react', 'vite', 'lodash', 'requests', 'next', 'zod'],
-    'minor+': ['react', 'vite', 'requests', 'zod'],
+    all: ['react', 'requests', 'vite', 'lodash', 'next', 'zod'],
+    'minor+': ['react', 'requests', 'vite', 'zod'],
     'major+breaking+security': ['react', 'requests', 'zod'],
     'breaking+security': ['react', 'requests'],
   } as const
@@ -948,16 +948,56 @@ describe('band-view', () => {
 
         expect(await linksOf(ui)).toEqual([
           ['https://github.com/owner/react/releases/tag/v19.0.0', '18.2.0 → 19.0.0 · React 19'],
+          ['https://github.com/owner/requests/releases/tag/v2.31.1', '2.31.0 → 2.31.1'],
           ['https://github.com/owner/vite/releases/tag/v5.1.0', '5.0.0 → 5.1.0'],
-          ['https://github.com/owner/lodash/releases/tag/v4.17.21', '4.17.20 → 4.17.21'],
         ])
         expect(
-          (await ui.findAll({ type: 'Text', text: /^(⚠|📦|react|vite|lodash)$/ })).map(
+          (await ui.findAll({ type: 'Text', text: /^(⚠|📦|react|requests|vite)$/ })).map(
             text => text.text,
           ),
-        ).toEqual(['⚠', 'react', '📦', 'vite', '📦', 'lodash'])
+        ).toEqual(['⚠', 'react', '⚠', 'requests', '📦', 'vite'])
         expect(await ui.find({ type: 'Text', text: 'npm · major · breaking' })).toBeDefined()
         expect(await ui.find({ type: 'Text', text: /^…$/ })).toBeUndefined()
+      },
+    )
+
+    test(
+      `on ${surface}: the first page shows the breaking and security releases of the stack, older than every news item, then the newest news item`,
+      { timeoutMs: 20_000 },
+      async ($, on) => {
+        const clock = mock.clock(on)
+        const { sources, items, stack } = Fixtures.FLAGGED_BAND
+
+        Fixtures.bandOn(
+          on,
+          { sources, items, ...Fixtures.stackStoreOf(stack, { showLevel: 'all' }) },
+          Fixtures.stackTreeOf(stack),
+        )
+
+        await $.session.start(Fixtures.SESSION)
+        await clock.settle()
+
+        const ui = await $.ui.mount({ ...BAND, surface })
+
+        expect(await rangeOf(ui)).toBe('1–3 of 29')
+        expect((await linksOf(ui)).map(([href]) => href)).toEqual([
+          'https://github.com/owner/requests/releases/tag/v2.31.1',
+          'https://github.com/owner/jsdom/releases/tag/v30.1.2',
+          'https://example.com/hn/1',
+        ])
+        expect(
+          (await ui.findAll({ type: 'Text', text: /^(⚠|📦|requests|jsdom)$/ })).map(
+            text => text.text,
+          ),
+        ).toEqual(['⚠', 'requests', '⚠', 'jsdom'])
+
+        await ui.press({ key: 'next' })
+
+        expect((await linksOf(ui)).map(([href]) => href)).toEqual([
+          'https://example.com/sdk/1',
+          'https://github.com/owner/vite/releases/tag/v5.1.0',
+          'https://example.com/anthropic/1',
+        ])
       },
     )
 
@@ -1032,7 +1072,7 @@ describe('band-view', () => {
 
         expect(leads).toEqual(Array.from({ length: 9 }, () => 22))
         expect(names).toEqual(
-          ['react', 'vite', 'lodash', 'requests', 'next', 'zod'].map(name => [name, 'claude']),
+          ['react', 'requests', 'vite', 'lodash', 'next', 'zod'].map(name => [name, 'claude']),
         )
       },
     )
@@ -1398,7 +1438,7 @@ describe('band-view', () => {
             props: { ...Fixtures.BAND_PROPS, bodyColumns: columns },
           })
 
-          expect((await agesOf(ui)).map(line => line.age)).toEqual([' 12h', '  1d', '  2d'])
+          expect((await agesOf(ui)).map(line => line.age)).toEqual([' 12h', '  3d', '  1d'])
           expect(await leadsOf(ui)).toEqual([22, 22, 22])
 
           await ui.unmount()
