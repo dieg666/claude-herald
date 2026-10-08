@@ -6,7 +6,7 @@ import type { CommandReply } from './command-reply.js'
 import { wholeNumberOf } from './whole-number-of.js'
 
 /**
- * `/news rotate <sec>`: saves the seconds between band rotations (5 to 3600).
+ * `/news rotate <sec>`: saves the seconds between band rotations (5 to 3600) and asks for the rotation to restart.
  *
  * @param host the engine
  * @param rest what follows `rotate`
@@ -23,5 +23,5 @@ export async function setRotate(host: Host, rest: string): Promise<CommandReply>
 
   await applySettings(host, { rotateSeconds: seconds })
 
-  return { text: `The band turns its page every ${seconds} seconds.` }
+  return { text: `The band turns its page every ${seconds} seconds.`, restartRotation: true }
 }

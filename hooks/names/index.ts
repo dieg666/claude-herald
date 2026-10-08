@@ -1,3 +1,5 @@
+export * from './action-hotkeys.js'
+export * from './band-hotkeys.js'
 export * from './command-name.js'
 export * from './pane-id.js'
 export * from './pane-title.js'

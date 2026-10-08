@@ -2,14 +2,17 @@ import type {
   ModelCompleteRequest,
   ModelCompleteResult,
   PaneOpenArgs,
+  ProcessRunInit,
+  ProcessRunResult,
   RenderSurface,
+  UiCopyResult,
 } from 'claude-code'
 
 import type { Host, StateCell } from '../../hooks/host'
 import State from '../../hooks/state'
 
 /**
- * A Host over an in-memory store, state, web, model and surfaces (none attached until a test adds one): what concern code saw and did, no engine involved; the clock reads 1000.
+ * A Host over an in-memory store, state, web, model and surfaces (none attached until a test adds one): what concern code saw and did, no engine involved; the clock reads 1000; programs answer from `programs` by name (exit 0 when absent), the clipboard copies unless `copyResult` says otherwise, and `OS` is unset until a test sets `env.OS`.
  *
  * @param entries what the store holds at the start
  * @param userLanguage what Claude Code's `language` setting answers
@@ -29,6 +32,12 @@ export function fakeHostOf(entries: Readonly<Record<string, unknown>> = {}, user
   const afters: { ms: number; fn: () => void; isCancelled: boolean }[] = []
   const surfaces: RenderSurface[] = []
   const opened: PaneOpenArgs[] = []
+  const runs: { argv: readonly string[]; init?: ProcessRunInit }[] = []
+  const programs = new Map<string, Partial<ProcessRunResult> | Error>()
+  const env: { OS?: string } = {}
+  const copies: { text: string; surface: RenderSurface }[] = []
+  const copyResult: { value: UiCopyResult | Error } = { value: { isCopied: true } }
+  const transcript: string[] = []
 
   const cellOf = <T>(key: keyof typeof State.INITIAL_STATE): StateCell<T> => ({
     read: async () => state[key] as T,
@@ -133,6 +142,37 @@ export function fakeHostOf(entries: Readonly<Record<string, unknown>> = {}, user
 
       return { isPlaced: true }
     },
+    processRun: async (argv, init) => {
+      runs.push(init === undefined ? { argv } : { argv, init })
+
+      const answer = programs.get(argv[0] ?? '') ?? {}
+
+      if (answer instanceof Error) {
+        throw answer
+      }
+
+      return {
+        exitCode: 0,
+        stdout: '',
+        stderr: '',
+        isStdoutTruncated: false,
+        isStderrTruncated: false,
+        ...answer,
+      }
+    },
+    osVariable: async () => env.OS,
+    copy: async (text, surface) => {
+      copies.push({ text, surface })
+
+      if (copyResult.value instanceof Error) {
+        throw copyResult.value
+      }
+
+      return copyResult.value
+    },
+    log: text => {
+      transcript.push(text)
+    },
   }
 
   return {
@@ -151,5 +191,11 @@ export function fakeHostOf(entries: Readonly<Record<string, unknown>> = {}, user
     afters,
     surfaces,
     opened,
+    runs,
+    programs,
+    env,
+    copies,
+    copyResult,
+    transcript,
   }
 }

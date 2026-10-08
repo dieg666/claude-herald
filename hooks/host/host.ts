@@ -5,8 +5,11 @@ import type {
   ModelCompleteRequest,
   ModelCompleteResult,
   PaneOpenArgs,
+  ProcessRunInit,
+  ProcessRunResult,
   RenderSurface,
   Timer,
+  UiCopyResult,
   UiOpenResult,
 } from 'claude-code'
 
@@ -107,4 +110,24 @@ export type Host = {
    * `$.ui.open(pane)`: opens or retitles a pane; says whether it is drawn.
    */
   openPane: (pane: PaneOpenArgs) => Promise<UiOpenResult>
+
+  /**
+   * `$.process.run(argv, init)`: runs a program with no shell; rejects when it cannot start or times out.
+   */
+  processRun: (argv: readonly string[], init?: ProcessRunInit) => Promise<ProcessRunResult>
+
+  /**
+   * `$.env.get('OS')`: `Windows_NT` on Windows, usually unset elsewhere.
+   */
+  osVariable: () => Promise<string | undefined>
+
+  /**
+   * `$.ui.copy({ text, surface })`: puts the text on that surface's clipboard; says whether it did.
+   */
+  copy: (text: string, surface: RenderSurface) => Promise<UiCopyResult>
+
+  /**
+   * One dim line in the transcript that Claude does not read (`$.ui.log(text)`).
+   */
+  log: (text: string) => void
 }

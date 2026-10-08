@@ -281,7 +281,10 @@ describe('register', () => {
     await clock.settle()
 
     expect(stored.get('items')).toEqual(kept)
-    expect(logs.length).toBe(2)
+    // One line per failed source, and one per shown item the band could not summarize.
+    expect(logs.filter(line => !line.includes(' summary of ')).length).toBe(2)
+    expect(logs.filter(line => line.includes('no short summary of ')).length).toBe(2)
+    expect(logs.length).toBe(4)
     expect(logs.every(line => line.startsWith('debug: news: '))).toBe(true)
 
     await clock.advance(PERIOD)
@@ -606,4 +609,157 @@ describe('register', () => {
       expect(registered).toEqual([expect.objectContaining({ name: 'news', immediate: true })])
     })
   }
+
+  const BAND_STORE = {
+    sources: [Fixtures.sourceAt('src')],
+    items: { src: Fixtures.datedItemsOf('src', 7) },
+  }
+
+  const BAND = {
+    plugin: 'news',
+    component: 'AbovePrompt',
+    props: Fixtures.BAND_PROPS,
+    surface: 'terminal',
+  } as const
+
+  const rangeOf = async (ui: {
+    find: (query: { type: string; text: RegExp }) => Promise<unknown>
+  }) => ((await ui.find({ type: 'Text', text: / of \d+$/ })) as { text?: string } | undefined)?.text
+
+  test('session.start summarizes the page the band shows, once', async ($, on) => {
+    const clock = mock.clock(on)
+    const { asked } = Fixtures.bandOn(on, BAND_STORE)
+
+    await $.session.start(Fixtures.SESSION)
+    await clock.settle()
+
+    expect([...asked].sort()).toEqual(['src 1', 'src 2', 'src 3'])
+
+    const ui = await $.ui.mount(BAND)
+
+    await ui.redraw()
+    await clock.settle()
+
+    expect(asked.length).toBe(3)
+    expect(await ui.find({ type: 'Text', text: 'Summary of src 2.' })).toBeDefined()
+  })
+
+  test('/news rotate restarts the band timer once, at the new seconds', async ($, on) => {
+    const clock = mock.clock(on)
+
+    Fixtures.bandOn(on, { ...BAND_STORE, settings: { rotateSeconds: 20 } })
+
+    await $.session.start(Fixtures.SESSION)
+    await clock.settle()
+
+    const ui = await $.ui.mount(BAND)
+
+    await clock.advance(10_000)
+    await $.command.run(Fixtures.newsOf('rotate 5'))
+    await clock.advance(5000)
+
+    expect(await rangeOf(ui)).toBe('4-6 of 7')
+
+    // The old 20-second timer would turn a page here as well.
+    await clock.advance(5000)
+
+    expect(await rangeOf(ui)).toBe('7 of 7')
+
+    await clock.advance(5000)
+
+    expect(await rangeOf(ui)).toBe('1-3 of 7')
+  })
+
+  test('a refused /news rotate leaves the band timer alone', async ($, on) => {
+    const clock = mock.clock(on)
+
+    Fixtures.bandOn(on, { ...BAND_STORE, settings: { rotateSeconds: 20 } })
+
+    await $.session.start(Fixtures.SESSION)
+    await clock.settle()
+
+    const ui = await $.ui.mount(BAND)
+
+    await $.command.run(Fixtures.newsOf('rotate 1'))
+    await clock.advance(19_999)
+
+    expect(await rangeOf(ui)).toBe('1-3 of 7')
+
+    await clock.advance(1)
+
+    expect(await rangeOf(ui)).toBe('4-6 of 7')
+  })
+
+  test('a second session.start leaves one band timer', async ($, on) => {
+    const clock = mock.clock(on)
+
+    Fixtures.bandOn(on, { ...BAND_STORE, settings: { rotateSeconds: 20 } })
+
+    await $.session.start(Fixtures.SESSION)
+    await clock.settle()
+    await $.session.start(Fixtures.SESSION)
+    await clock.settle()
+
+    const ui = await $.ui.mount(BAND)
+
+    await clock.advance(20_000)
+
+    expect(await rangeOf(ui)).toBe('4-6 of 7')
+  })
+
+  test('/news reset restarts the band timer at the default seconds', async ($, on) => {
+    const clock = mock.clock(on)
+    const factory = Defaults.FACTORY_SOURCES.find(source => source.isEnabled)
+
+    expect(factory).toBeDefined()
+
+    const id = factory?.id ?? ''
+
+    Fixtures.bandOn(on, {
+      sources: [factory],
+      items: { [id]: Fixtures.datedItemsOf(id, 7) },
+      settings: { rotateSeconds: 600 },
+    })
+
+    await $.session.start(Fixtures.SESSION)
+    await clock.settle()
+
+    const ui = await $.ui.mount(BAND)
+
+    await $.command.run(Fixtures.newsOf('reset'))
+    await clock.advance(20_000)
+
+    expect(await rangeOf(ui)).toBe('4-6 of 7')
+  })
+
+  test('/news lang summarizes the items shown in the new language', async ($, on) => {
+    const clock = mock.clock(on)
+    const { asked } = Fixtures.bandOn(on, {
+      ...BAND_STORE,
+      summaries: ['src:1', 'src:2', 'src:3'].map(itemId => ({
+        itemId,
+        lang: 'feed',
+        kind: 'short',
+        text: `Cached ${itemId}.`,
+      })),
+    })
+
+    await $.classic.SessionStart({ source: 'clear' })
+
+    const ui = await $.ui.mount(BAND)
+
+    expect(await ui.find({ type: 'Text', text: 'Cached src:2.' })).toBeDefined()
+
+    await $.command.run(Fixtures.newsOf('lang es'))
+    await clock.settle()
+
+    expect([...asked].sort()).toEqual(['src 1', 'src 2', 'src 3'])
+    expect(await ui.find({ type: 'Text', text: 'Summary of src 2.' })).toBeDefined()
+
+    await $.command.run(Fixtures.newsOf('lang feed'))
+    await clock.settle()
+
+    expect(asked.length).toBe(3)
+    expect(await ui.find({ type: 'Text', text: 'Cached src:2.' })).toBeDefined()
+  })
 })
