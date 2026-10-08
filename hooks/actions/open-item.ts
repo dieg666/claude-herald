@@ -26,7 +26,7 @@ export async function openItem(host: Host, item: Item): Promise<boolean> {
   let reason: string
 
   try {
-    const { exitCode, stderr } = await host.processRun(argv, { timeoutMs: 15_000 })
+    const { exitCode, stderr } = await host.processRun(argv, { timeoutMs: 10_000 })
 
     if (exitCode === 0) {
       return true

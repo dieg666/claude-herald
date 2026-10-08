@@ -5,11 +5,17 @@ import Fixtures from '../fixtures'
 
 describe('open-item', () => {
   const ITEM = Fixtures.itemAt('a')
+  const XDG = ['sh', '-c', 'xdg-open "$1" >/dev/null 2>&1 &', 'sh']
 
   const PLATFORMS = [
-    { name: 'Windows', os: 'Windows_NT', uname: '', argv: ['cmd', '/c', 'start', '', ITEM.url] },
+    {
+      name: 'Windows',
+      os: 'Windows_NT',
+      uname: '',
+      argv: ['rundll32', 'url.dll,FileProtocolHandler', ITEM.url],
+    },
     { name: 'macOS', os: undefined, uname: 'Darwin\n', argv: ['open', ITEM.url] },
-    { name: 'Linux', os: undefined, uname: 'Linux\n', argv: ['xdg-open', ITEM.url] },
+    { name: 'Linux', os: undefined, uname: 'Linux\n', argv: [...XDG, ITEM.url] },
   ] as const
 
   for (const platform of PLATFORMS) {
@@ -26,6 +32,7 @@ describe('open-item', () => {
       expect(runs.map(run => run.argv)).toEqual(
         platform.os === undefined ? [['uname', '-s'], platform.argv] : [platform.argv],
       )
+      expect(runs.at(-1)?.init).toEqual({ timeoutMs: 10_000 })
       expect(toasts).toEqual([])
     })
   }
@@ -38,7 +45,7 @@ describe('open-item', () => {
     expect(await Actions.openItem(host, ITEM)).toBe(true)
     expect(runs.map(run => run.argv)).toEqual([
       ['uname', '-s'],
-      ['xdg-open', ITEM.url],
+      [...XDG, ITEM.url],
     ])
     expect(logs).toEqual(['news: uname -s failed: not found'])
   })
@@ -56,17 +63,17 @@ describe('open-item', () => {
   test('an opener that fails or cannot start toasts the reason and logs it', async () => {
     const failed = Fixtures.fakeHostOf()
 
-    failed.programs.set('xdg-open', { exitCode: 3, stderr: 'no browser\n' })
+    failed.programs.set('sh', { exitCode: 127, stderr: 'sh: not found\n' })
 
     expect(await Actions.openItem(failed.host, ITEM)).toBe(false)
-    expect(failed.toasts).toEqual(['Could not open the link: xdg-open exited with 3: no browser'])
+    expect(failed.toasts).toEqual(['Could not open the link: sh exited with 127: sh: not found'])
     expect(failed.logs).toEqual([
-      `news: could not open ${ITEM.url}: xdg-open exited with 3: no browser`,
+      `news: could not open ${ITEM.url}: sh exited with 127: sh: not found`,
     ])
 
     const missing = Fixtures.fakeHostOf()
 
-    missing.programs.set('xdg-open', new Error('ENOENT'))
+    missing.programs.set('sh', new Error('ENOENT'))
 
     expect(await Actions.openItem(missing.host, ITEM)).toBe(false)
     expect(missing.toasts).toEqual(['Could not open the link: ENOENT'])
@@ -118,11 +125,11 @@ describe('open-item', () => {
 
     expect(runs).toEqual([
       ['uname', '-s'],
-      ['xdg-open', 'https://example.com/src/1'],
-      ['cmd', '/c', 'start', '', 'https://example.com/src/2'],
+      [...XDG, 'https://example.com/src/1'],
+      ['rundll32', 'url.dll,FileProtocolHandler', 'https://example.com/src/2'],
       ['uname', '-s'],
-      ['xdg-open', 'https://example.com/src/2'],
-      ['cmd', '/c', 'start', '', 'https://example.com/src/3'],
+      [...XDG, 'https://example.com/src/2'],
+      ['rundll32', 'url.dll,FileProtocolHandler', 'https://example.com/src/3'],
     ])
     expect([toasts, submitted]).toEqual([[], []])
   })
