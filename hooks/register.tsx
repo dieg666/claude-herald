@@ -40,6 +40,9 @@ const REFRESH = Refresh.refreshLoopOf(async (host, run, signal) => {
   await Band.handShownPage(host, ROTATION, signal)
 })
 
+// How many items the pane last drew, for this load of the module; the render hook records it, the summaries read it.
+const PANE_WINDOW = Pane.paneWindowOf()
+
 /**
  * Binds the Host from a hook's `$`, each engine call spelled in full.
  *
@@ -108,6 +111,20 @@ function restartRotation($: EngineInterface): void {
  */
 function resyncSummaries($: EngineInterface): void {
   void Band.handShownPage(hostOf($), ROTATION)
+}
+
+/**
+ * Summarizes the items the pane shows now in the current language, not awaited: in the window it last drew, else `PANE_FIRST_WINDOW` when it is opening, else nothing.
+ *
+ * @param $ the hook's engine
+ * @param isOpening whether `/news` just opened the pane
+ */
+function resyncPane($: EngineInterface, isOpening: boolean): void {
+  const size = PANE_WINDOW.size ?? (isOpening ? Pane.PANE_FIRST_WINDOW : undefined)
+
+  if (size !== undefined) {
+    void Pane.handShownPane(hostOf($), size, summarizeShown)
+  }
 }
 
 /**
@@ -255,8 +272,12 @@ export const register: Register = on => {
       resyncSummaries($)
     }
 
-    if (reply.summarizePane === true) {
-      void Pane.handShownPane(hostOf($), Pane.PANE_FIRST_WINDOW, summarizeShown)
+    if (
+      reply.summarizePane === true ||
+      reply.restartRotation === true ||
+      reply.resyncSummaries === true
+    ) {
+      resyncPane($, reply.summarizePane === true)
     }
 
     return { text: reply.text }
@@ -292,8 +313,9 @@ export const register: Register = on => {
     )
   })
 
-  // The pane reads state only; its Buttons write through the Host when pressed.
-  on('ui.render', { component: 'Pane', requestId: Names.PANE_ID }, async ($, e) => {
+  // The pane reads state only (it notes the window size in a module holder); its Buttons write through the Host when pressed.
+  // The id stays literal so validate reports it; a test mounts the pane by Names.PANE_ID to keep them equal.
+  on('ui.render', { component: 'Pane', requestId: 'news' }, async ($, e) => {
     const sources = await read($, SOURCES)
     const saved = await read($, SAVED)
     const page = Pane.panePageOf(
@@ -304,6 +326,8 @@ export const register: Register = on => {
       Pane.paneWindowSizeOf(sources, e.props.bodyColumns, e.props.scroll.bodyRows),
     )
     const { Box, Text, Button, Link } = $.ui.resolve(e)
+
+    PANE_WINDOW.size = page.size
 
     return Pane.paneView(
       { Box, Text, Button, Link },

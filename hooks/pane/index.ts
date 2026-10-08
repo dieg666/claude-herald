@@ -20,6 +20,8 @@ export * from './pane-tab-columns.js'
 export type * from './pane-tab-view.js'
 export * from './pane-tabs-of.js'
 export * from './pane-view.js'
+export type * from './pane-window.js'
+export * from './pane-window-of.js'
 export * from './pane-window-size-of.js'
 export * from './short-date-of.js'
 

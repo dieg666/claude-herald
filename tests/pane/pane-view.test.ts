@@ -1,6 +1,8 @@
 import type { ElementQuery, FoundElement } from 'claude-code/testing'
 import { describe, expect, mock, test } from 'claude-code/testing'
 
+import Names from '../../hooks/names'
+import Pane from '../../hooks/pane'
 import Fixtures from '../fixtures'
 
 describe('pane-view', () => {
@@ -21,7 +23,7 @@ describe('pane-view', () => {
   const PANE = {
     plugin: 'news',
     component: 'Pane',
-    requestId: 'news',
+    requestId: Names.PANE_ID,
     props: Fixtures.PANE_PROPS,
   } as const
 
@@ -320,6 +322,92 @@ describe('pane-view', () => {
         expect(asked.slice(7)).toEqual(['gone 1'])
         expect(await ui.find({ type: 'Text', text: 'Summary of gone 1.' })).toBeDefined()
         expect((await ui.findAll({ type: 'Text', text: /^\*$/ })).length).toBe(1)
+      },
+    )
+
+    test(`on ${surface}: the hook draws the pane opened under PANE_ID and leaves any other pane to the mods below`, async ($, on) => {
+      mock.clock(on)
+      Fixtures.bandOn(on, STORE)
+
+      await $.classic.SessionStart({ source: 'clear' })
+
+      const ours = await $.ui.mount({ ...PANE, surface })
+
+      expect(await ours.find({ key: 'tab-saved' })).toBeDefined()
+
+      const other = await $.ui.mount({ ...PANE, requestId: 'other', surface })
+
+      expect(await other.drawn()).toEqual(Fixtures.BELOW_BAND)
+    })
+
+    test(
+      `on ${surface}: /news before any drawing summarizes a first window; after a drawing, exactly the rows a tall pane shows, once each`,
+      { timeoutMs: 30_000 },
+      async ($, on) => {
+        const clock = mock.clock(on)
+        const { asked } = Fixtures.bandOn(on, {
+          sources: [ALPHA],
+          items: { a: Fixtures.datedItemsOf('a', 30) },
+        })
+        const titlesTo = (count: number) =>
+          Array.from({ length: count }, (_, index) => `a ${index + 1}`).sort()
+
+        Fixtures.paneOn(on, [surface])
+
+        await $.classic.SessionStart({ source: 'clear' })
+        await $.command.run(Fixtures.newsOf(''))
+        await clock.settle()
+
+        expect([...asked].sort()).toEqual(titlesTo(Pane.PANE_FIRST_WINDOW))
+
+        // Sixty rows less the tab row, the heading and the action row leave twenty-eight items.
+        const ui = await $.ui.mount({
+          ...PANE,
+          surface,
+          props: { ...Fixtures.PANE_PROPS, scroll: { offset: 0, bodyRows: 60 } },
+        })
+
+        expect(await headingOf(ui)).toBe('Alpha · 1-28 of 30')
+
+        await $.command.run(Fixtures.newsOf(''))
+        await clock.settle()
+        await ui.redraw()
+        await clock.settle()
+
+        expect([...asked].sort()).toEqual(titlesTo(28))
+        expect(await ui.find({ type: 'Text', text: /^…$/ })).toBeUndefined()
+      },
+    )
+
+    test(
+      `on ${surface}: a new summary language refreshes the whole window the open pane shows, not only the band's page`,
+      { timeoutMs: 20_000 },
+      async ($, on) => {
+        const clock = mock.clock(on)
+        const items = Fixtures.datedItemsOf('a', 6)
+        const { asked } = Fixtures.bandOn(on, {
+          sources: [ALPHA],
+          items: { a: items },
+          summaries: items.map(item => ({
+            itemId: item.id,
+            lang: 'feed',
+            kind: 'short',
+            text: `Cached ${item.title}.`,
+          })),
+        })
+
+        await $.classic.SessionStart({ source: 'clear' })
+
+        const ui = await $.ui.mount({ ...PANE, surface })
+
+        expect(await ui.find({ type: 'Text', text: 'Cached a 6.' })).toBeDefined()
+
+        await $.command.run(Fixtures.newsOf('lang fr'))
+        await clock.settle()
+
+        expect([...new Set(asked)].sort()).toEqual(items.map(item => item.title).sort())
+        expect(await ui.find({ type: 'Text', text: 'Summary of a 6.' })).toBeDefined()
+        expect(await ui.find({ type: 'Text', text: /^…$/ })).toBeUndefined()
       },
     )
 
