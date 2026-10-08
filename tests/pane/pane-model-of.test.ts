@@ -11,7 +11,7 @@ describe('pane-model-of', () => {
 
   test('tabs marked, the position, rows with link and date and no source mark; the selected one marked, with its summary', () => {
     const page = Pane.panePageOf({ tab: 'a', selected: 1 }, SOURCES, ITEMS, [], 10)
-    const model = Pane.paneModelOf(page, SOURCES, { 'a:2': 'Short.' }, [], 80)
+    const model = Pane.paneModelOf(page, SOURCES, { 'a:2': 'Short.' }, [], 80, true)
 
     expect(model.tabs.map(tab => [tab.id, tab.isActive])).toEqual([
       ['a', true],
@@ -44,19 +44,23 @@ describe('pane-model-of', () => {
   test('a news item read is marked, on its tab and on the saved tab', () => {
     const read = { a: ['a:2'], src: ['src:kept'] }
     const page = Pane.panePageOf({ tab: 'a', selected: 0 }, SOURCES, ITEMS, [], 10)
-    const model = Pane.paneModelOf(page, SOURCES, {}, [], 80, '', true, read)
+    const model = Pane.paneModelOf(page, SOURCES, {}, [], 80, true, '', true, read)
 
     expect(model.rows.map(row => [row.id, row.isRead])).toEqual([
       ['a:1', undefined],
       ['a:2', true],
     ])
-    expect(Pane.paneModelOf(page, SOURCES, {}, [], 80).rows.some(row => row.isRead)).toBe(false)
+    expect(Pane.paneModelOf(page, SOURCES, {}, [], 80, true).rows.some(row => row.isRead)).toBe(
+      false,
+    )
 
     const kept = { ...Fixtures.itemAt('kept'), savedAt: 1 }
     const saved = Pane.panePageOf({ tab: 'saved', selected: 0 }, SOURCES, ITEMS, [kept], 10)
 
     expect(
-      Pane.paneModelOf(saved, SOURCES, {}, [kept], 80, '', true, read).rows.map(row => row.isRead),
+      Pane.paneModelOf(saved, SOURCES, {}, [kept], 80, true, '', true, read).rows.map(
+        row => row.isRead,
+      ),
     ).toEqual([true])
   })
 
@@ -65,7 +69,7 @@ describe('pane-model-of', () => {
       a: 3,
     })
 
-    expect(Pane.paneModelOf(page, SOURCES, {}, [], 80).tabs.map(tab => tab.count)).toEqual([
+    expect(Pane.paneModelOf(page, SOURCES, {}, [], 80, true).tabs.map(tab => tab.count)).toEqual([
       3,
       undefined,
     ])
@@ -74,7 +78,7 @@ describe('pane-model-of', () => {
   test('on the saved tab: the stored snapshot drawn, a removed source with no name, undated with no date', () => {
     const kept = { ...Fixtures.itemAt('kept'), sourceId: 'gone', savedAt: 1 }
     const page = Pane.panePageOf({ tab: 'saved', selected: 0 }, SOURCES, ITEMS, [kept], 10)
-    const model = Pane.paneModelOf(page, SOURCES, {}, [kept], 80)
+    const model = Pane.paneModelOf(page, SOURCES, {}, [kept], 80, true)
 
     expect(model.position).toBe('1 of 1')
     expect(model.rows).toEqual([
@@ -104,6 +108,7 @@ describe('pane-model-of', () => {
         { 'a:1': 'Meta.', 'a:2': 'Real.' },
         [],
         80,
+        true,
       )
 
     expect(modelAt(0).rows.map(row => [row.id, row.summaryLines, row.hasNoSummary])).toEqual([
@@ -119,7 +124,14 @@ describe('pane-model-of', () => {
   test('only the selected row carries its summary, wrapped to the width after the indent on at most three lines', () => {
     const text = Array.from({ length: 10 }, (_, index) => `w${index}`).join(' ')
     const page = Pane.panePageOf({ tab: 'a', selected: 0 }, SOURCES, ITEMS, [], 10)
-    const rows = Pane.paneModelOf(page, SOURCES, { 'a:1': text, 'a:2': 'Short.' }, [], 12).rows
+    const rows = Pane.paneModelOf(
+      page,
+      SOURCES,
+      { 'a:1': text, 'a:2': 'Short.' },
+      [],
+      12,
+      true,
+    ).rows
 
     // Eight cells after the four-cell indent hold three words a line; the fourth line's words are cut.
     expect(rows.map(row => row.summaryLines)).toEqual([
@@ -134,7 +146,7 @@ describe('pane-model-of', () => {
       a: Fixtures.datedItemsOf('a', 1).map(item => ({ ...item, title: 't'.repeat(40) })),
     }
     const page = Pane.panePageOf({ tab: 'a', selected: 0 }, SOURCES, items, [], 10)
-    const [row] = Pane.paneModelOf(page, SOURCES, {}, [], 30).rows
+    const [row] = Pane.paneModelOf(page, SOURCES, {}, [], 30, true).rows
 
     // Thirty cells less the mark and its space and the seven-cell date column leave twenty-one.
     expect([row?.title, row?.date]).toEqual([`${'t'.repeat(20)}…`, 'Jan 2'])
@@ -142,7 +154,7 @@ describe('pane-model-of', () => {
 
   test('an empty summary, replies rejected for now, shows no summary line', () => {
     const page = Pane.panePageOf({ tab: 'a', selected: 0 }, SOURCES, ITEMS, [], 10)
-    const [row] = Pane.paneModelOf(page, SOURCES, { 'a:1': '' }, [], 80).rows
+    const [row] = Pane.paneModelOf(page, SOURCES, { 'a:1': '' }, [], 80, true).rows
 
     expect(row).toMatchObject({ id: 'a:1', hasNoSummary: true })
     expect(row?.summary).toBeUndefined()
@@ -160,6 +172,7 @@ describe('pane-model-of', () => {
       {},
       kept,
       80,
+      true,
     )
     const saved = Pane.paneModelOf(
       Pane.panePageOf({ tab: 'saved', selected: 0 }, SOURCES, { a: [tag] }, kept, 10),
@@ -167,6 +180,7 @@ describe('pane-model-of', () => {
       {},
       kept,
       80,
+      true,
     )
 
     expect(own.rows.map(row => row.title)).toEqual(['v1.2.3'])
@@ -180,7 +194,7 @@ describe('pane-model-of', () => {
     const pageAt = (tab: string) =>
       Pane.panePageOf({ tab, selected: 0 }, sources, { a: kept }, kept, 10)
     const rowAt = (tab: string, columns: number) =>
-      Pane.paneModelOf(pageAt(tab), sources, {}, kept, columns).rows[0]
+      Pane.paneModelOf(pageAt(tab), sources, {}, kept, columns, true).rows[0]
 
     // The mark and its space take two cells, the date column seven; the name needs two cells of gap.
     for (const columns of [120, 81]) {
@@ -216,6 +230,7 @@ describe('pane-model-of', () => {
       {},
       [],
       80,
+      true,
     )
     const saved = Pane.paneModelOf(
       Pane.panePageOf({ tab: 'saved', selected: 0 }, SOURCES, {}, [], 10),
@@ -223,6 +238,7 @@ describe('pane-model-of', () => {
       {},
       [],
       80,
+      true,
     )
 
     expect([empty.position, empty.rows, empty.empty]).toEqual([
@@ -244,6 +260,7 @@ describe('pane-model-of', () => {
       {},
       [],
       80,
+      true,
     )
     const narrow = Pane.paneModelOf(
       Pane.panePageOf({ tab: 'a', selected: 0 }, SOURCES, ITEMS, [], 10, undefined, {}, health),
@@ -251,6 +268,7 @@ describe('pane-model-of', () => {
       {},
       [],
       20,
+      true,
     )
     const empty = Pane.paneModelOf(
       Pane.panePageOf({ tab: 'a', selected: 0 }, SOURCES, {}, [], 10, undefined, {}, health),
@@ -258,6 +276,7 @@ describe('pane-model-of', () => {
       {},
       [],
       80,
+      true,
     )
 
     expect([listed.notice, listed.rows.length]).toEqual([
@@ -277,6 +296,7 @@ describe('pane-model-of', () => {
         {},
         [],
         80,
+        true,
       ).notice,
     ).toBeUndefined()
   })
@@ -284,16 +304,16 @@ describe('pane-model-of', () => {
   test("the position never repeats the tab's name and fits beside the selection Buttons", () => {
     const page = Pane.panePageOf({ tab: 'a', selected: 0 }, SOURCES, ITEMS, [], 10)
 
-    expect(Pane.paneModelOf(page, SOURCES, {}, [], 80).position).toBe('1–2 of 2')
+    expect(Pane.paneModelOf(page, SOURCES, {}, [], 80, true).position).toBe('1–2 of 2')
     // Twenty cells less the fourteen the Buttons take leave six.
-    expect(Pane.paneModelOf(page, SOURCES, {}, [], 20).position).toBe('1–2 o…')
+    expect(Pane.paneModelOf(page, SOURCES, {}, [], 20, true).position).toBe('1–2 o…')
   })
 
   test('the stack and saved tabs carry their counts, the active one marked', () => {
     const stack = { items: Fixtures.STACK_RELEASES, filter: '', expanded: [] }
     const saved = [{ ...Fixtures.itemAt('kept'), savedAt: 1 }]
     const page = Pane.panePageOf({ tab: 'saved', selected: 0 }, SOURCES, ITEMS, saved, 10, stack)
-    const model = Pane.paneModelOf(page, SOURCES, {}, saved, 80)
+    const model = Pane.paneModelOf(page, SOURCES, {}, saved, 80, true)
 
     expect(model.tabs.map(tab => [tab.id, tab.count, tab.isActive])).toEqual([
       ['a', undefined, false],
@@ -306,7 +326,7 @@ describe('pane-model-of', () => {
     const sources = [Fixtures.sourceAt('a', { name: 'A\nname' })]
     const items = { a: [{ ...Fixtures.itemAt('1'), id: 'a:1', sourceId: 'a', title: 'one\ntwo' }] }
     const page = Pane.panePageOf({ tab: 'a', selected: 0 }, sources, items, [], 10)
-    const model = Pane.paneModelOf(page, sources, { 'a:1': `x${'y'.repeat(30)}` }, [], 30)
+    const model = Pane.paneModelOf(page, sources, { 'a:1': `x${'y'.repeat(30)}` }, [], 30, true)
 
     expect(model.position).toBe('1 of 1')
     expect(model.rows[0]?.icon).toBeUndefined()
@@ -318,7 +338,7 @@ describe('pane-model-of', () => {
     const stack = { items: Fixtures.STACK_RELEASES, filter: '', expanded: ['npm:jsdom'] }
     const pageAt = (selected: number) =>
       Pane.panePageOf({ tab: '@stack', selected }, SOURCES, ITEMS, [], 20, stack)
-    const model = Pane.paneModelOf(pageAt(2), SOURCES, {}, [], 80, '')
+    const model = Pane.paneModelOf(pageAt(2), SOURCES, {}, [], 80, true, '')
 
     expect(model.position).toBe('1–10 of 10')
     expect(model.summary).toBe('7 packages behind · 2 security · 1 breaking')
@@ -326,8 +346,8 @@ describe('pane-model-of', () => {
     expect(model.isExpanded).toBe(true)
     expect(model.rows.map(row => row.heading).filter(Boolean)).toEqual(['npm', 'PyPI'])
     expect(model.rows.every(row => row.cells !== undefined && row.summary === undefined)).toBe(true)
-    expect(Pane.paneModelOf(pageAt(0), SOURCES, {}, [], 80, '').isExpanded).toBe(false)
-    expect(Pane.paneModelOf(pageAt(0), SOURCES, {}, [], 20, '').summary).toBe(
+    expect(Pane.paneModelOf(pageAt(0), SOURCES, {}, [], 80, true, '').isExpanded).toBe(false)
+    expect(Pane.paneModelOf(pageAt(0), SOURCES, {}, [], 20, true, '').summary).toBe(
       '7 packages behind ·…',
     )
 
@@ -348,6 +368,7 @@ describe('pane-model-of', () => {
       {},
       [],
       80,
+      true,
       '',
     )
 
@@ -367,6 +388,7 @@ describe('pane-model-of', () => {
       {},
       [],
       80,
+      true,
       'zzz',
     )
 
@@ -386,7 +408,7 @@ describe('pane-model-of', () => {
       items: ItemsBySource = ITEMS,
     ) => {
       const page = Pane.panePageOf({ tab, selected: 0 }, SOURCES, items, saved, 20, stack)
-      const model = Pane.paneModelOf(page, SOURCES, {}, saved, columns, '', isFocused)
+      const model = Pane.paneModelOf(page, SOURCES, {}, saved, columns, true, '', isFocused)
 
       return [model.hint, model.keys]
     }

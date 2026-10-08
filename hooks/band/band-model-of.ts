@@ -32,8 +32,11 @@ function lineOf(text: string): string {
   return collapsedTextOf(text).trim()
 }
 
+/** The fewest cells a stack row's inline note is drawn in, so a cut note keeps a few characters before its ellipsis. */
+const INLINE_NOTE_MIN_COLUMNS = 4
+
 /**
- * A stack row's note fitted after its headline on the same line, a gap between them; undefined when too little room is left.
+ * A stack row's note fitted after its headline on the same line, a gap between them; undefined when fewer than `INLINE_NOTE_MIN_COLUMNS` cells are left.
  *
  * @param note the ecosystem, level and flags
  * @param title the headline as fitted
@@ -41,9 +44,8 @@ function lineOf(text: string): string {
  */
 function inlineNoteOf(note: string, title: string, room: number): string | undefined {
   const left = room - displayWidthOf(title) - GROUP_GAP_COLUMNS
-  const fitted = left > 1 ? fitColumns(lineOf(note), left) : ''
 
-  return fitted === '' ? undefined : fitted
+  return left < INLINE_NOTE_MIN_COLUMNS ? undefined : fitColumns(lineOf(note), left)
 }
 
 /**
@@ -62,7 +64,7 @@ export function bandModelOf(
   summaries: Readonly<Record<string, string>>,
   saved: readonly SavedItem[],
   columns: number,
-  autoSummaries = true,
+  autoSummaries: boolean,
 ): BandModel {
   const byId = new Map(sources.map(source => [source.id, source]))
   const selected = page.items[page.span.selected]

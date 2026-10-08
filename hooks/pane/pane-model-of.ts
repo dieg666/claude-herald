@@ -57,18 +57,18 @@ function newsLineOf(title: string, name: string | undefined, columns: number) {
  * @param summary its one-line summary, when there is one
  * @param isSelected whether it is the selected item
  * @param columns the cells the pane's body has
+ * @param autoSummaries whether a news item's one-line summary is drawn
  * @param sourceName the source's name when the tab mixes sources, drawn after the headline before the date, or leading a version-only title
  * @param isRead whether the item was opened or copied for Claude
- * @param autoSummaries whether a news item's one-line summary is drawn
  */
 function rowOf(
   item: Item,
   summary: string | undefined,
   isSelected: boolean,
   columns: number,
+  autoSummaries: boolean,
   sourceName?: string,
   isRead = false,
-  autoSummaries = true,
 ): PaneRow {
   const stack = isStackItem(item) ? item : undefined
   const hasNoSummary =
@@ -107,10 +107,10 @@ function rowOf(
  * @param summaries the one-line summaries by item id
  * @param saved the saved items
  * @param columns the cells the pane's body has
+ * @param autoSummaries whether the selected news item's one-line summary is drawn; a stack item's note is drawn either way
  * @param filter the stack tab's filter
  * @param isFocused whether the pane holds the keyboard
  * @param read the read item ids by source id
- * @param autoSummaries whether the selected news item's one-line summary is drawn; a stack item's note is drawn either way
  */
 export function paneModelOf(
   page: PanePage,
@@ -118,10 +118,10 @@ export function paneModelOf(
   summaries: Readonly<Record<string, string>>,
   saved: readonly SavedItem[],
   columns: number,
+  autoSummaries: boolean,
   filter = '',
   isFocused = true,
   read: Readonly<IdsBySource> = {},
-  autoSummaries = true,
 ): PaneModel {
   const names = new Map(sources.map(source => [source.id, lineOf(source.name)]))
   const isSavedTab = page.tab.id === SAVED_TAB
@@ -136,9 +136,9 @@ export function paneModelOf(
             Object.hasOwn(summaries, item.id) ? summaries[item.id] : undefined,
             index === page.span.selected,
             columns,
+            autoSummaries,
             isSavedTab ? names.get(item.sourceId) : undefined,
             Object.hasOwn(read, item.sourceId) && read[item.sourceId]?.includes(item.id) === true,
-            autoSummaries,
           ),
         )
       : paneStackRowsOf(page.stack, page.span.selected, columns)

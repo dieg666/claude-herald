@@ -465,11 +465,11 @@ export const register: Register = on => {
         await read($, SUMMARIES),
         saved,
         e.props.bodyColumns,
+        settings.autoSummaries === true,
         stack?.filter,
         // A phone taps the Buttons, so it never needs the focus chord.
         e.props.isFocused || e.surface === 'mobile',
         await read($, READ),
-        settings.autoSummaries === true,
       ),
       paneHandlersOf($, page.items[page.selected], page.size),
       e.surface,
