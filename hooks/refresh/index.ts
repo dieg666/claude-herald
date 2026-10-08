@@ -1,6 +1,7 @@
 export type * from './fetched.js'
 export * from './fetch-feed.js'
 export * from './fetch-page.js'
+export * from './fit-toast.js'
 export * from './items-of-extracted.js'
 export * from './items-of-feed.js'
 export * from './map-limited.js'
