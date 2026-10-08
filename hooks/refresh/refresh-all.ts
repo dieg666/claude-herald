@@ -75,7 +75,7 @@ async function runOf(
     }))
 
     if (newItems.length > 0) {
-      host.toast(toastTextOf(newItems))
+      host.toast(toastTextOf(newItems, sources))
     }
 
     const run: RefreshRun = { isSkipped: false, newItems, errors }

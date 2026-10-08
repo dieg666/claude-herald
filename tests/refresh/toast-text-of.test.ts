@@ -31,6 +31,19 @@ describe('toast-text-of', () => {
     )
   })
 
+  test('a title that is only a version leads with its source name; others stay as they are', () => {
+    const sources = [Fixtures.sourceAt('src', { name: 'Claude Code' })]
+    const tags = ['v2.1.293', 'v2.1.294', 'v2.1.295'].map(key => Fixtures.itemAt(key))
+
+    expect(Refresh.toastTextOf(tags.slice(0, 1), sources)).toBe('1 new: Claude Code v2.1.293')
+    expect(Refresh.toastTextOf(tags.slice(0, 2), sources)).toBe(
+      '2 new: Claude Code v2.1.293, Claude Code v2.1.294',
+    )
+    expect(Refresh.toastTextOf(tags, sources)).toBe('3 new: Claude Code v2.1.293 …')
+    expect(Refresh.toastTextOf(items('Alpha'), sources)).toBe('1 new: Alpha')
+    expect(Refresh.toastTextOf(tags.slice(0, 1), [])).toBe('1 new: v2.1.293')
+  })
+
   test('is empty for none', () => {
     expect(Refresh.toastTextOf([])).toBe('')
   })
