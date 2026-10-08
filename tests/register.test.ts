@@ -759,7 +759,7 @@ describe('register', () => {
     await $.command.run(Fixtures.heraldOf('rotate 5'))
     await clock.advance(5000)
 
-    expect(await rangeOf(ui)).toBe('4-6 of 7')
+    expect(await rangeOf(ui)).toBe('4–6 of 7')
 
     // The old 20-second timer would turn a page here as well.
     await clock.advance(5000)
@@ -768,7 +768,7 @@ describe('register', () => {
 
     await clock.advance(5000)
 
-    expect(await rangeOf(ui)).toBe('1-3 of 7')
+    expect(await rangeOf(ui)).toBe('1–3 of 7')
   })
 
   test('a refused /herald rotate leaves the band timer alone', async ($, on) => {
@@ -784,11 +784,11 @@ describe('register', () => {
     await $.command.run(Fixtures.heraldOf('rotate 1'))
     await clock.advance(19_999)
 
-    expect(await rangeOf(ui)).toBe('1-3 of 7')
+    expect(await rangeOf(ui)).toBe('1–3 of 7')
 
     await clock.advance(1)
 
-    expect(await rangeOf(ui)).toBe('4-6 of 7')
+    expect(await rangeOf(ui)).toBe('4–6 of 7')
   })
 
   test('a second session.start leaves one band timer', async ($, on) => {
@@ -805,7 +805,7 @@ describe('register', () => {
 
     await clock.advance(20_000)
 
-    expect(await rangeOf(ui)).toBe('4-6 of 7')
+    expect(await rangeOf(ui)).toBe('4–6 of 7')
   })
 
   test('/herald reset restarts the band timer at the default seconds', async ($, on) => {
@@ -830,7 +830,7 @@ describe('register', () => {
     await $.command.run(Fixtures.heraldOf('reset'))
     await clock.advance(20_000)
 
-    expect(await rangeOf(ui)).toBe('4-6 of 7')
+    expect(await rangeOf(ui)).toBe('4–6 of 7')
   })
 
   test('/herald reset summarizes the items shown in the default language', async ($, on) => {

@@ -21,9 +21,27 @@ describe('band-view', () => {
 
   const autoOf = async (ui: Drawing) => (await ui.find({ key: 'auto' }))?.props.label
 
+  // The wrapping rows of the band, the header first and the actions second; the nested groups of Buttons are Boxes that do not wrap.
+  const lines = (boxes: FoundElement[]) => boxes.filter(box => box.props.flexWrap === 'wrap')
+
+  // A node as `Type:key:hotkey:label`, or `Text:text[:bold]`, or `Box:[children]`.
+  const drawnAs = (node: unknown): string => {
+    const { type, props = {}, children } = node as Partial<FoundElement>
+
+    if (type === 'Button') {
+      return `Button:${String(props.key)}:${String(props.hotkey)}:${String(props.label)}`
+    }
+
+    return type === 'Box'
+      ? `Box:[${(children ?? []).map(drawnAs).join(',')}]`
+      : `Text:${(children ?? []).join('')}${props.bold === true ? ':bold' : ''}`
+  }
+
   // The headline of the selected row: the bold Text, holding a Link or the plain title.
   const selectedOf = async (ui: Drawing) => {
-    const [bold] = (await ui.findAll({ type: 'Text' })).filter(text => text.props.bold === true)
+    const [bold] = (await ui.findAll({ type: 'Text' })).filter(
+      text => text.props.bold === true && text.text !== 'Herald',
+    )
     const [child] = bold?.children ?? []
 
     return typeof child === 'string' ? child : (child as FoundElement | undefined)?.props.href
@@ -48,7 +66,9 @@ describe('band-view', () => {
 
       expect((await ui.findAll({ type: 'Text', text: /^›$/ })).length).toBe(1)
       expect(
-        (await ui.findAll({ type: 'Text' })).filter(text => text.props.bold === true),
+        (await ui.findAll({ type: 'Text' })).filter(
+          text => text.props.bold === true && text.text !== 'Herald',
+        ),
       ).toHaveLength(1)
       expect(
         Fixtures.colorsOf(await ui.drawn()).filter(color =>
@@ -84,7 +104,7 @@ describe('band-view', () => {
 
         const ui = await $.ui.mount({ ...BAND, surface })
 
-        expect(await rangeOf(ui)).toBe('1-3 of 7')
+        expect(await rangeOf(ui)).toBe('1–3 of 7')
         expect(await autoOf(ui)).toBe('⏸ auto')
         expect(await linksOf(ui)).toEqual([
           ['https://example.com/src/1', 'src 1'],
@@ -110,18 +130,81 @@ describe('band-view', () => {
           ['prev', '◀'],
           ['next', '▶'],
           ['auto', '⏸ auto'],
-          ['up', '↑'],
-          ['down', '↓'],
           ['open', 'Open'],
           ['summarize', 'Summarize'],
           ['save', 'Save'],
           ['copy', 'Copy for Claude'],
+          ['up', '↑'],
+          ['down', '↓'],
         ])
         expect(await ui.find({ type: 'Text', text: 'drawn below' })).toBeDefined()
 
         await ui.unmount()
       },
     )
+
+    test(`on ${surface}: the header reads Herald in bold, the position, then only back, next and auto; up and down follow the actions`, async ($, on) => {
+      mock.clock(on)
+      Fixtures.bandOn(on, STORE)
+
+      await $.classic.SessionStart({ source: 'clear' })
+
+      const ui = await $.ui.mount({ ...BAND, surface })
+      const [header, actions] = lines(await ui.findAll({ type: 'Box' }))
+
+      expect(header?.children.map(drawnAs)).toEqual([
+        'Text:Herald:bold',
+        'Text:1–3 of 7',
+        'Box:[Button:prev:p:◀,Button:next:n:▶,Button:auto:a:⏸ auto]',
+      ])
+      expect(actions?.children.map(drawnAs)).toEqual([
+        'Button:open:o:Open',
+        'Button:summarize:s:Summarize',
+        'Button:save:v:Save',
+        'Button:copy:c:Copy for Claude',
+        'Box:[Button:up:k:↑,Button:down:j:↓]',
+      ])
+      // The group of up and down is set apart from the actions by a margin.
+      expect(actions?.children.map(child => (child as FoundElement).props?.marginLeft)).toEqual([
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        2,
+      ])
+
+      await ui.unmount()
+    })
+
+    test(`on ${surface}: the header and the actions take as many rows as before at 174, 120, 80 and 40 columns`, async ($, on) => {
+      mock.clock(on)
+      Fixtures.bandOn(on, { ...STORE, items: { src: Fixtures.datedItemsOf('src', 30) } })
+
+      await $.classic.SessionStart({ source: 'clear' })
+
+      for (const columns of [174, 120, 80, 40]) {
+        const ui = await $.ui.mount({
+          ...BAND,
+          surface,
+          props: { ...Fixtures.BAND_PROPS, bodyColumns: columns },
+        })
+        const [header, actions] = lines(await ui.findAll({ type: 'Box' }))
+        const rowsOf = (line: FoundElement | undefined) =>
+          Fixtures.wrappedRowsOf((line?.children ?? []).map(Fixtures.cellsOf), columns)
+
+        // The header and the actions as drawn before: the hotkey and label of each Button, the same position text between.
+        const before = [
+          ['p: ◀', '1–3 of 30', 'n: ▶', 'a: ⏸ auto', 'k: ↑', 'j: ↓'],
+          ['o: Open', 's: Summarize', 'v: Save', 'c: Copy for Claude'],
+        ].map(line => Fixtures.wrappedRowsOf(line.map(Band.displayWidthOf), columns))
+
+        expect(await rangeOf(ui)).toBe('1–3 of 30')
+        expect([rowsOf(header), rowsOf(actions)]).toEqual(before)
+        expect(rowsOf(header) + rowsOf(actions)).toBe(before[0]! + before[1]!)
+
+        await ui.unmount()
+      }
+    })
 
     test(`on ${surface}: a bare version tag is drawn with its source's name, a headline as it is, the stored title unchanged`, async ($, on) => {
       mock.clock(on)
@@ -189,7 +272,7 @@ describe('band-view', () => {
 
       await ui.press({ key: 'next' })
 
-      expect([await rangeOf(ui), await autoOf(ui)]).toEqual(['4-6 of 7', '▶ auto'])
+      expect([await rangeOf(ui), await autoOf(ui)]).toEqual(['4–6 of 7', '▶ auto'])
 
       await ui.press({ key: 'next' })
 
@@ -198,7 +281,7 @@ describe('band-view', () => {
 
       await ui.press({ key: 'next' })
 
-      expect(await rangeOf(ui)).toBe('1-3 of 7')
+      expect(await rangeOf(ui)).toBe('1–3 of 7')
 
       await ui.press({ key: 'prev' })
 
@@ -210,7 +293,7 @@ describe('band-view', () => {
 
       await ui.press({ key: 'prev' })
 
-      expect([await rangeOf(ui), await autoOf(ui)]).toEqual(['4-6 of 7', '▶ auto'])
+      expect([await rangeOf(ui), await autoOf(ui)]).toEqual(['4–6 of 7', '▶ auto'])
 
       await ui.press({ key: 'auto' })
 
@@ -261,11 +344,11 @@ describe('band-view', () => {
 
         await clock.advance(19_999)
 
-        expect(await rangeOf(ui)).toBe('1-3 of 7')
+        expect(await rangeOf(ui)).toBe('1–3 of 7')
 
         await clock.advance(1)
 
-        expect(await rangeOf(ui)).toBe('4-6 of 7')
+        expect(await rangeOf(ui)).toBe('4–6 of 7')
 
         await clock.advance(20_000)
 
@@ -273,17 +356,17 @@ describe('band-view', () => {
 
         await clock.advance(20_000)
 
-        expect(await rangeOf(ui)).toBe('1-3 of 7')
+        expect(await rangeOf(ui)).toBe('1–3 of 7')
 
         await ui.press({ key: 'auto' })
         await clock.advance(60_000)
 
-        expect([await rangeOf(ui), await autoOf(ui)]).toEqual(['1-3 of 7', '▶ auto'])
+        expect([await rangeOf(ui), await autoOf(ui)]).toEqual(['1–3 of 7', '▶ auto'])
 
         await ui.press({ key: 'auto' })
         await clock.advance(20_000)
 
-        expect(await rangeOf(ui)).toBe('4-6 of 7')
+        expect(await rangeOf(ui)).toBe('4–6 of 7')
       },
     )
 
@@ -306,7 +389,7 @@ describe('band-view', () => {
       await clock.advance(100_000)
 
       expect([await rangeOf(ui), await selectedOf(ui), await autoOf(ui)]).toEqual([
-        '1-3 of 3',
+        '1–3 of 3',
         'https://example.com/src/2',
         '⏸ auto',
       ])
@@ -467,7 +550,7 @@ describe('band-view', () => {
 
       await $.command.run(Fixtures.heraldOf('disable old'))
 
-      expect(await rangeOf(ui)).toBe('1-2 of 2')
+      expect(await rangeOf(ui)).toBe('1–2 of 2')
 
       await $.command.run(Fixtures.heraldOf('enable old'))
 
@@ -481,7 +564,7 @@ describe('band-view', () => {
       await $.command.run(Fixtures.heraldOf('disable old'))
 
       expect([await rangeOf(ui), await selectedOf(ui)]).toEqual([
-        '1-2 of 2',
+        '1–2 of 2',
         'https://example.com/new/2',
       ])
     })
@@ -586,7 +669,7 @@ describe('band-view', () => {
 
         const ui = await $.ui.mount({ ...BAND, surface })
 
-        expect(await rangeOf(ui)).toBe('1-2 of 2')
+        expect(await rangeOf(ui)).toBe('1–2 of 2')
         expect(await ui.find({ type: 'Text', text: /^(⚠|📦)$/ })).toBeUndefined()
         expect(await linksOf(ui)).toEqual([
           ['https://example.com/src/1', 'src 1'],
@@ -609,7 +692,7 @@ describe('band-view', () => {
 
         const ui = await $.ui.mount({ ...BAND, surface })
 
-        expect(await rangeOf(ui)).toBe('1-3 of 8')
+        expect(await rangeOf(ui)).toBe('1–3 of 8')
       },
     )
   }

@@ -4,6 +4,7 @@
 import type { RenderElement, RenderNode } from 'claude-code'
 
 import { BAND_HOTKEYS } from '../names/band-hotkeys.js'
+import { BAND_NAME } from '../names/band-name.js'
 import { iconGapOf } from './icon-gap-of.js'
 import { actionRowView } from './action-row-view.js'
 import type { BandHandlers } from './band-handlers.js'
@@ -48,7 +49,7 @@ function rowView(ui: BandUi, row: BandRow): RenderElement {
 }
 
 /**
- * The band: the header (back, position, on, auto, selection up and down), the page's items, the selected item's actions, then what the mods below drew.
+ * The band: the header (its name, the position, back, on, auto), the page's items, the selected item's actions followed by the selection buttons, then what the mods below drew.
  *
  * @param ui the elements
  * @param model what to draw
@@ -66,28 +67,41 @@ export function bandView(
   return (
     <Box flexDirection="column">
       <Box flexDirection="row" flexWrap="wrap" columnGap={2}>
-        <Button key="prev" label="◀" hotkey={BAND_HOTKEYS.prev} plain onPress={handlers.prev} />
+        <Text bold>{BAND_NAME}</Text>
         <Text>{model.range}</Text>
-        <Button key="next" label="▶" hotkey={BAND_HOTKEYS.next} plain onPress={handlers.next} />
-        <Button
-          key="auto"
-          label={model.isPaused ? '▶ auto' : '⏸ auto'}
-          hotkey={BAND_HOTKEYS.auto}
-          plain
-          onPress={handlers.auto}
-        />
-        <Button key="up" label="↑" hotkey={BAND_HOTKEYS.up} plain dimColor onPress={handlers.up} />
-        <Button
-          key="down"
-          label="↓"
-          hotkey={BAND_HOTKEYS.down}
-          plain
-          dimColor
-          onPress={handlers.down}
-        />
+        <Box flexDirection="row" columnGap={2} marginLeft={2}>
+          <Button key="prev" label="◀" hotkey={BAND_HOTKEYS.prev} plain onPress={handlers.prev} />
+          <Button key="next" label="▶" hotkey={BAND_HOTKEYS.next} plain onPress={handlers.next} />
+          <Button
+            key="auto"
+            label={model.isPaused ? '▶ auto' : '⏸ auto'}
+            hotkey={BAND_HOTKEYS.auto}
+            plain
+            onPress={handlers.auto}
+          />
+        </Box>
       </Box>
       {model.rows.map(row => rowView(ui, row))}
-      {actionRowView(ui, model.isSelectedSaved, handlers)}
+      {actionRowView(ui, model.isSelectedSaved, handlers, [
+        <Box flexDirection="row" columnGap={2} marginLeft={2}>
+          <Button
+            key="up"
+            label="↑"
+            hotkey={BAND_HOTKEYS.up}
+            plain
+            dimColor
+            onPress={handlers.up}
+          />
+          <Button
+            key="down"
+            label="↓"
+            hotkey={BAND_HOTKEYS.down}
+            plain
+            dimColor
+            onPress={handlers.down}
+          />
+        </Box>,
+      ])}
       {below}
     </Box>
   )

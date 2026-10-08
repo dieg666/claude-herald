@@ -13,7 +13,7 @@ describe('band-model-of', () => {
   test('rows carry the headline, the source name at the right end, the link and the summary; no glyph; one selected', () => {
     const model = Band.bandModelOf(pageAt(0, 1), SOURCES, { 'src:2': 'Short.' }, [], 80)
 
-    expect(model.range).toBe('1-3 of 4')
+    expect(model.range).toBe('1–3 of 4')
     expect(model.isPaused).toBe(false)
     expect(model.rows).toEqual([
       {

@@ -71,7 +71,7 @@ export function bandModelOf(
   })
 
   return {
-    range: rangeLabelOf(page.span, page.total),
+    range: rangeLabelOf(page.span, page.total, '–'),
     isPaused: page.isPaused,
     rows,
     isSelectedSaved: selected !== undefined && saved.some(entry => entry.id === selected.id),
