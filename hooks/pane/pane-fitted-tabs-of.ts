@@ -5,7 +5,7 @@ import { paneTabSpellingOf } from './pane-tab-spelling-of.js'
 import { wrappedLinesOf } from './wrapped-lines-of.js'
 
 /**
- * The tabs as the tab row draws them at `columns` cells (80 when not a number): full names, each kept within one line, unless the names cut to `PANE_TAB_COLUMNS` take fewer lines; the active tab is spelled as wide as the others, so which tab is active never changes the choice.
+ * The tabs as the tab row draws them at `columns` cells (80 when not a number): full names, each kept within one line, unless the names cut to `PANE_TAB_COLUMNS` take fewer lines; the active tab is spelled as wide as the others, so which tab is active never changes the choice, except that a source tab's new count clears when it is entered.
  *
  * @param tabs the tabs, with their full and cut names
  * @param columns the cells across the pane's body

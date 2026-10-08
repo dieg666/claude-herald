@@ -19,10 +19,23 @@ describe('mark-read', () => {
     const { host, stored, state } = Fixtures.fakeHostOf({ saved: [READ, KEPT] })
 
     await host.state.saved.update(() => [READ, KEPT])
+    await host.state.sources.update(() => [Fixtures.sourceAt('src')])
 
     expect(await Actions.markRead(host, READ)).toBe(true)
     expect(stored.get('read')).toEqual({ src: ['src:read'] })
     expect(state.read).toEqual({ src: ['src:read'] })
+  })
+
+  test('a saved item whose source was removed leaves the saved list with no read entry', async () => {
+    const { host, stored, state } = Fixtures.fakeHostOf({ saved: [READ, KEPT] })
+
+    await host.state.saved.update(() => [READ, KEPT])
+    await host.state.sources.update(() => [Fixtures.sourceAt('other')])
+
+    expect(await Actions.markRead(host, READ)).toBe(true)
+    expect(stored.get('saved')).toEqual([KEPT])
+    expect(stored.get('read')).toBeUndefined()
+    expect(state.read).toEqual({})
   })
 
   test('reads the store right before writing, so another session saving meanwhile is kept', async () => {

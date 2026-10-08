@@ -6,7 +6,7 @@ import { readItem } from './read-item.js'
 import { titleLineOf } from './title-line-of.js'
 
 /**
- * Marks a saved item as read: removes it from the saved list in the store, mirrors the list to state and, when it was saved, records it as read; a failure is toasted, never thrown.
+ * Marks a saved item as read: removes it from the saved list in the store, mirrors the list to state and, when it was saved and its source still exists, records it as read; a failure is toasted, never thrown.
  *
  * @param host the engine
  * @param item the saved item
@@ -19,7 +19,12 @@ export async function markRead(host: Host, item: Item): Promise<boolean> {
 
     await host.state.saved.update(() => saved)
 
-    if (before.some(entry => entry.id === item.id)) {
+    const sources = await host.state.sources.read()
+
+    if (
+      before.some(entry => entry.id === item.id) &&
+      sources.some(source => source.id === item.sourceId)
+    ) {
       await readItem(host, item)
     }
 
