@@ -12,7 +12,7 @@ describe('pane-stack-rows-of', () => {
       expanded,
     })
 
-    return Pane.paneStackRowsOf(page.stack!, page.span.selected, columns)
+    return Pane.paneStackRowsOf(page.stack!, page.span.selected, columns, Fixtures.PANE_NOW)
   }
 
   // A row as the terminal spells it, up to its date.
@@ -88,7 +88,7 @@ describe('pane-stack-rows-of', () => {
       filter: '',
       expanded: [],
     })
-    const [row] = Pane.paneStackRowsOf(zod.stack!, 0, 80)
+    const [row] = Pane.paneStackRowsOf(zod.stack!, 0, 80, Fixtures.PANE_NOW)
 
     // A 0.x minor bump is level major, so its change is drawn as a major one.
     expect(row?.cells?.filter(cell => cell.color !== undefined)).toEqual([
@@ -142,7 +142,7 @@ describe('pane-stack-rows-of', () => {
       filter: '',
       expanded: [],
     })
-    const rows = Pane.paneStackRowsOf(page.stack!, page.span.selected, 80)
+    const rows = Pane.paneStackRowsOf(page.stack!, page.span.selected, 80, Fixtures.PANE_NOW)
 
     expect(rows.map(row => [lineOf(row).replace(/\s+/g, ' ').trim(), row.date, row.href])).toEqual([
       [
@@ -188,20 +188,20 @@ describe('pane-stack-rows-of', () => {
     })
     const now = Date.UTC(2026, 9, 8, 12)
     const withClock = Pane.paneStackRowsOf(page.stack!, 0, 80, now)
-    const without = Pane.paneStackRowsOf(page.stack!, 0, 80)
+    const later = Pane.paneStackRowsOf(page.stack!, 0, 80, Fixtures.PANE_NOW)
 
     expect(withClock.map(row => [row.title, row.date])).toEqual([
       ['fresh', '2h'],
       ['edge', '23h'],
       ['older', 'Oct 7'],
     ])
-    expect(without.map(row => row.date)).toEqual(['Oct 8', 'Oct 7', 'Oct 7'])
-    expect(withClock.map(row => row.cells)).toEqual(without.map(row => row.cells))
+    expect(later.map(row => row.date)).toEqual(['Oct 8', 'Oct 7', 'Oct 7'])
+    expect(withClock.map(row => row.cells)).toEqual(later.map(row => row.cells))
   })
 
   test('the cells leave the date column its seven cells whatever the dates, so rows end in one column at every width', () => {
     for (const columns of [120, 80, 60, 40]) {
-      for (const now of [undefined, Date.UTC(2026, 9, 8, 12)]) {
+      for (const now of [Fixtures.PANE_NOW, Date.UTC(2026, 9, 8, 12)]) {
         const page = Pane.panePageOf({ tab: '@stack', selected: 0 }, [], {}, [], 20, {
           items: Fixtures.STACK_RELEASES,
           filter: '',

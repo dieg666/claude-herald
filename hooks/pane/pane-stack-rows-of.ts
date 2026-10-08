@@ -137,7 +137,7 @@ export function paneStackRowsOf(
   stack: PaneStackPage,
   selected: number,
   columns: number,
-  now?: number,
+  now: number,
 ): PaneRow[] {
   const fit = (text: string, width: number) => fitColumns(lineOf(text), width)
   const releases = stack.rows.flatMap(row => (row.kind === 'release' ? [row.item] : []))
@@ -155,7 +155,8 @@ export function paneStackRowsOf(
   ])
   const hasDates = stack.rows.some(
     row =>
-      paneDateOf((row.kind === 'package' ? row.pkg.target : row.item).publishedAt) !== undefined,
+      paneDateOf((row.kind === 'package' ? row.pkg.target : row.item).publishedAt, now) !==
+      undefined,
   )
   const nameWidth = widestOf(stack.packages.map(pkg => lineOf(pkg.name)))
 

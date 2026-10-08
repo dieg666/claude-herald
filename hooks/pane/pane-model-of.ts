@@ -88,10 +88,10 @@ function rowOf(
   isSelected: boolean,
   columns: number,
   autoSummaries: boolean,
-  sourceName?: string,
-  isRead = false,
-  column?: { readonly source: Source | undefined },
-  now?: number,
+  sourceName: string | undefined,
+  isRead: boolean,
+  column: { readonly source: Source | undefined } | undefined,
+  now: number,
 ): PaneRow {
   const stack = isStackItem(item) ? item : undefined
   const hasNoSummary =
@@ -142,7 +142,7 @@ function rowOf(
  * @param filter the stack tab's filter
  * @param isFocused whether the pane holds the keyboard
  * @param read the read item ids by source id
- * @param now the clock, in milliseconds since the epoch: an item less than a day old shows its age in the date column; without it only dates are drawn
+ * @param now the clock, in milliseconds since the epoch: an item less than a day old shows its age in the date column
  */
 export function paneModelOf(
   page: PanePage,
@@ -154,7 +154,7 @@ export function paneModelOf(
   filter = '',
   isFocused = true,
   read: Readonly<IdsBySource> = {},
-  now?: number,
+  now: number,
 ): PaneModel {
   const names = new Map(sources.map(source => [source.id, lineOf(source.name)]))
   const byId = new Map(sources.map(source => [source.id, source]))

@@ -32,8 +32,7 @@ describe('pane-date-of', () => {
     expect(Pane.paneDateOf(new Date(NOW + 3 * DAY).toISOString(), NOW)).toBe('Oct 11')
   })
 
-  test('without a clock, or with one that is not a number, only the short date is drawn', () => {
-    expect(Pane.paneDateOf(at(60_000))).toBe('Oct 8')
+  test('a clock that is not a number draws the short date', () => {
     expect(Pane.paneDateOf(at(60_000), Number.NaN)).toBe('Oct 8')
   })
 
