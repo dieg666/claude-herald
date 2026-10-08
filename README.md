@@ -89,7 +89,7 @@ The rotation does nothing when all items fit on one page. The band yields its pl
 
 ## Use the pane
 
-`/herald` opens the pane and asks for keyboard focus, which Claude Code grants while the prompt is empty. Esc closes the pane. The pane shows a window of the active tab's items around the selection, each with its source glyph, headline link, date and summary. The Your stack tab shows releases instead, grouped by ecosystem, with a filter field above them.
+`/herald` opens the pane and asks for keyboard focus, which Claude Code grants while the prompt is empty. Esc closes the pane. The pane shows a window of the active tab's items around the selection, each with its source glyph, headline link, date and summary. The Your stack tab shows one row per package instead, grouped by ecosystem, with a summary line and a filter field above them.
 
 | Key | Button | What it does |
 |-----|--------|--------------|
@@ -99,10 +99,11 @@ The rotation does nothing when all items fit on one page. The band yields its pl
 | `k` | ↑ | Selects the previous item. Stops at the first. |
 | `j` | ↓ | Selects the next item. Stops at the last. |
 | `r` | Mark as read | On the Saved tab only: removes the selected item from the saved list. |
+| `e` | Releases / Hide releases | On the Your stack tab only: lists the selected package's releases under it, or hides them again. |
 
 ## Act on an item
 
-The same four actions apply to the selected item in the band and in the pane, a release of your stack included.
+The same four actions apply to the selected item in the band and in the pane, a release of your stack included. On the Your stack tab, a package's row acts on its newest release shown, and a release listed under an expanded package acts on that release.
 
 | Key | Button | What it does |
 |-----|--------|--------------|
@@ -247,8 +248,8 @@ The first time the mod reads a package's feed, it shows the releases above your 
 
 ### What you see
 
-- **Rows.** `📦 pkg current → new`, then ` · title` when the title says more than the version; `⚠` replaces `📦` on a flagged release. A second line shows the ecosystem, the level when known, `pre-release` and the flags, for example `npm · major · breaking`. A row has a flag check and no Haiku summary.
-- **Your stack tab.** Press `y` in the pane. Releases are grouped by ecosystem. The filter field takes words, up to 100 characters, that must all appear in the package name, ecosystem, level or a flag. Where the surface has no text field (mobile), the filter in force shows as a dim `Filter: …` line, and `/herald deps filter <text>` sets it. The filter lives in session state only: a new session, `/clear`, `/resume`, `/branch` and a change of project start without it.
+- **Band and Saved rows.** `📦 pkg current → new`, then ` · title` when the title says more than the version; `⚠` replaces `📦` on a flagged release. A second line shows the ecosystem, the level when known, `pre-release` and the flags, for example `npm · major · breaking`. A row has a flag check and no Haiku summary.
+- **Your stack tab.** Press `y` in the pane. Packages are grouped by ecosystem, one row each, in aligned columns: `⚠  jsdom  25.0.1 → 30.1.2  major  breaking in 30.0.0 · 3 releases  Oct 5`. The row shows the version in use, the newest release shown, the highest level among the releases shown, each flag with the release that brought it (just `security` when that is the newest), `pre-release` when the newest is one, how many releases are shown when more than one, and the newest one's date. Only the part of the new version that changed is colored: red for major (a `0.x` minor is major), yellow for minor, green for patch, none for `unknown`. `⚠` marks a package with any flagged release shown, `📦` the others. Inside each ecosystem, packages with a flagged release come first, then major, minor, patch and `unknown`, then the newest date first. A line under the heading counts the packages at the show level, before the filter: `6 packages behind · 2 security · 1 breaking`, leaving out counts of zero. Press `e` to list the selected package's releases under it, indented, one line each with its level, flags and date, and `e` again to hide them; the expanded packages last for the session, like the filter. Every release of the packages in view gets the flag check. The filter field takes words, up to 100 characters, that must all appear in the package name, ecosystem, level (the package's highest) or a flag of any of its releases shown. Where the surface has no text field (mobile), the filter in force shows as a dim `Filter: …` line, and `/herald deps filter <text>` sets it. The filter lives in session state only: a new session, `/clear`, `/resume`, `/branch` and a change of project start without it.
 - **Toast.** One toast per refresh names the new releases at the toast level, flagged ones first: `2 releases: lodash 4.17.20 → 5.0.0 ⚠, zod 3.22.0 → 3.23.0`. With three or more it names the first: `3 releases: lodash 4.17.20 → 5.0.0 ⚠ …`.
 - **Nothing drawn.** `/herald deps` lists the followed packages and where their releases come from, not the releases.
 
@@ -403,6 +404,7 @@ On Claude Code 2.1.293 the store file was observed at `~/.claude/plugins/store/h
 | `p` and `n` page the band. | Claude Code accepts only a lowercase letter or a digit as a hotkey, and a band digit also fires from an empty prompt. |
 | Copy uses `$.ui.copy` first, then `pbcopy`, `wl-copy`, `xclip` or `clip.exe` by system (PowerShell on Windows and WSL), when `$.ui.copy` copies nothing for a reason other than a refusal. | `$.ui.copy` writes to the clipboard of the surface you pressed on and needs no external tool. |
 | Source tabs take `1` to `9` by position, Your stack is `y`, Saved is `0`. | Saved keeps one key however many sources you follow. |
+| The Your stack tab lists releases under a package on `e`, not `r`. | `r` is Mark as read on the Saved tab, and the pane keeps every hotkey distinct. |
 | The pane draws only the items that fit, centred on the selection. | The mod does not need to call `$.ui.scroll`. |
 | The band header draws `◀` `▶` `⏸` as they are, and release rows draw `📦` and `⚠` in a glyph column two cells wide. | Some terminals draw `◀` `▶` `⏸` as two-cell emoji, which can misalign the header; `📦` is two cells, so the column pads a one-cell glyph. |
 | A long summary has 3 to 5 lines, or 1 or 2 when the model's reply has fewer than three sentences. | The mod does not pad a short reply. |
