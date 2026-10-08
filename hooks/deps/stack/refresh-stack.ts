@@ -436,7 +436,9 @@ async function runOf(
         projectAfter(before, kept, flagged, followed, now),
       )
 
-      await host.state.stack.update(current => stackStateOf(root.path, latest, saved, current))
+      await host.state.stack.update(current =>
+        stackStateOf(root.path, latest, saved, current, mappings),
+      )
     })
 
     const newReleases: StackItem[] = fresh.map(({ release, page }) =>

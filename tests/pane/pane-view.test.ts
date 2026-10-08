@@ -564,7 +564,7 @@ describe('pane-view', () => {
         expect(
           await ui.find({
             type: 'Text',
-            text: 'Nothing saved yet: press v on an item to keep it here.',
+            text: 'Nothing saved yet. Press v on an item to keep it here.',
           }),
         ).toBeDefined()
         expect(await ui.find({ key: 'open' })).toBeUndefined()
@@ -909,7 +909,12 @@ describe('pane-view', () => {
       await ui.press({ key: 'tab-s10' })
 
       expect((await tabsOf(ui)).at(-2)).toEqual(['tab-s10', 's10', undefined, 'active'])
-      expect(await ui.find({ type: 'Text', text: 'Nothing from s10 yet.' })).toBeDefined()
+      expect(
+        await ui.find({
+          type: 'Text',
+          text: 'Nothing from s10 yet. Herald checks it every 5 min.',
+        }),
+      ).toBeDefined()
     })
 
     test(`on ${surface}: an empty source tab, an empty Saved and no sources at all draw a line and no actions`, async ($, on) => {
@@ -921,7 +926,12 @@ describe('pane-view', () => {
       const ui = await $.ui.mount({ ...PANE, surface })
 
       expect(await positionOf(ui)).toBeUndefined()
-      expect(await ui.find({ type: 'Text', text: 'Nothing from Alpha yet.' })).toBeDefined()
+      expect(
+        await ui.find({
+          type: 'Text',
+          text: 'Nothing from Alpha yet. Herald checks it every 5 min.',
+        }),
+      ).toBeDefined()
       expect(await keysOf(ui)).toEqual(['tab-saved', 'up', 'down'])
 
       await ui.press({ key: 'tab-saved' })
@@ -929,7 +939,7 @@ describe('pane-view', () => {
       expect(
         await ui.find({
           type: 'Text',
-          text: 'Nothing saved yet: press v on an item to keep it here.',
+          text: 'Nothing saved yet. Press v on an item to keep it here.',
         }),
       ).toBeDefined()
       expect(await ui.find({ key: 'read' })).toBeUndefined()
@@ -1241,7 +1251,16 @@ describe('pane-view', () => {
 
         await ui.input({ key: 'filter', text: 'zzz' })
 
-        expect(await ui.find({ type: 'Text', text: 'No release matches "zzz".' })).toBeDefined()
+        expect(
+          await ui.find({
+            type: 'Text',
+            text: 'No package matches "zzz". Clear the filter to see all.',
+          }),
+        ).toBeDefined()
+
+        await ui.input({ key: 'filter', text: '', kind: 'change' })
+
+        expect(await packagesOf(ui)).toEqual(['react', 'zod', 'vite', 'requests'])
 
         const hotkeys = (await ui.findAll({ type: 'Button' })).map(button => button.props.hotkey)
 
@@ -1250,7 +1269,7 @@ describe('pane-view', () => {
     )
 
     test(
-      `on ${surface}: the stack tab shows the project's show level, and no tab while the stack is off`,
+      `on ${surface}: the stack tab shows the project's show level`,
       { timeoutMs: 30_000 },
       async ($, on) => {
         const clock = mock.clock(on)
@@ -1269,7 +1288,7 @@ describe('pane-view', () => {
     )
 
     test(
-      `on ${surface}: with the stack off the pane has no stack tab and its other tabs stay`,
+      `on ${surface}: with the stack off its tab lists nothing and says how to turn it on; the other tabs stay`,
       { timeoutMs: 30_000 },
       async ($, on) => {
         const clock = mock.clock(on)
@@ -1281,12 +1300,29 @@ describe('pane-view', () => {
 
         const ui = await $.ui.mount({ ...PANE, surface })
 
-        expect((await tabsOf(ui)).map(([key]) => key)).toEqual(['tab-a', 'tab-b', 'tab-saved'])
+        expect((await tabsOf(ui)).map(([key, text]) => [key, text])).toEqual([
+          ['tab-a', activeOf(surface, '1', 'Alpha')],
+          ['tab-b', 'Beta'],
+          ['tab-@stack', 'Your stack'],
+          ['tab-saved', 'Saved'],
+        ])
         expect(await linksOf(ui)).toEqual([
           'https://example.com/a/1',
           'https://example.com/a/2',
           'https://example.com/a/3',
         ])
+
+        await ui.press({ key: 'tab-@stack' })
+
+        expect(await linksOf(ui)).toEqual([])
+        expect(
+          await ui.find({
+            type: 'Text',
+            text: 'Your stack is off in this project. /herald deps on turns it on.',
+          }),
+        ).toBeDefined()
+        expect(await ui.find({ key: 'open' })).toBeUndefined()
+        expect(await ui.find({ key: 'filter' })).toBeUndefined()
       },
     )
   }
@@ -2030,7 +2066,12 @@ describe('pane-view', () => {
       await ui.press({ key: 'tab-b' })
       await clock.settle()
 
-      expect(await ui.find({ type: 'Text', text: 'Nothing from Beta yet.' })).toBeDefined()
+      expect(
+        await ui.find({
+          type: 'Text',
+          text: 'Nothing from Beta yet. Herald checks it every 5 min.',
+        }),
+      ).toBeDefined()
       expect(await footerOf(ui)).toBeUndefined()
       expect(await ui.find({ type: 'Text', text: /ctrl\+x tab/ })).toBeUndefined()
     })
@@ -2083,4 +2124,148 @@ describe('pane-view', () => {
 
     expect(await footerOf(ui)).toEqual(NEWS_KEYS)
   })
+
+  const HOUR = 3_600_000
+
+  // The dim Text whose whole text matches, undefined when none is drawn.
+  const dimLineOf = async (ui: Drawing, pattern: RegExp) =>
+    (await ui.findAll({ type: 'Text' })).find(
+      text => text.props.dimColor === true && pattern.test(lineOf(text)),
+    )
+
+  for (const surface of SURFACES) {
+    test(
+      `on ${surface}: a source whose refresh fails keeps its items under a dim line saying why and when it last refreshed, and the window gives that line its row`,
+      { timeoutMs: 30_000 },
+      async ($, on) => {
+        const clock = mock.clock(on, { now: 2 * HOUR })
+
+        Fixtures.bandOn(on, {
+          sources: [ALPHA],
+          items: { a: Fixtures.datedItemsOf('a', 30) },
+          refreshedAt: { a: 0 },
+        })
+
+        await $.classic.SessionStart({ source: 'clear' })
+
+        const ui = await $.ui.mount({
+          ...PANE,
+          surface,
+          props: { ...Fixtures.PANE_PROPS, scroll: { offset: 0, bodyRows: 12 } },
+        })
+        const before = (await linksOf(ui)).length
+
+        expect(await dimLineOf(ui, /^Couldn't refresh/)).toBeUndefined()
+        expect(await positionOf(ui)).toBe(`1–${before} of 30`)
+
+        await $.session.start(Fixtures.SESSION)
+        await clock.settle()
+
+        expect(await dimLineOf(ui, /^Couldn't refresh: \S.* · last update 2 h ago$/)).toBeDefined()
+        expect((await linksOf(ui)).length).toBe(before - 1)
+        expect(await positionOf(ui)).toBe(`1–${before - 1} of 30`)
+        expect(await ui.find({ key: 'open' })).toBeDefined()
+      },
+    )
+
+    test(
+      `on ${surface}: an empty source tab tells a source never loaded from one whose feed is empty, and a failure from either`,
+      { timeoutMs: 30_000 },
+      async ($, on) => {
+        const clock = mock.clock(on, { now: 3 * HOUR })
+
+        Fixtures.bandOn(on, { sources: [ALPHA, BETA], items: {}, refreshedAt: { b: 0 } })
+
+        await $.classic.SessionStart({ source: 'clear' })
+
+        const ui = await $.ui.mount({ ...PANE, surface })
+
+        expect(
+          await dimLineOf(ui, /^Nothing from Alpha yet\. Herald checks it every 5 min\.$/),
+        ).toBeDefined()
+
+        await ui.press({ key: 'tab-b' })
+
+        expect(
+          await dimLineOf(ui, /^Beta has no items right now\. Herald checks it every 5 min\.$/),
+        ).toBeDefined()
+
+        await $.session.start(Fixtures.SESSION)
+        await clock.settle()
+
+        expect(await dimLineOf(ui, /^Couldn't refresh: \S.* · last update 3 h ago$/)).toBeDefined()
+
+        await ui.press({ key: 'tab-a' })
+
+        expect(await dimLineOf(ui, /^Couldn't refresh: [^·]+$/)).toBeDefined()
+        expect(await keysOf(ui)).toEqual(['tab-b', 'tab-@stack', 'tab-saved', 'up', 'down'])
+      },
+    )
+  }
+
+  const REACT_FEED = 'https://github.com/facebook/react/releases.atom'
+  const REACT_TREE = {
+    '.git': { isDir: true as const },
+    'package.json': JSON.stringify({ name: 'app', dependencies: { react: '19.0.0' } }),
+  }
+
+  const STACK_CASES = [
+    {
+      name: 'no manifest in the project',
+      tree: { '.git': { isDir: true } },
+      entries: {},
+      line: 'No package manifests found in this project.',
+    },
+    {
+      name: 'a package still being looked up',
+      tree: REACT_TREE,
+      entries: {},
+      line: "Checking your stack's releases: 0 of 1 packages so far…",
+    },
+    {
+      name: 'every package read and nothing new',
+      tree: REACT_TREE,
+      entries: {
+        depFeeds: { 'npm:react': { repo: 'facebook/react', feed: REACT_FEED, resolvedAt: 0 } },
+        stack: {
+          '/repo': {
+            deps: { 'npm:react': { checkedAt: 0, current: '19.0.0', seen: [], items: [] } },
+            refreshedAt: 0,
+          },
+        },
+      },
+      line: 'Everything in your stack is up to date.',
+    },
+  ] as const
+
+  for (const surface of SURFACES) {
+    for (const entry of STACK_CASES) {
+      test(
+        `on ${surface}: an empty Your stack with ${entry.name} says so`,
+        { timeoutMs: 30_000 },
+        async ($, on) => {
+          // A detection stamped at 0 reads as never run.
+          const clock = mock.clock(on, { now: 1000 })
+
+          Fixtures.bandOn(on, { ...STORE, ...entry.entries }, entry.tree)
+
+          await $.session.start(Fixtures.SESSION)
+          await clock.settle()
+
+          const ui = await $.ui.mount({ ...PANE, surface })
+
+          await ui.press({ key: 'tab-@stack' })
+
+          expect(await linksOf(ui)).toEqual([])
+          expect(
+            (await ui.findAll({ type: 'Text' })).some(
+              text => text.props.dimColor === true && lineOf(text) === entry.line,
+            ),
+          ).toBe(true)
+          expect(await ui.find({ key: 'open' })).toBeUndefined()
+          expect(await ui.find({ key: 'filter' })).toBeUndefined()
+        },
+      )
+    }
+  }
 })

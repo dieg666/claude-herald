@@ -32,8 +32,9 @@ export async function toggleReleases(
     const sources = await host.state.sources.read()
     const items = await host.state.items.read()
     const saved = await host.state.saved.read()
+    const health = await host.state.status.read()
     const pageOf = async (stack: ReturnType<typeof paneStackOf>) =>
-      panePageOf(await host.state.pane.read(), sources, items, saved, size, stack)
+      panePageOf(await host.state.pane.read(), sources, items, saved, size, stack, {}, health)
     const before = await pageOf(paneStackOf(await host.state.stack.read()))
     const key = before.stack?.rows[before.selected]?.pkg.key
 
@@ -54,7 +55,8 @@ export async function toggleReleases(
     const stack = paneStackOf(written)
 
     await host.state.pane.update(pane => {
-      const rows = panePageOf(pane, sources, items, saved, size, stack).stack?.rows ?? []
+      const rows =
+        panePageOf(pane, sources, items, saved, size, stack, {}, health).stack?.rows ?? []
       const index = rows.findIndex(row => row.kind === 'package' && row.pkg.key === key)
 
       return index === -1 ? pane : { ...pane, selected: index }

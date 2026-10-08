@@ -412,7 +412,7 @@ export const register: Register = on => {
     return closed
   }).catch(($, e, next) => next(e))
 
-  // The pane reads state only (it notes the window size in a module holder); its Buttons write through the Host when pressed.
+  // The pane reads state and the clock only (it notes the window size in a module holder); its Buttons write through the Host when pressed.
   // The id stays literal so validate reports it; a test mounts the pane by Names.PANE_ID to keep them equal.
   on('ui.render', { component: 'Pane', requestId: 'herald' }, async ($, e) => {
     const sources = await read($, SOURCES)
@@ -420,6 +420,11 @@ export const register: Register = on => {
     const saved = await read($, SAVED)
     const stack = Pane.paneStackOf(await read($, STACK_STATE))
     const newCounts = Pane.paneNewCountsOf(items, await read($, VIEWED))
+    const health = {
+      ...(await read($, STATUS)),
+      refreshMinutes: (await read($, SETTINGS)).refreshMinutes,
+      now: await $.clock.now(),
+    }
     const page = Pane.panePageOf(
       await read($, PANE),
       sources,
@@ -435,6 +440,7 @@ export const register: Register = on => {
       ),
       stack,
       newCounts,
+      health,
     )
     const table = $.ui.resolve(e)
     const { Box, Text, Button, Link } = table

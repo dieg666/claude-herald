@@ -4,13 +4,14 @@ import Store from '../../hooks/store'
 import Fixtures from '../fixtures'
 
 describe('forget-sources', () => {
-  test("drops the sources' items, seen, read and viewed ids and page hashes, keeping the others", async () => {
+  test("drops the sources' items, seen, read and viewed ids, page hashes and refresh times, keeping the others", async () => {
     const { host, stored } = Fixtures.fakeHostOf({
       items: { a: [Fixtures.itemAt('x')], b: [] },
       seen: { a: ['x'], b: ['y'] },
       read: { a: ['x'], b: ['y'] },
       viewed: { a: ['x'], b: [] },
       pageHashes: { a: 'h', b: 'k' },
+      refreshedAt: { a: 1, b: 2 },
       saved: [{ ...Fixtures.itemAt('x'), savedAt: 1 }],
     })
 
@@ -21,6 +22,7 @@ describe('forget-sources', () => {
     expect(stored.get('read')).toEqual({ b: ['y'] })
     expect(stored.get('viewed')).toEqual({ b: [] })
     expect(stored.get('pageHashes')).toEqual({ b: 'k' })
+    expect(stored.get('refreshedAt')).toEqual({ b: 2 })
     expect(stored.get('saved')).toEqual([{ ...Fixtures.itemAt('x'), savedAt: 1 }])
   })
 

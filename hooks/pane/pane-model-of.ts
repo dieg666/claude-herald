@@ -25,6 +25,7 @@ import { paneStackRowsOf } from './pane-stack-rows-of.js'
 import { PANE_SUMMARY_LINES } from './pane-summary-lines.js'
 import { PANE_TAB_KEYS } from './pane-tab-keys.js'
 import { shortDateOf } from './short-date-of.js'
+import { stateLineTextOf } from './state-line-text-of.js'
 import { wrapColumns } from './wrap-columns.js'
 
 /**
@@ -96,28 +97,7 @@ function rowOf(
 }
 
 /**
- * What an empty tab says.
- *
- * @param tab which tab
- * @param name the tab's name
- * @param filter the stack tab's filter
- */
-function emptyOf(tab: string, name: string, filter: string): string {
-  if (tab === SAVED_TAB) {
-    return 'Nothing saved yet: press v on an item to keep it here.'
-  }
-
-  if (tab === STACK_TAB) {
-    return filter.trim() === ''
-      ? 'No new release of your dependencies at this level.'
-      : `No release matches "${lineOf(filter)}".`
-  }
-
-  return `Nothing from ${name} yet.`
-}
-
-/**
- * What the pane draws for a page, every line fitted to `columns` cells; a news item that was read is marked so; on the saved tab a title that is only a version leads with its source's name; the stack tab draws a one-line row per package (and per release of an expanded one) under a heading per ecosystem, with its summary line and its filter; the footer holds the keys that act on the tab, after the focus hint while the pane does not hold the keyboard.
+ * What the pane draws for a page, every line fitted to `columns` cells: the tab's state line in place of rows on an empty tab, above them on a source whose refresh failed; a news item that was read is marked so; on the saved tab a title that is only a version leads with its source's name; the stack tab draws a one-line row per package (and per release of an expanded one) under a heading per ecosystem, with its summary line and its filter; the footer holds the keys that act on the tab, after the focus hint while the pane does not hold the keyboard.
  *
  * @param page the page shown
  * @param sources every source, for the names
@@ -141,11 +121,6 @@ export function paneModelOf(
   const names = new Map(sources.map(source => [source.id, lineOf(source.name)]))
   const isSavedTab = page.tab.id === SAVED_TAB
   const isStackTab = page.tab.id === STACK_TAB
-  const name = isSavedTab
-    ? 'Saved'
-    : isStackTab
-      ? 'Your stack'
-      : lineOf(sources.find(source => source.id === page.tab.id)?.name ?? page.tab.label)
   const selected = page.items[page.selected]
 
   const rows =
@@ -178,11 +153,15 @@ export function paneModelOf(
             columns - PANE_HEADING_RESERVE,
           ),
         }),
+    ...(rows.length === 0 || page.stateLine === undefined
+      ? {}
+      : { notice: stateLineTextOf(page.stateLine, columns) }),
     rows,
-    empty: fitColumns(emptyOf(page.tab.id, name, filter), columns),
+    empty: page.stateLine === undefined ? '' : stateLineTextOf(page.stateLine, columns),
     keys,
     ...(isFocused || keys.length === 0 ? {} : { hint: fitColumns(PANE_FOCUS_HINT, columns) }),
-    ...(isStackTab ? { filter } : {}),
+    // A stack with nothing to filter draws no field over its state line.
+    ...(isStackTab && (filter !== '' || (page.stack?.packages.length ?? 0) > 0) ? { filter } : {}),
     ...(page.stack === undefined || page.stack.summary === ''
       ? {}
       : { summary: fitColumns(page.stack.summary, columns) }),

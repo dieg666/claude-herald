@@ -28,6 +28,8 @@ export async function handShownPane(
       await host.state.saved.read(),
       size,
       paneStackOf(await host.state.stack.read()),
+      {},
+      await host.state.status.read(),
     )
 
     handPaneItems(host, onShown, shownSelectedFirstOf(page))

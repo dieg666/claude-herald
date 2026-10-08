@@ -13,7 +13,7 @@ export const INITIAL_STATE: Readonly<HeraldState> = {
   summaries: {},
   band: { offset: 0, selected: 0, isPaused: false },
   pane: { tab: '', selected: 0 },
-  status: { lastRefreshAt: null, isRefreshing: false, errors: {} },
+  status: { lastRefreshAt: null, isRefreshing: false, errors: {}, refreshedAt: {} },
   stack: { root: null, settings: { ...DEFAULT_DEPS_SETTINGS }, items: [], filter: '' },
   read: {},
   viewed: {},

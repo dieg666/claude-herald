@@ -110,6 +110,55 @@ describe('pane-page-of', () => {
     expect(pageOf('a', 0, 4).span.count).toBe(4)
   })
 
+  test("a failing source's state line takes one row from its window, the size kept as given; an empty tab and a clean one lose none", () => {
+    const failing = { errors: { a: 'timed out' } }
+    const page = Pane.panePageOf(
+      { tab: 'a', selected: 4 },
+      SOURCES,
+      ITEMS,
+      SAVED,
+      4,
+      undefined,
+      {},
+      failing,
+    )
+
+    expect([page.stateLine, page.span, page.shown.map(item => item.id), page.size]).toEqual([
+      { text: "Couldn't refresh: timed out" },
+      { start: 2, count: 3, selected: 2 },
+      ['a:3', 'a:4', 'a:5'],
+      4,
+    ])
+    expect(
+      Pane.panePageOf({ tab: 'b', selected: 0 }, SOURCES, ITEMS, SAVED, 4, undefined, {}, failing)
+        .span.count,
+    ).toBe(2)
+    expect(
+      Pane.panePageOf({ tab: 'a', selected: 0 }, SOURCES, ITEMS, SAVED, 1, undefined, {}, failing)
+        .span.count,
+    ).toBe(1)
+    expect(
+      Pane.panePageOf({ tab: 'a', selected: 0 }, SOURCES, {}, SAVED, 4, undefined, {}, failing)
+        .stateLine,
+    ).toEqual({ text: "Couldn't refresh: timed out" })
+    expect(pageOf('a', 0, 4).stateLine).toBeUndefined()
+  })
+
+  test('an empty tab carries why it is empty; the saved tab and the stack tab too', () => {
+    expect(Pane.panePageOf({ tab: 'saved', selected: 0 }, SOURCES, ITEMS, [], 4).stateLine).toEqual(
+      { text: 'Nothing saved yet. Press v on an item to keep it here.' },
+    )
+    expect(
+      Pane.panePageOf({ tab: '@stack', selected: 0 }, SOURCES, ITEMS, SAVED, 4, {
+        ...STACK,
+        filter: 'nothing like it',
+      }).stateLine,
+    ).toEqual({ text: 'No package matches "nothing like it". Clear the filter to see all.' })
+    expect(
+      Pane.panePageOf({ tab: '@stack', selected: 0 }, SOURCES, ITEMS, SAVED, 4, STACK).stateLine,
+    ).toBeUndefined()
+  })
+
   test('an expanded package lists its releases as rows acting on each; the window hands over every release of the packages in it', () => {
     const stack = { items: Fixtures.STACK_RELEASES, filter: '', expanded: ['npm:jsdom'] }
     const page = Pane.panePageOf({ tab: '@stack', selected: 2 }, SOURCES, ITEMS, SAVED, 20, stack)

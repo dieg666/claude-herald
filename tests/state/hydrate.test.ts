@@ -71,6 +71,15 @@ describe('hydrate', () => {
     expect(before.state.viewed).toEqual({})
   })
 
+  test("copies when each source last refreshed cleanly into status, this session's later times kept", async () => {
+    const { host, state } = Fixtures.fakeHostOf({ refreshedAt: { own: 10, gone: 'x', other: 20 } })
+
+    state.status = { ...(state.status as object), refreshedAt: { other: 30 } }
+    await State.hydrate(host)
+
+    expect((state.status as { refreshedAt: unknown }).refreshedAt).toEqual({ own: 10, other: 30 })
+  })
+
   test('stored copies of one story fold onto the id the summary is cached under', async () => {
     const guid = {
       ...Fixtures.itemAt('story'),

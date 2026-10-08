@@ -1,21 +1,24 @@
-import type { DepsProject, StackProject, StackState } from '../../../types/index.js'
+import type { DepFeed, DepsProject, StackProject, StackState } from '../../../types/index.js'
 import { timeOf } from '../../items/time-of.js'
 import { depFeedKeyOf } from '../resolve/dep-feed-key-of.js'
 import { STACK_LIMITS } from './stack-limits.js'
+import { stackProgressOf } from './stack-progress-of.js'
 
 /**
- * The stack state of a project: its settings, the kept releases of the dependencies it follows now (newest first, at most `STACK_LIMITS.itemsPerProject`), and the filter and expanded packages kept while the project stays the same.
+ * The stack state of a project: its settings, the kept releases of the dependencies it follows now (newest first, at most `STACK_LIMITS.itemsPerProject`), how far following it got, and the filter and expanded packages kept while the project stays the same.
  *
  * @param root the project root
  * @param project its stack record
  * @param stack its stored releases
  * @param current the stack in state now, whose filter and expanded packages stay for the same project
+ * @param feeds the cached feed mappings by `<ecosystem>:<name>`, which tell the packages with no release feed
  */
 export function stackStateOf(
   root: string,
   project: DepsProject,
   stack: StackProject,
   current: Pick<StackState, 'root' | 'filter' | 'expanded'>,
+  feeds: Readonly<Record<string, DepFeed>> = {},
 ): StackState {
   const followed = new Set(project.dependencies.map(depFeedKeyOf))
   const items = Object.entries(stack.deps)
@@ -32,6 +35,7 @@ export function stackStateOf(
     root,
     settings: project.settings,
     items,
+    progress: stackProgressOf(project, stack, feeds),
     filter: isSame ? current.filter : '',
     ...(isSame && current.expanded !== undefined ? { expanded: current.expanded } : {}),
   }

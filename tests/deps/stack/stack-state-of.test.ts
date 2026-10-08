@@ -35,6 +35,29 @@ describe('stack-state-of', () => {
     )
   })
 
+  test('how far following the stack got, the packages with no release feed told by the feed mappings', () => {
+    const [first] = Object.keys(stack.deps)
+    const unread = {
+      ...stack,
+      deps: Object.fromEntries(Object.entries(stack.deps).filter(([key]) => key !== first)),
+    }
+    const feeds = { [first ?? '']: { reason: 'no repository', resolvedAt: 1 } }
+
+    expect(
+      Stack.stackStateOf('/repo', project, unread, { root: null, filter: '' }, feeds).progress,
+    ).toEqual({
+      isDetected: true,
+      manifests: 0,
+      detected: 6,
+      followed: 6,
+      checked: 5,
+      unresolved: 1,
+    })
+    expect(
+      Stack.stackStateOf('/repo', project, unread, { root: null, filter: '' }).progress?.unresolved,
+    ).toBe(0)
+  })
+
   test('the packages expanded stay for the same project only', () => {
     const same = Stack.stackStateOf('/repo', project, stack, {
       root: '/repo',

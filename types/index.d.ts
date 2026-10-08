@@ -125,6 +125,8 @@ export type RefreshStatus = {
   isRefreshing: boolean
   /** The last failure per source id; absent once the source refreshes cleanly. */
   errors: Record<string, string>
+  /** When each source last refreshed cleanly (ms since the epoch), by source id; absent for one that never has. */
+  refreshedAt: Record<string, number>
 }
 
 /**
@@ -316,7 +318,25 @@ export type StackProject = {
 }
 
 /**
- * The stack as the band and the pane draw it: the project, its settings, its releases, the pane's filter and the packages it shows expanded.
+ * How far following a project's stack got: what its last detection found and how many followed packages had their releases looked at.
+ */
+export type StackProgress = {
+  /** Whether the stack was detected at least once. */
+  isDetected: boolean
+  /** How many manifests and lockfiles the last detection read. */
+  manifests: number
+  /** How many distinct dependencies the last detection found, before the dev filter and the cap. */
+  detected: number
+  /** How many packages are followed. */
+  followed: number
+  /** How many followed packages had their release feed read. */
+  checked: number
+  /** How many followed packages, not read yet, are known to have no release feed. */
+  unresolved: number
+}
+
+/**
+ * The stack as the band and the pane draw it: the project, its settings, its releases, how far following it got, the pane's filter and the packages it shows expanded.
  */
 export type StackState = {
   /** The project root the releases belong to; null before the first look. */
@@ -324,6 +344,8 @@ export type StackState = {
   settings: DepsSettings
   /** Every kept release of the followed dependencies, newest first. */
   items: StackItem[]
+  /** How far detection and the release lookups got; absent before the project is first looked at. */
+  progress?: StackProgress
   /** The text the pane's stack tab filters by. */
   filter: string
   /** The packages whose releases the pane's stack tab lists under them, `<ecosystem>:<name>`; absent when none. */

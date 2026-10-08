@@ -3,7 +3,7 @@ import { STORE_KEYS } from '../names/store-keys.js'
 import { isRecord } from './is-record.js'
 
 /**
- * Drops the entries of some sources from the per-source store values (items, seen, read and viewed ids, page hashes), each read right before it is written and left alone when it holds none of them.
+ * Drops the entries of some sources from the per-source store values (items, seen, read and viewed ids, page hashes, last clean refresh times), each read right before it is written and left alone when it holds none of them.
  *
  * @param host the engine
  * @param sourceIds the sources removed
@@ -17,6 +17,7 @@ export async function forgetSources(host: Host, sourceIds: readonly string[]): P
     STORE_KEYS.read,
     STORE_KEYS.viewed,
     STORE_KEYS.pageHashes,
+    STORE_KEYS.refreshedAt,
   ]) {
     const value = await host.storeGet(key)
 

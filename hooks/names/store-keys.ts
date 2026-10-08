@@ -8,6 +8,7 @@ export const STORE_KEYS = {
   seen: 'seen',
   items: 'items',
   pageHashes: 'pageHashes',
+  refreshedAt: 'refreshedAt',
   summaries: 'summaries',
   deps: 'deps',
   depFeeds: 'depFeeds',

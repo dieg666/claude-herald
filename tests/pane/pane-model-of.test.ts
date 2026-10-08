@@ -232,8 +232,53 @@ describe('pane-model-of', () => {
     ])
     expect([saved.position, saved.empty]).toEqual([
       undefined,
-      'Nothing saved yet: press v on an item to keep it here.',
+      'Nothing saved yet. Press v on an item to keep it here.',
     ])
+  })
+
+  test("a failing source's state line sits above its rows, fitted to the width; an empty tab draws it as what it says", () => {
+    const health = { errors: { a: 'timed out' }, refreshedAt: { a: 0 }, now: 2 * 3_600_000 }
+    const listed = Pane.paneModelOf(
+      Pane.panePageOf({ tab: 'a', selected: 0 }, SOURCES, ITEMS, [], 10, undefined, {}, health),
+      SOURCES,
+      {},
+      [],
+      80,
+    )
+    const narrow = Pane.paneModelOf(
+      Pane.panePageOf({ tab: 'a', selected: 0 }, SOURCES, ITEMS, [], 10, undefined, {}, health),
+      SOURCES,
+      {},
+      [],
+      20,
+    )
+    const empty = Pane.paneModelOf(
+      Pane.panePageOf({ tab: 'a', selected: 0 }, SOURCES, {}, [], 10, undefined, {}, health),
+      SOURCES,
+      {},
+      [],
+      80,
+    )
+
+    expect([listed.notice, listed.rows.length]).toEqual([
+      "Couldn't refresh: timed out · last update 2 h ago",
+      2,
+    ])
+    expect(narrow.notice).toBe("Couldn't refresh: t…")
+    expect([empty.notice, empty.rows, empty.empty]).toEqual([
+      undefined,
+      [],
+      "Couldn't refresh: timed out · last update 2 h ago",
+    ])
+    expect(
+      Pane.paneModelOf(
+        Pane.panePageOf({ tab: 'a', selected: 0 }, SOURCES, ITEMS, [], 10),
+        SOURCES,
+        {},
+        [],
+        80,
+      ).notice,
+    ).toBeUndefined()
   })
 
   test("the position never repeats the tab's name and fits beside the selection Buttons", () => {
@@ -290,6 +335,14 @@ describe('pane-model-of', () => {
       Pane.panePageOf({ tab: '@stack', selected: 0 }, SOURCES, ITEMS, [], 20, {
         ...stack,
         items: [],
+        progress: {
+          isDetected: true,
+          manifests: 1,
+          detected: 7,
+          followed: 7,
+          checked: 7,
+          unresolved: 0,
+        },
       }),
       SOURCES,
       {},
@@ -298,10 +351,28 @@ describe('pane-model-of', () => {
       '',
     )
 
-    expect([empty.summary, empty.isExpanded, empty.empty]).toEqual([
+    expect([empty.summary, empty.isExpanded, empty.filter, empty.empty]).toEqual([
       undefined,
       undefined,
-      'No new release of your dependencies at this level.',
+      undefined,
+      'Everything in your stack is up to date.',
+    ])
+
+    const unmatched = Pane.paneModelOf(
+      Pane.panePageOf({ tab: '@stack', selected: 0 }, SOURCES, ITEMS, [], 20, {
+        ...stack,
+        filter: 'zzz',
+      }),
+      SOURCES,
+      {},
+      [],
+      80,
+      'zzz',
+    )
+
+    expect([unmatched.filter, unmatched.empty]).toEqual([
+      'zzz',
+      'No package matches "zzz". Clear the filter to see all.',
     ])
   })
 

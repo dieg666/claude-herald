@@ -3,6 +3,7 @@ import type { Host } from '../host/host.js'
 import { mergeItems } from '../items/merge-items.js'
 import { loadItems } from '../store/load-items.js'
 import { loadRead } from '../store/load-read.js'
+import { loadRefreshedAt } from '../store/load-refreshed-at.js'
 import { loadSaved } from '../store/load-saved.js'
 import { loadSettings } from '../store/load-settings.js'
 import { loadSources } from '../store/load-sources.js'
@@ -20,7 +21,7 @@ type Hydrated = Pick<
 >
 
 /**
- * Copies the store into `$.state` (sources, settings, items with duplicates of one story folded, saved, current-language short summaries, read and viewed ids), reading all before writing any; never throws, logs a failure to debug.
+ * Copies the store into `$.state` (sources, settings, items with duplicates of one story folded, saved, current-language short summaries, read and viewed ids, when each source last refreshed cleanly), reading all before writing any; never throws, logs a failure to debug.
  *
  * @param host the engine
  * @returns what it wrote, or undefined when it failed
@@ -36,6 +37,7 @@ export async function hydrate(host: Host): Promise<Hydrated | undefined> {
     const entries = await loadSummaries(host)
     const read = await loadRead(host)
     const viewed = await loadViewed(host)
+    const refreshedAt = await loadRefreshedAt(host)
 
     const userLanguage =
       settings.lang === 'user' ? await host.userLanguage().catch(() => undefined) : undefined
@@ -49,6 +51,10 @@ export async function hydrate(host: Host): Promise<Hydrated | undefined> {
     await host.state.summaries.update(() => summaries)
     await host.state.read.update(() => read)
     await host.state.viewed.update(() => viewed)
+    await host.state.status.update(status => ({
+      ...status,
+      refreshedAt: { ...refreshedAt, ...status.refreshedAt },
+    }))
 
     return { sources, settings, items, saved, summaries, read, viewed }
   } catch (error) {

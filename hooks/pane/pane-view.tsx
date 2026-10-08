@@ -284,7 +284,7 @@ function footerView(ui: PaneUi, model: PaneModel, handlers: PaneHandlers): Rende
 }
 
 /**
- * The pane: the tab row (the active tab highlighted), the title line with the selection Buttons and the window's position at its right end, the stack tab's summary line and filter, the window of items (the stack tab's under ecosystem headings) or what an empty tab says in a Box that takes the free rows, then the footer, at the pane's bottom when the tree fills it.
+ * The pane: the tab row (the active tab highlighted), the title line with the selection Buttons and the window's position at its right end, the stack tab's summary line and filter, the window of items (the stack tab's under ecosystem headings) under a failed source's state line, or what an empty tab says, in a Box that takes the free rows, then the footer, at the pane's bottom when the tree fills it.
  *
  * @param ui the elements, `Input` among them where the surface has one
  * @param model what to draw
@@ -304,16 +304,19 @@ export function paneView(
   const body =
     model.rows.length === 0
       ? [<Text dimColor>{model.empty}</Text>]
-      : model.rows.flatMap(row => [
-          ...(row.heading === undefined
-            ? []
-            : [
-                <Text color="suggestion" bold>
-                  {row.heading}
-                </Text>,
-              ]),
-          rowView(ui, row),
-        ])
+      : [
+          ...(model.notice === undefined ? [] : [<Text dimColor>{model.notice}</Text>]),
+          ...model.rows.flatMap(row => [
+            ...(row.heading === undefined
+              ? []
+              : [
+                  <Text color="suggestion" bold>
+                    {row.heading}
+                  </Text>,
+                ]),
+            rowView(ui, row),
+          ]),
+        ]
 
   return (
     <Box

@@ -40,8 +40,9 @@ export async function movePane(
     const items = await host.state.items.read()
     const saved = await host.state.saved.read()
     const stack = paneStackOf(await host.state.stack.read())
+    const health = await host.state.status.read()
     const stored = await host.state.pane.read()
-    const before = panePageOf(stored, sources, items, saved, size, stack)
+    const before = panePageOf(stored, sources, items, saved, size, stack, {}, health)
     const wanted = paneAfter(before, move)
 
     if (wanted.tab === stored.tab && wanted.selected === stored.selected) {
@@ -49,9 +50,9 @@ export async function movePane(
     }
 
     const written = await host.state.pane.update(pane =>
-      paneAfter(panePageOf(pane, sources, items, saved, size, stack), move),
+      paneAfter(panePageOf(pane, sources, items, saved, size, stack, {}, health), move),
     )
-    const after = panePageOf(written, sources, items, saved, size, stack)
+    const after = panePageOf(written, sources, items, saved, size, stack, {}, health)
 
     if (after.tab.id === before.tab.id && idsOf(after.shown) === idsOf(before.shown)) {
       const selected = after.items[after.selected]

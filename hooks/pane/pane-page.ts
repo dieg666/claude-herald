@@ -1,10 +1,11 @@
 import type { Item } from '../../types/index.js'
 import type { BandSpan } from '../band/band-span.js'
 import type { PaneStackPage } from './pane-stack-page.js'
+import type { PaneStateLine } from './pane-state-line.js'
 import type { PaneTab } from './pane-tab.js'
 
 /**
- * What the pane shows now: its tabs, the active one, that tab's items, the window over them, and the selected item.
+ * What the pane shows now: its tabs, the active one, that tab's items, the window over them, the selected item, and the tab's state line.
  */
 export type PanePage = {
   readonly tabs: readonly PaneTab[]
@@ -21,4 +22,6 @@ export type PanePage = {
   readonly size: number
   /** The stack tab's packages and rows, set exactly when the stack tab is active. */
   readonly stack?: PaneStackPage
+  /** The tab's one dim state line: why it is empty, or that its source's last refresh failed; absent when it needs none. */
+  readonly stateLine?: PaneStateLine
 }

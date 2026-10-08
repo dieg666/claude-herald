@@ -3,6 +3,7 @@ import { mergeItems } from '../items/merge-items.js'
 import { loadSources } from '../store/load-sources.js'
 import { mapLimited } from './map-limited.js'
 import { messageOf } from './message-of.js'
+import { noteRefreshed } from './note-refreshed.js'
 import { REFRESH_LIMITS } from './refresh-limits.js'
 import type { RefreshLoop } from './refresh-loop.js'
 import type { RefreshRun } from './refresh-run.js'
@@ -25,7 +26,7 @@ function isOtherRunning(loop: RefreshLoop, controller: AbortController): boolean
 }
 
 /**
- * One run's work: every enabled source a few at a time, each within its deadline, then status, the toast and `onRun` with the run's signal; never rejects.
+ * One run's work: every enabled source a few at a time, each within its deadline, then status (with when each clean source refreshed), the toast and `onRun` with the run's signal; never rejects.
  *
  * @param host the engine
  * @param loop the loop the run belongs to
@@ -68,10 +69,17 @@ async function runOf(
 
     const lastRefreshAt = await host.clockNow()
 
-    await host.state.status.update(() => ({
+    const refreshedAt = await noteRefreshed(
+      host,
+      sources.filter(source => !Object.hasOwn(errors, source.id)).map(source => source.id),
+      lastRefreshAt,
+    )
+
+    await host.state.status.update(status => ({
       lastRefreshAt,
       isRefreshing: isOtherRunning(loop, controller),
       errors,
+      refreshedAt: { ...status.refreshedAt, ...refreshedAt },
     }))
 
     if (newItems.length > 0) {

@@ -124,12 +124,56 @@ describe('refresh-all', () => {
       lastRefreshAt: 1000,
       isRefreshing: false,
       errors: { two: 'HTTP 500' },
+      refreshedAt: { one: 1000 },
     })
 
     web.set(TWO.url, { status: 200, text: Feeds.rssWithItems(1) })
     await Refresh.refreshAll(host, loop)
 
-    expect(state.status).toEqual({ lastRefreshAt: 1000, isRefreshing: false, errors: {} })
+    expect(state.status).toEqual({
+      lastRefreshAt: 1000,
+      isRefreshing: false,
+      errors: {},
+      refreshedAt: { one: 1000, two: 1000 },
+    })
+  })
+
+  test("keeps when each source last refreshed cleanly in the store, other sessions' times merged; a failure keeps the source's last time", async () => {
+    const { host, web, state, stored } = hostWith([ONE, TWO], { refreshedAt: { other: 5 } })
+    const loop = Refresh.refreshLoopOf()
+    const clocks = [1000, 9000]
+
+    host.clockNow = async () => clocks.shift() ?? 9000
+    await Refresh.refreshAll(host, loop)
+
+    expect(stored.get('refreshedAt')).toEqual({ other: 5, one: 1000, two: 1000 })
+
+    web.set(TWO.url, { status: 503, text: '' })
+    await Refresh.refreshAll(host, loop)
+
+    expect(stored.get('refreshedAt')).toEqual({ other: 5, one: 9000, two: 1000 })
+    expect(state.status).toMatchObject({
+      errors: { two: 'HTTP 503' },
+      refreshedAt: { other: 5, one: 9000, two: 1000 },
+    })
+  })
+
+  test('a refresh time the store cannot keep is logged and still recorded in state', async () => {
+    const { host, logs, state } = hostWith([ONE])
+    const storeSet = host.storeSet
+
+    host.storeSet = async (key, value) => {
+      if (key === 'refreshedAt') {
+        throw new Error('disk full')
+      }
+
+      return storeSet(key, value)
+    }
+
+    await Refresh.refreshAll(host, Refresh.refreshLoopOf())
+
+    expect(logs).toEqual(['herald: could not record the refresh time: disk full'])
+    expect(state.status).toMatchObject({ errors: {}, refreshedAt: { one: 1000 } })
   })
 
   test('a failing feed keeps its last items in state', async () => {
