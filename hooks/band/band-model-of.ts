@@ -15,6 +15,11 @@ import { LEAD_COLUMNS } from './lead-columns.js'
 import { rangeLabelOf } from './range-label-of.js'
 import { sourceColumnOf } from './source-column-of.js'
 import { SOURCE_COLUMNS } from './source-columns.js'
+import { sourceLabelOf } from './source-label-of.js'
+import { stackLabelOf } from './stack-label-of.js'
+
+/** The cells a stack row's package takes: the source column less the glyph and its gap. */
+const PACKAGE_COLUMNS = SOURCE_COLUMNS - ICON_COLUMNS - 1
 
 /**
  * Feed text as one line, invisible characters and line breaks gone.
@@ -26,7 +31,7 @@ function lineOf(text: string): string {
 }
 
 /**
- * What the full band draws for a page, every line fitted to `columns` cells: each row starts with a source column `SOURCE_COLUMNS` cells wide, so every headline and summary starts in one column; a news item's column holds its source's name cut with `…` (blank when the source is gone), its title as stored, a bare version tag included since the column names the source; a stack item's column holds 📦 (⚠ when breaking or security) and the package, its headline `current → new` and its summary the ecosystem, level and flags; releases are marked so their label takes the release color; a news item without usable text, or with an empty summary (replies rejected for now), shows no summary.
+ * What the full band draws for a page, every line fitted to `columns` cells: each row starts with a source column `SOURCE_COLUMNS` cells wide, so every headline and summary starts in one column; a news item's column holds its source's name (a factory source's short label) cut with `…` (blank when the source is gone), its title as stored, a bare version tag included since the column names the source; a stack item's column holds 📦 (⚠ when breaking or security) and the package (without its scope when too long), its headline `current → new` and its summary the ecosystem, level and flags; releases are marked so their label takes the release color; a news item without usable text, or with an empty summary (replies rejected for now), shows no summary.
  *
  * @param page the page shown
  * @param sources every source, for the names
@@ -57,14 +62,16 @@ export function bandModelOf(
     const headline =
       stack === undefined
         ? {
-            ...sourceColumnOf(lineOf(source?.name ?? ''), SOURCE_COLUMNS),
+            ...sourceColumnOf(lineOf(sourceLabelOf(source)), SOURCE_COLUMNS),
             ...(isReleaseNews(title, source) ? { isRelease: true as const } : {}),
             title: fitColumns(title, room),
           }
         : {
             icon: fitColumns(stackIconOf(stack.release), ICON_COLUMNS),
-            // The glyph and its gap take the glyph column and one cell more.
-            ...sourceColumnOf(lineOf(stack.release.name), SOURCE_COLUMNS - ICON_COLUMNS - 1),
+            ...sourceColumnOf(
+              stackLabelOf(lineOf(stack.release.name), PACKAGE_COLUMNS),
+              PACKAGE_COLUMNS,
+            ),
             isRelease: true as const,
             title: fitColumns(stackHeadlineOf(stack), room),
           }

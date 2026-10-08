@@ -16,6 +16,7 @@ import { ICON_COLUMNS } from './icon-columns.js'
 import { isReleaseNews } from './is-release-news.js'
 import { SOURCE_COLUMNS } from './source-columns.js'
 import { SOURCE_GAP_COLUMNS } from './source-gap-columns.js'
+import { sourceLabelOf } from './source-label-of.js'
 
 /**
  * Feed text as one line, invisible characters and line breaks gone.
@@ -43,7 +44,7 @@ function rowCountOf(columns: number, total: number): 1 | 2 | 3 {
 }
 
 /**
- * What the compact band draws for a page of one: the position as `13/156` and the item's headline cut to the room left beside the controls, or to the whole width on a row of its own; where that room holds the source column, its gap and the headline's fewest cells (by the width and the total only, so it never changes as the band turns), a news item's source name cut to `SOURCE_COLUMNS` comes before its title, else a bare version tag leads with the name; no summary or actions; a release keeps its 📦 or ⚠.
+ * What the compact band draws for a page of one: the position as `13/156` and the item's headline cut to the room left beside the controls, or to the whole width on a row of its own; where that room holds the source column, its gap and the headline's fewest cells (by the width and the total only, so it never changes as the band turns), a news item's source name (a factory source's short label) cut to `SOURCE_COLUMNS` comes before its title, else a bare version tag leads with the name; no summary or actions; a release keeps its 📦 or ⚠.
  *
  * @param page the page shown, of one item
  * @param sources every source, for the names
@@ -64,7 +65,7 @@ export function compactBandModelOf(
   const hasSourceRoom = room >= SOURCE_COLUMNS + SOURCE_GAP_COLUMNS + COMPACT_HEADLINE_MIN_COLUMNS
   const href = item === undefined ? undefined : httpUrlOf(item.url)?.href
   const stack = item !== undefined && isStackItem(item) ? item : undefined
-  const label = fitColumns(name, SOURCE_COLUMNS)
+  const label = fitColumns(lineOf(sourceLabelOf(source)), SOURCE_COLUMNS)
   const headline =
     stack !== undefined
       ? {

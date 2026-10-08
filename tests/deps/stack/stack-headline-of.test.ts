@@ -14,6 +14,27 @@ describe('stack-headline-of', () => {
     )
   })
 
+  test('a title that is the package at the version, scoped or not, with or without v, says no more and is dropped', () => {
+    const titled = (name: string, title: string) =>
+      Stack.stackHeadlineOf(Fixtures.stackItemAt(name, '11.1.7', { current: '9.5.5', title }))
+
+    expect(titled('astro', 'astro@11.1.7')).toBe('9.5.5 → 11.1.7')
+    expect(titled('astro', 'astro@v11.1.7')).toBe('9.5.5 → 11.1.7')
+    expect(titled('@astrojs/node', '@astrojs/node@11.1.7')).toBe('9.5.5 → 11.1.7')
+    expect(titled('@astrojs/node', ' @astrojs/node@11.1.7\n')).toBe('9.5.5 → 11.1.7')
+  })
+
+  test('a title naming another package, or another version, is kept', () => {
+    const titled = (name: string, title: string) =>
+      Stack.stackHeadlineOf(Fixtures.stackItemAt(name, '11.1.7', { current: '9.5.5', title }))
+
+    expect(titled('@astrojs/node', '@astrojs/vercel@11.1.7')).toBe(
+      '9.5.5 → 11.1.7 · @astrojs/vercel@11.1.7',
+    )
+    expect(titled('astro', 'create-astro@11.1.7')).toBe('9.5.5 → 11.1.7 · create-astro@11.1.7')
+    expect(titled('astro', 'astro@11.1.6')).toBe('9.5.5 → 11.1.7 · astro@11.1.6')
+  })
+
   test('a release that names no version shows its title alone', () => {
     const item = Fixtures.stackItemAt('a', '1.0.0', { title: 'Nightly build' })
     const { version, ...release } = item.release

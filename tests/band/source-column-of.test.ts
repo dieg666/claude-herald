@@ -23,6 +23,25 @@ describe('source-column-of', () => {
     })
   })
 
+  test('a wide name, CJK or emoji, is cut at whole characters and its column and gap still take fourteen cells', () => {
+    for (const label of [
+      '東京ニュース速報まとめ',
+      '🦀🦀🦀🦀🦀🦀🦀',
+      '📦 Rust 新闻 🦀',
+      '漢a漢a漢a漢a',
+    ]) {
+      const { source, sourceGap } = Band.sourceColumnOf(label, 12)
+
+      expect([label, Band.displayWidthOf(`${source}${sourceGap}`)]).toEqual([label, 14])
+      expect(Band.displayWidthOf(source) <= 12).toBe(true)
+    }
+
+    expect(Band.sourceColumnOf('🦀🦀🦀🦀🦀🦀🦀', 12)).toEqual({
+      source: '🦀🦀🦀🦀🦀…',
+      sourceGap: '   ',
+    })
+  })
+
   test('a label that fits is kept whole and padded; none is all gap', () => {
     expect(Band.sourceColumnOf('HN', 12)).toEqual({ source: 'HN', sourceGap: ' '.repeat(12) })
     expect(Band.sourceColumnOf('', 9)).toEqual({ source: '', sourceGap: ' '.repeat(11) })

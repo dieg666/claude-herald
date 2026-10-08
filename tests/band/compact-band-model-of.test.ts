@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'claude-code/testing'
 
 import Band from '../../hooks/band'
+import Defaults from '../../hooks/defaults'
 import Fixtures from '../fixtures'
 
 describe('compact-band-model-of', () => {
@@ -141,5 +142,19 @@ describe('compact-band-model-of', () => {
     // The glyph and its gap take three cells of the room; the cut drops the space before the ellipsis.
     expect(room - 3).toBe(23)
     expect(headline).toMatchObject({ icon: '⚠', title: 'react 18.2.0 → 19.0.0…' })
+  })
+
+  test("a factory source's short label is the name shown before the headline", () => {
+    const [releases] = Defaults.FACTORY_SOURCES.filter(
+      source => source.id === 'claude-code-releases',
+    )
+    const items = [{ ...Fixtures.itemAt('v'), sourceId: releases!.id, title: 'v2.1.294' }]
+    const page = Band.bandPageOf({ offset: 0, selected: 0, isPaused: false }, items, 1)
+
+    expect(Band.compactBandModelOf(page, [releases!], 40).headline).toMatchObject({
+      source: 'Claude Code',
+      isRelease: true,
+      title: 'v2.1.294',
+    })
   })
 })

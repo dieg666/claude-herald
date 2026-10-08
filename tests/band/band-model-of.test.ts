@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'claude-code/testing'
 
 import Band from '../../hooks/band'
+import Defaults from '../../hooks/defaults'
 import Fixtures from '../fixtures'
 
 describe('band-model-of', () => {
@@ -187,7 +188,10 @@ describe('band-model-of', () => {
 
   test('a stack item shows 📦 or ⚠ and its package in the column, current → new with the title when there is room, and its level as the summary', () => {
     const [react, vite] = Fixtures.STACK_SAMPLE
-    const astro = Fixtures.stackItemAt('@astrojs/node', '11.1.7', { current: '9.0.0' })
+    const astro = Fixtures.stackItemAt('@astrojs/node', '11.1.7', {
+      current: '9.0.0',
+      title: '@astrojs/node@11.1.7',
+    })
     const page = Band.bandPageOf({ offset: 0, selected: 0, isPaused: false }, [
       react!,
       vite!,
@@ -201,7 +205,7 @@ describe('band-model-of', () => {
     ).toEqual([
       ['⚠', 'react', '18.2.0 → 19.0.0 · React 19', 'npm · major · breaking', true],
       ['📦', 'vite', '5.0.0 → 5.1.0', 'npm · minor', true],
-      ['📦', '@astrojs…', '9.0.0 → 11.1.7', 'npm · minor', true],
+      ['📦', 'node', '9.0.0 → 11.1.7', 'npm · minor', true],
     ])
     expect(wide.rows.map(row => row.href)).toEqual([
       'https://github.com/owner/react/releases/tag/v19.0.0',
@@ -211,5 +215,23 @@ describe('band-model-of', () => {
     expect(wide.rows.map(leadOf)).toEqual([16, 16, 16])
     // Thirty-six cells less the sixteen before the headline leave twenty.
     expect(narrow.rows[0]?.title).toBe('18.2.0 → 19.0.0 · R…')
+  })
+
+  test('a factory source shows its short label while it keeps its factory name; a renamed one its own name', () => {
+    const [releases, sdk] = Defaults.FACTORY_SOURCES.filter(source =>
+      ['claude-code-releases', 'claude-agent-sdk-ts'].includes(source.id),
+    )
+    const sources = [releases!, { ...sdk!, name: 'My SDK feed' }]
+    const items = sources.map(source => ({
+      ...Fixtures.itemAt(source.id),
+      sourceId: source.id,
+      title: 'v1.0.0',
+    }))
+    const page = Band.bandPageOf({ offset: 0, selected: 0, isPaused: false }, items)
+
+    expect(Band.bandModelOf(page, sources, {}, [], 80).rows.map(row => row.source)).toEqual([
+      'Claude Code',
+      'My SDK feed',
+    ])
   })
 })
