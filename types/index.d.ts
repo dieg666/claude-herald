@@ -160,7 +160,7 @@ export type Dependency = {
 }
 
 /**
- * Which dependency releases a view shows: every one, minor and up, major and up, or only breaking and security ones; breaking and security releases pass every level.
+ * Which dependency releases a view shows: every one, minor and up, major and up, or only breaking and security ones; past `all`, a pre-release never passes, flagged or not, and any other breaking or security release passes every level.
  */
 export type DepsLevel = 'all' | 'minor+' | 'major+breaking+security' | 'breaking+security'
 
