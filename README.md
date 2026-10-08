@@ -89,7 +89,7 @@ The rotation does nothing when all items fit on one page. The band yields its pl
 
 ## Use the pane
 
-`/herald` opens the pane and asks for keyboard focus, which Claude Code grants while the prompt is empty. Esc closes the pane. The pane shows a window of the active tab's items around the selection, each with its headline link, date and summary (no summary for an item without text). A source's own tab shows no source mark, since every row is from it; the Saved tab shows each item's source name in dim text at the right end of the headline, before the date, as the band does. The Your stack tab shows one row per package instead, grouped by ecosystem, with a summary line and a filter field above them.
+`/herald` opens the pane and asks for keyboard focus, which Claude Code grants while the prompt is empty. Esc closes the pane. The pane shows a window of the active tab's items around the selection, one line each with its headline link and, at the right end, its date. Only the selected item shows its summary, on up to three lines under its headline (none for an item without text). A source's own tab shows no source mark, since every row is from it; the Saved tab shows each item's source name in dim text just before the date column, the names ending in one column; a long headline drops the name before it is cut. The Your stack tab shows one row per package instead, grouped by ecosystem, with a summary line and a filter field above them.
 
 | Key | Button | What it does |
 |-----|--------|--------------|
@@ -188,7 +188,7 @@ A template must contain `{title}` or `{url}` (the release template: `{pkg}` or `
 
 ## Summaries and languages
 
-The band and the pane show a one-line summary under each headline, and `…` while it is pending. The mod writes summaries from the item's title and the excerpt the feed carries (at most 500 characters), not from the linked page. Link and counter lines (such as Hacker News' `Article URL`, `Points` and `# Comments`) are left out of the excerpt. An item with no text left, such as a Hacker News link post or a page item without a teaser, gets no summary and no model call: the pane draws its headline alone, and the band leaves its second line empty so the band keeps its height as it turns. Summarize on such an item says there is no text to summarize. A reply that talks about the item or its title instead of the story (such as "according to the title"), or that shows the model's reasoning, is dropped and not kept, and the item is asked about again the next time it is shown. After two such replies for the same item, language and length, the mod stops asking for an hour and shows no summary line for the item meanwhile.
+The band shows a one-line summary under each headline, the pane under the selected headline only (wrapped onto up to three lines), and both show `…` while it is pending. The mod writes summaries from the item's title and the excerpt the feed carries (at most 500 characters), not from the linked page. Link and counter lines (such as Hacker News' `Article URL`, `Points` and `# Comments`) are left out of the excerpt. An item with no text left, such as a Hacker News link post or a page item without a teaser, gets no summary and no model call: the pane draws its headline alone, and the band leaves its second line empty so the band keeps its height as it turns. Summarize on such an item says there is no text to summarize. A reply that talks about the item or its title instead of the story (such as "according to the title"), or that shows the model's reasoning, is dropped and not kept, and the item is asked about again the next time it is shown. After two such replies for the same item, language and length, the mod stops asking for an hour and shows no summary line for the item meanwhile.
 
 `/herald lang` sets the language of every summary:
 
@@ -298,7 +298,7 @@ The mod calls Haiku through your Claude Code session, so the calls count against
 
 | Call | When it happens |
 |------|-----------------|
-| One-line summary | For each new item with text a refresh finds, newest first, at most 12 per run; for each item with text on a band page and in the pane. The first `/herald` of a session, before the pane has been drawn, summarizes up to 20 items. |
+| One-line summary | For each new item with text a refresh finds, newest first, at most 12 per run; for each item with text on a band page and in the pane's window, the selected item first. The first `/herald` of a session, before the pane has been drawn, summarizes up to 20 items. |
 | Long summary | When you press Summarize on an item with text. |
 | Page extraction | When a page source's text, or the extraction prompt, has a different hash from the last extraction. |
 | Release check | One call per release, to flag it from its notes. For releases a refresh has not seen before, never on a package's first read: at most 12 per run, notes cut to 4000 characters. For release rows the band or the pane shows that have no verdict yet: at most 12 per view, notes cut to 1000 characters. |
