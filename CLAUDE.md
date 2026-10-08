@@ -1,6 +1,6 @@
-# news mod: working rules
+# Herald mod: working rules
 
-A Claude Code mod (a plugin with a hooks module) that shows news from RSS/Atom feeds and web pages: a rotating band above the prompt, a `/news` pane, saved items and copy-for-Claude. Needs Claude Code 2.1.287 or later. The plugin's name is `news` (a name starting with `claude-` is refused by `claude plugin validate`).
+A Claude Code mod (a plugin with a hooks module) that shows news from RSS/Atom feeds and web pages: a rotating band above the prompt, a `/herald` pane, saved items and copy-for-Claude. Needs Claude Code 2.1.287 or later. The plugin's name is `herald` and the marketplace's `claude-herald` (a plugin name starting with `claude-` is refused by `claude plugin validate`).
 
 ## Sources of truth
 
@@ -24,14 +24,14 @@ types/index.d.ts             the $.state contract and the shared domain types (S
 tests/<concern>/*.test.ts    mirrors hooks/; shared fixtures in tests/fixtures/, one export per file
 ```
 
-Concern folders: `names` (plugin, command, pane ids, store keys, hotkeys), `defaults` (factory sources and settings), `host` (the Host type), `feed` (RSS/Atom parser, pure), `page` (HTML to text, content hash, extraction prompt and validation), `items` (ids, dedupe, merge, caps), `store` (persisted data over the Host), `state` (initial state, hydrate), `refresh` (the fetch loop, new-item toasts), `summaries` (Haiku summaries, cache, language, concurrency), `actions` (open, summarize, save, mark read, copy), `band` (AbovePrompt view, rotation), `pane` (Pane view), `commands` (`/news` parsing and handlers, `/news deps` and its subcommands), `deps/detect` (the project's stack from its manifests and lockfiles: the walk, workspace members, one detector per ecosystem, pure parsers, the followed packages with ignored ones left out and hand-added ones in), `deps/resolve` (each package's GitHub repository from its registry, its release feed, overrides, the list of contacted hosts), `deps/classify` (versions of every scheme parsed and compared, the version a release tag or title names, releases classified against the version in use, breaking and security flags by keyword and by Haiku), `deps/stack` (the stack's releases followed on the refresh timer: lookups and feeds a few per run, failures left alone for an hour, show and toast levels, the band and pane lines, the toasts; rescanned on request, each run ends with the settings saved meanwhile).
+Concern folders: `names` (plugin, command, pane ids, store keys, hotkeys), `defaults` (factory sources and settings), `host` (the Host type), `feed` (RSS/Atom parser, pure), `page` (HTML to text, content hash, extraction prompt and validation), `items` (ids, dedupe, merge, caps), `store` (persisted data over the Host), `state` (initial state, hydrate), `refresh` (the fetch loop, new-item toasts), `summaries` (Haiku summaries, cache, language, concurrency), `actions` (open, summarize, save, mark read, copy), `band` (AbovePrompt view, rotation), `pane` (Pane view), `commands` (`/herald` parsing and handlers, `/herald deps` and its subcommands), `deps/detect` (the project's stack from its manifests and lockfiles: the walk, workspace members, one detector per ecosystem, pure parsers, the followed packages with ignored ones left out and hand-added ones in), `deps/resolve` (each package's GitHub repository from its registry, its release feed, overrides, the list of contacted hosts), `deps/classify` (versions of every scheme parsed and compared, the version a release tag or title names, releases classified against the version in use, breaking and security flags by keyword and by Haiku), `deps/stack` (the stack's releases followed on the refresh timer: lookups and feeds a few per run, failures left alone for an hour, show and toast levels, the band and pane lines, the toasts; rescanned on request, each run ends with the settings saved meanwhile).
 
 ## Rules the engine's static analysis enforces
 
 - Write every mods API call in full in `hooks/register.tsx`: `$.noun.method(...)`. Never assign `$` or a namespace to a variable, never destructure or index it.
 - `$` may be passed only to functions declared at the top level of `register.tsx`, and to `read`/`update` from `claude-code`. Code in `hooks/<concern>/` never receives `$`: it receives a `Host` (see `hooks/host/`), an object of plain functions that `register.tsx` builds from `$` with each call spelled literally, as the built-in `diff` mod does.
 - Event names in `on(...)` are string literals. Register each event once per matcher. No dynamic `import()`, no `require`, no Node APIs, no `setTimeout`/`setInterval` (use `$.clock`).
-- `$.state` atoms (`atom({ plugin: 'news', key: '...' } as const, initial)`) are consts at the top level of `register.tsx`: the scan does not follow atoms imported from another module, nor `read`/`update` called with an atom passed as a parameter. Concern code reaches state through the Host's per-key cells. Every key is spelled inline under `PluginState['news']` in `types/index.d.ts`. A `ui.render` hook reads state and never writes it; writes happen in handlers and other events.
+- `$.state` atoms (`atom({ plugin: 'herald', key: '...' } as const, initial)`) are consts at the top level of `register.tsx`: the scan does not follow atoms imported from another module, nor `read`/`update` called with an atom passed as a parameter. Concern code reaches state through the Host's per-key cells. Every key is spelled inline under `PluginState['herald']` in `types/index.d.ts`. A `ui.render` hook reads state and never writes it; writes happen in handlers and other events.
 - `types/index.d.ts` exports types only and imports nothing.
 
 ## Design rules
@@ -43,7 +43,7 @@ Concern folders: `names` (plugin, command, pane ids, store keys, hotkeys), `defa
 - Long-running work honours cancellation: pass `next.signal` (or the timer's own AbortController) to `$.model.complete` via its `signal` option and to `$.clock.sleep`, and bound model calls with `timeoutMs`. A hook's own execution time is 10 s (time inside `$` calls and `next` does not count).
 - Failures never crash a hook: a failed fetch keeps the last items, logs one line with `$.ui.log(text, { to: 'debug' })`, and retries at the next interval. `$.model.complete` results are always checked with `isAnswered`.
 - Feed and page content is untrusted data: model prompts say so, and extracted output is validated before use.
-- Every `/news` subcommand answers with `{ text }` as well, the fallback where nothing is drawn (VS Code panel, `claude -p`, cloud sessions).
+- Every `/herald` subcommand answers with `{ text }` as well, the fallback where nothing is drawn (VS Code panel, `claude -p`, cloud sessions).
 - Copy-for-Claude copies to the clipboard; it never submits a prompt.
 
 ## Persisted and session state

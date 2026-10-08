@@ -6,7 +6,7 @@ This page is for people who review what the mod reads, runs and contacts. The [R
 
 | What | Goes to | When |
 |------|---------|------|
-| Fetch requests for feeds and pages | The host of each enabled source, and the address you give to `/news add` or `/news add-page` | At every refresh, and once when you add a source. |
+| Fetch requests for feeds and pages | The host of each enabled source, and the address you give to `/herald add` or `/herald add-page` | At every refresh, and once when you add a source. |
 | Package names, and for NuGet and Maven the version in use, in the URL path | The registries in [Network hosts](#network-hosts) | While a project's stack is on, for packages whose mapping is not cached. |
 | The repository path | `github.com`, for `releases.atom` and `tags.atom` | While a project's stack is on, when a feed is due. |
 | Item titles and excerpts, page text, release titles and notes | Haiku, through your Claude Code session | For summaries, page extraction and release checks. See [Cost](../README.md#cost). |
@@ -14,7 +14,7 @@ This page is for people who review what the mod reads, runs and contacts. The [R
 Registry and release feed requests carry one header of the mod's own, `User-Agent`, and no cookies or credentials:
 
 ```text
-news-claude-code-mod (a Claude Code plugin looking up release feeds of project dependencies)
+herald-claude-code-mod (a Claude Code plugin looking up release feeds of project dependencies)
 ```
 
 The mod's source fetches send no headers of their own. Claude Code may add its own to any request, and its documentation does not say which. Each registry lookup has a fixed host, and the package name goes in the path only, percent-encoded. For PyPI, crates.io, RubyGems, Packagist, NuGet and Maven, a name with characters outside letters, digits, `.`, `_` and `-` (crates: `_` and `-`), a name of dots only, or a malformed Maven or Packagist coordinate stays unresolved as `not a valid <ecosystem> name`, with no request. Each registry or feed request has a 30-second deadline. For Go, the module path must match a module-path pattern, the vanity lookup runs only for the ten hosts below, and the result must be a GitHub repository, or the module stays unresolved.
@@ -24,24 +24,24 @@ The mod's source fetches send no headers of their own. Claude Code may add its o
 The mod does not read your prompts, the conversation or your tool calls. The `hooks:` line of `claude plugin validate <plugin folder>` lists every event it listens to:
 
 ```text
-./register.tsx hooks: session.start, command.run{command=news}, ui.render{component=AbovePrompt}, ui.render{component=Pane, requestId=news}, classic.SessionStart{source=clear|resume|fork}
+./register.tsx hooks: session.start, command.run{command=herald}, ui.render{component=AbovePrompt}, ui.render{component=Pane, requestId=herald}, classic.SessionStart{source=clear|resume|fork}
 ```
 
 It hooks no `prompt.submit`, no `tool.call` and no transcript event. The only files it reads are the manifests and lockfiles in [Files stack detection reads](#files-stack-detection-reads).
 
 | Hook | What it does |
 |------|--------------|
-| `session.start` | Loads the stored data, starts the refresh and rotation timers, schedules stack detection and the first refresh of your stack, and registers `/news`. |
-| `command.run` with `command=news` | Runs `/news`, `/news deps` and the other subcommands, and answers with text. |
+| `session.start` | Loads the stored data, starts the refresh and rotation timers, schedules stack detection and the first refresh of your stack, and registers `/herald`. |
+| `command.run` with `command=herald` | Runs `/herald`, `/herald deps` and the other subcommands, and answers with text. |
 | `ui.render` with `component=AbovePrompt` | Draws the band and keeps what other mods draw there. |
-| `ui.render` with `component=Pane` and `requestId=news` | Draws the `/news` pane. |
-| `classic.SessionStart` with `source=clear`, `resume` or `fork` | Reloads the stored data and the stack's releases and registers `/news` again, because those reset the mod's state without a `session.start`. |
+| `ui.render` with `component=Pane` and `requestId=herald` | Draws the `/herald` pane. |
+| `classic.SessionStart` with `source=clear`, `resume` or `fork` | Reloads the stored data and the stack's releases and registers `/herald` again, because those reset the mod's state without a `session.start`. |
 
-The mod reads the environment variables `HOME`, `OS` and `USERPROFILE` and writes none. It writes only its own `news.*` state values (`band`, `items`, `pane`, `saved`, `settings`, `sources`, `stack`, `status`, `summaries`).
+The mod reads the environment variables `HOME`, `OS` and `USERPROFILE` and writes none. It writes only its own `herald.*` state values (`band`, `items`, `pane`, `saved`, `settings`, `sources`, `stack`, `status`, `summaries`).
 
 ## Network hosts
 
-The mod contacts the host of each enabled source, and while a project's stack is on, the hosts below. It contacts no other host. Each source you add contacts its own host, and `/news add` and `/news add-page` contact the address you give before they save it. Haiku calls go through Claude Code with your session's credentials.
+The mod contacts the host of each enabled source, and while a project's stack is on, the hosts below. It contacts no other host. Each source you add contacts its own host, and `/herald add` and `/herald add-page` contact the address you give before they save it. Haiku calls go through Claude Code with your session's credentials.
 
 Your stack contacts these hosts, and only for the ecosystems and packages your project uses:
 
@@ -56,10 +56,10 @@ Your stack contacts these hosts, and only for the ecosystems and packages your p
 | `repo.packagist.org` | Packagist package metadata. |
 | `api.nuget.org` | NuGet package versions and nuspec files. |
 | `repo1.maven.org` | Maven Central version lists and pom files. |
-| `github.com` | The `releases.atom` or `tags.atom` feed of each repository, `/news deps add` repositories included. |
-| The host of a feed address you give | A feed set with `/news deps map <package> <feed-url>`. |
+| `github.com` | The `releases.atom` or `tags.atom` feed of each repository, `/herald deps add` repositories included. |
+| The host of a feed address you give | A feed set with `/herald deps map <package> <feed-url>`. |
 
-The mod makes these requests when a refresh runs, not inside a command. `/news deps add`, `map`, `on`, `rescan`, `dev`, `cap`, `ignore` and `unignore` start a refresh that runs once the command has answered, and only while the stack is on (for `map`, only when the package is followed). `/news deps` itself, `level`, `toast`, `template` and `filter` make no request. While a project's stack is off, the mod makes no request for it. Redirects are followed, so a redirect can lead to any host.
+The mod makes these requests when a refresh runs, not inside a command. `/herald deps add`, `map`, `on`, `rescan`, `dev`, `cap`, `ignore` and `unignore` start a refresh that runs once the command has answered, and only while the stack is on (for `map`, only when the package is followed). `/herald deps` itself, `level`, `toast`, `template` and `filter` make no request. While a project's stack is off, the mod makes no request for it. Redirects are followed, so a redirect can lead to any host.
 
 ## Files stack detection reads
 
@@ -82,7 +82,7 @@ It reads only files with these names, each up to 4 MiB, and ignores the rest:
 | Swift | `Package.swift`, `Package.resolved` |
 | Dart | `pubspec.yaml`, `pubspec.lock` |
 
-It stores the dependency names, versions and ranges, the paths of the manifests and a hash of each file's text in `$.store`. A package you add with `/news deps add` is kept in the store, and no file is read for it.
+It stores the dependency names, versions and ranges, the paths of the manifests and a hash of each file's text in `$.store`. A package you add with `/herald deps add` is kept in the store, and no file is read for it.
 
 ## Commands the mod runs
 
@@ -116,6 +116,6 @@ Feed, page and release text comes from the internet, and the mod treats it as da
 | What happens | Why it is acceptable | What limits it |
 |--------------|----------------------|----------------|
 | A release's notes can steer Haiku's flags, so a release shows flagged or unflagged wrongly. | A flag changes how a row looks and whether it toasts, nothing else. | The prompt marks the notes as untrusted data, the mod keeps only two booleans from the reply, and an advisory id always sets `security`. |
-| A package's registry entry picks the repository whose releases you read, so its author chooses the text shown. | Rows show a title, versions and cut notes as plain text, and you open a link yourself. | `/news deps map` replaces the repository, `/news deps ignore` drops the package, and Open refuses any address but http or https. |
-| `/news add`, `/news add-page` and `/news deps map <package> <feed-url>` fetch any http or https address, `localhost` and private addresses included, and redirects are followed, so a redirect can lead there too. | You type the address, and the mod only parses the answer as a feed or a page. | Registry and release feed requests carry only the `User-Agent` above and no credentials. A web-fetch policy of your organization can refuse the fetches. |
+| A package's registry entry picks the repository whose releases you read, so its author chooses the text shown. | Rows show a title, versions and cut notes as plain text, and you open a link yourself. | `/herald deps map` replaces the repository, `/herald deps ignore` drops the package, and Open refuses any address but http or https. |
+| `/herald add`, `/herald add-page` and `/herald deps map <package> <feed-url>` fetch any http or https address, `localhost` and private addresses included, and redirects are followed, so a redirect can lead there too. | You type the address, and the mod only parses the answer as a feed or a page. | Registry and release feed requests carry only the `User-Agent` above and no credentials. A web-fetch policy of your organization can refuse the fetches. |
 | The mod has no host allowlist. | Every host it contacts is a source you enabled, a registry in the table above, or an address you typed. | The hosts are listed above, and the fixed registry hosts take package names in the path only. |

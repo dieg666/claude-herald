@@ -1,18 +1,20 @@
-# News
+# Herald
 
-A Claude Code mod that keeps you up to date on Claude and the tools around it without leaving the terminal. A band above the prompt rotates the latest items from RSS/Atom feeds, web pages and the new releases of the packages your project depends on, each with a headline link and a one-line Haiku summary. `/news` opens a pane with a tab per source, a Your stack tab and a Saved tab. On the selected item you can open it, show a longer summary, save it for later and copy it for Claude. Factory sources (Anthropic news, release feeds of Claude Code and the SDKs, Hacker News and more) can be disabled or removed, and you can add your own. Every command also answers with text, so it works where nothing is drawn.
+Herald: news and releases for your stack, right above the prompt.
+
+A Claude Code mod that keeps you up to date on Claude and the tools around it without leaving the terminal. A band above the prompt rotates the latest items from RSS/Atom feeds, web pages and the new releases of the packages your project depends on, each with a headline link and a one-line Haiku summary. `/herald` opens a pane with a tab per source, a Your stack tab and a Saved tab. On the selected item you can open it, show a longer summary, save it for later and copy it for Claude. Factory sources (Anthropic news, release feeds of Claude Code and the SDKs, Hacker News and more) can be disabled or removed, and you can add your own. Every command also answers with text, so it works where nothing is drawn.
 
 ## Requirements
 
 - Claude Code 2.1.287 or later. Tested with Claude Code 2.1.293.
-- A terminal or the Desktop app to draw the band and the pane. In other places, such as `claude -p`, VS Code and cloud sessions, `/news` answers with the latest items as text and `/news deps` lists your stack as text.
+- A terminal or the Desktop app to draw the band and the pane. In other places, such as `claude -p`, VS Code and cloud sessions, `/herald` answers with the latest items as text and `/herald deps` lists your stack as text.
 - A session that can call a model. Summaries and release checks use Haiku through your plan or API key (see [Cost](#cost)).
 
 ## Terms
 
 | Term | Meaning |
 |------|---------|
-| Mod | A plugin that changes how Claude Code looks and behaves. This repository is one plugin, named `news`. |
+| Mod | A plugin that changes how Claude Code looks and behaves. This repository is one plugin, named `herald`. |
 | Surface | An app that draws Claude Code: the terminal or the Desktop app. |
 | Transcript | The conversation area above the prompt. |
 | Toast | A short notice that Claude Code shows briefly. |
@@ -31,31 +33,31 @@ A Claude Code mod that keeps you up to date on Claude and the tools around it wi
 To try the mod for one session, clone the repository and start Claude Code with the plugin directory:
 
 ```bash
-git clone https://github.com/dieg666/claude-code-news-mod.git
-claude --plugin-dir ./claude-code-news-mod
+git clone https://github.com/dieg666/claude-herald.git
+claude --plugin-dir ./claude-herald
 ```
 
 To install it from the marketplace in this repository, run this in a Claude Code session, or the two commands below in your shell:
 
 ```text
-/plugin install news --marketplace dieg666/claude-code-news-mod
+/plugin install herald --marketplace dieg666/claude-herald
 ```
 
 ```bash
-claude plugin marketplace add dieg666/claude-code-news-mod
-claude plugin install news@news-mod
+claude plugin marketplace add dieg666/claude-herald
+claude plugin install herald@claude-herald
 ```
 
-If you install from your shell while a session is open, run `/reload-plugins` in that session. To check that the mod is loaded, run `/news`, or run `claude plugin list` in your shell, which shows `news@news-mod` as enabled.
+If you install from your shell while a session is open, run `/reload-plugins` in that session. To check that the mod is loaded, run `/herald`, or run `claude plugin list` in your shell, which shows `herald@claude-herald` as enabled.
 
 To update, run these in your shell and restart Claude Code (for a clone started with `--plugin-dir`, pull the repository):
 
 ```bash
-claude plugin marketplace update news-mod
-claude plugin update news@news-mod
+claude plugin marketplace update claude-herald
+claude plugin update herald@claude-herald
 ```
 
-To uninstall, run `claude plugin uninstall news@news-mod`, or use the **Installed** tab of `/plugin`. `claude plugin marketplace remove news-mod` removes the marketplace. Claude Code does not document whether an uninstall deletes the mod's data; [Stored data](#stored-data) says how to delete it.
+To uninstall, run `claude plugin uninstall herald@claude-herald`, or use the **Installed** tab of `/plugin`. `claude plugin marketplace remove claude-herald` removes the marketplace. Claude Code does not document whether an uninstall deletes the mod's data; [Stored data](#stored-data) says how to delete it.
 
 ## Getting started
 
@@ -63,17 +65,17 @@ The band appears above the prompt once the first refresh has fetched items, and 
 
 | Command | What it does |
 |---------|--------------|
-| `/news` | Opens the pane. |
-| `/news deps` | Shows which packages the mod follows for this project and where each one's releases come from. |
-| `/news deps toast off` | Stops release toasts. By default only breaking and security releases raise one. |
-| `/news disable Hacker News` | Turns a source off. `/news list` shows the names. |
-| `/news deps off` | Stops following this project's dependencies and leaves the other sources alone. |
+| `/herald` | Opens the pane. |
+| `/herald deps` | Shows which packages the mod follows for this project and where each one's releases come from. |
+| `/herald deps toast off` | Stops release toasts. By default only breaking and security releases raise one. |
+| `/herald disable Hacker News` | Turns a source off. `/herald list` shows the names. |
+| `/herald deps off` | Stops following this project's dependencies and leaves the other sources alone. |
 
 ## Use the band
 
 The band appears above the prompt once at least one enabled source has items. It lists every enabled source's items and the releases of [your stack](#your-stack) in one list, newest first, and the items without a date last. The header shows the page buttons around the position (`1-3 of N`), the auto button and the selection buttons, and the selected item is marked with `›`. In the terminal each button shows its hotkey before its label, for example `p: ◀`. The auto button reads `⏸ auto` while the rotation runs and `▶ auto` while it is paused.
 
-Hotkeys work while the band or the pane has keyboard focus; otherwise the keys go to the prompt. Tab moves between controls, Enter presses the focused one and Esc returns focus to the prompt. Claude Code's documentation says how a pane gets focus (opening it with `/news` while the prompt is empty, Ctrl+X then Tab, or a click) and does not say how the band gets it, so open the pane with `/news` to use every band action.
+Hotkeys work while the band or the pane has keyboard focus; otherwise the keys go to the prompt. Tab moves between controls, Enter presses the focused one and Esc returns focus to the prompt. Claude Code's documentation says how a pane gets focus (opening it with `/herald` while the prompt is empty, Ctrl+X then Tab, or a click) and does not say how the band gets it, so open the pane with `/herald` to use every band action.
 
 | Key | Button | What it does |
 |-----|--------|--------------|
@@ -87,11 +89,11 @@ The rotation does nothing when all items fit on one page. The band yields its pl
 
 ## Use the pane
 
-`/news` opens the pane and asks for keyboard focus, which Claude Code grants while the prompt is empty. Esc closes the pane. The pane shows a window of the active tab's items around the selection, each with its source glyph, headline link, date and summary. The Your stack tab shows releases instead, grouped by ecosystem, with a filter field above them.
+`/herald` opens the pane and asks for keyboard focus, which Claude Code grants while the prompt is empty. Esc closes the pane. The pane shows a window of the active tab's items around the selection, each with its source glyph, headline link, date and summary. The Your stack tab shows releases instead, grouped by ecosystem, with a filter field above them.
 
 | Key | Button | What it does |
 |-----|--------|--------------|
-| `1` to `9` | The first nine source tabs | Shows that source's items. Tabs follow the order of `/news list`, enabled sources only. |
+| `1` to `9` | The first nine source tabs | Shows that source's items. Tabs follow the order of `/herald list`, enabled sources only. |
 | `y` | Your stack | Shows the releases of your dependencies. The tab exists while the project's stack is on. |
 | `0` | Saved | Shows your saved items. |
 | `k` | ↑ | Selects the previous item. Stops at the first. |
@@ -115,32 +117,32 @@ Every command replies with text as well as updating the drawing. A missing or in
 
 | Command | Argument | What it does |
 |---------|----------|--------------|
-| `/news` | none | Opens the pane. Where no surface draws panes, lists the latest three items of each enabled source. |
-| `/news add <url> [name]` | A feed address and an optional name | Follows an RSS or Atom feed after checking that it fetches and has entries. The name defaults to the feed's title. |
-| `/news add-page <url> [name]` | A page address and an optional name | Follows a web page that fetches as HTML. Haiku reads its headlines when the page changes. |
-| `/news remove <name\|url>` | A source's name (any case), id or address | Stops following the source and forgets its items, seen ids and page hash. Saved items stay. |
-| `/news list` | none | Lists every source: on or off, kind, item count, name, address and its last error. |
-| `/news enable <name>` | A source's name | Turns a source on and refreshes it. |
-| `/news disable <name>` | A source's name | Turns a source off. It is kept but no longer fetched or shown. |
-| `/news interval <minutes>` | 1 to 1440, default 5 | Sets the minutes between refreshes and refreshes now. |
-| `/news rotate <seconds>` | 5 to 3600, default 20 | Sets the seconds between band pages. |
-| `/news lang <feed\|user\|code>` | `feed`, `user` or a language code such as `es` or `pt-BR`, default `feed` | Sets the [summary language](#summaries-and-languages). |
-| `/news template <text>` | Text with `{title}`, `{url}` or `{source}` | Sets the [copy template](#copy-template). |
-| `/news deps [subcommand]` | A subcommand and its argument, or none | Shows and tunes [your stack](#your-stack) for the project you are in. Every subcommand is in [Commands for your stack](#commands-for-your-stack). |
-| `/news reset` | none | Restores the factory sources and the default settings, the release template included. It keeps your saved items and your stack. |
-| `/news help` | none | Lists the commands. The `deps` line points to `/news deps help`. |
+| `/herald` | none | Opens the pane. Where no surface draws panes, lists the latest three items of each enabled source. |
+| `/herald add <url> [name]` | A feed address and an optional name | Follows an RSS or Atom feed after checking that it fetches and has entries. The name defaults to the feed's title. |
+| `/herald add-page <url> [name]` | A page address and an optional name | Follows a web page that fetches as HTML. Haiku reads its headlines when the page changes. |
+| `/herald remove <name\|url>` | A source's name (any case), id or address | Stops following the source and forgets its items, seen ids and page hash. Saved items stay. |
+| `/herald list` | none | Lists every source: on or off, kind, item count, name, address and its last error. |
+| `/herald enable <name>` | A source's name | Turns a source on and refreshes it. |
+| `/herald disable <name>` | A source's name | Turns a source off. It is kept but no longer fetched or shown. |
+| `/herald interval <minutes>` | 1 to 1440, default 5 | Sets the minutes between refreshes and refreshes now. |
+| `/herald rotate <seconds>` | 5 to 3600, default 20 | Sets the seconds between band pages. |
+| `/herald lang <feed\|user\|code>` | `feed`, `user` or a language code such as `es` or `pt-BR`, default `feed` | Sets the [summary language](#summaries-and-languages). |
+| `/herald template <text>` | Text with `{title}`, `{url}` or `{source}` | Sets the [copy template](#copy-template). |
+| `/herald deps [subcommand]` | A subcommand and its argument, or none | Shows and tunes [your stack](#your-stack) for the project you are in. Every subcommand is in [Commands for your stack](#commands-for-your-stack). |
+| `/herald reset` | none | Restores the factory sources and the default settings, the release template included. It keeps your saved items and your stack. |
+| `/herald help` | none | Lists the commands. The `deps` line points to `/herald deps help`. |
 
-The mod refuses an address that another source already follows and a name that another source already has, and it says which. Quotes around a name are optional: `/news disable Claude status` and `/news disable "Claude status"` do the same. Quotes matter only when a name starts with a quote character: wrap it in the other kind of quote. A name is at most 60 characters.
+The mod refuses an address that another source already follows and a name that another source already has, and it says which. Quotes around a name are optional: `/herald disable Claude status` and `/herald disable "Claude status"` do the same. Quotes matter only when a name starts with a quote character: wrap it in the other kind of quote. A name is at most 60 characters.
 
 A feed added without a name takes the title the feed gives itself, or its host when it has none. A GitHub releases feed is titled `Release notes from REPO`, and a second source with the same name becomes `Release notes from claude-code (2)`. Pass a name to keep the list readable:
 
 ```text
-/news add https://github.com/vercel/next.js/releases.atom Next.js
+/herald add https://github.com/vercel/next.js/releases.atom Next.js
 ```
 
 ## Sources
 
-The mod starts with these ten sources. Disable one with `/news disable <name>`, remove it with `/news remove <name>`, and bring them all back with `/news reset`.
+The mod starts with these ten sources. Disable one with `/herald disable <name>`, remove it with `/herald remove <name>`, and bring them all back with `/herald reset`.
 
 | Name | Kind | Address | Default |
 |------|------|---------|---------|
@@ -155,9 +157,9 @@ The mod starts with these ten sources. Disable one with `/news disable <name>`, 
 | AINews (smol.ai) | feed | `https://news.smol.ai/rss.xml` | on |
 | GitHub changelog | feed | `https://github.blog/changelog/feed/` | on |
 
-To follow a GitHub repository's releases as a news source, add its feed: `/news add https://github.com/OWNER/REPO/releases.atom`. To follow it as part of [your stack](#your-stack), with a version comparison and flags, run `/news deps add OWNER/REPO`.
+To follow a GitHub repository's releases as a news source, add its feed: `/herald add https://github.com/OWNER/REPO/releases.atom`. To follow it as part of [your stack](#your-stack), with a version comparison and flags, run `/herald deps add OWNER/REPO`.
 
-Each source keeps its 30 newest items. An item is identified by its source and its guid, id or link, so a repeated item appears once. A source whose fetch fails keeps its last items and retries at the next refresh; the reason shows in `/news list`. A page source has no feed to parse: the mod turns the page into text and asks Haiku for a JSON list of `title`, `url` and `date`, only when the page text has changed, and drops malformed entries. Items from a page carry a title and no text.
+Each source keeps its 30 newest items. An item is identified by its source and its guid, id or link, so a repeated item appears once. A source whose fetch fails keeps its last items and retries at the next refresh; the reason shows in `/herald list`. A page source has no feed to parse: the mod turns the page into text and asks Haiku for a JSON list of `title`, `url` and `date`, only when the page text has changed, and drops malformed entries. Items from a page carry a title and no text.
 
 A refresh runs when the session starts and then every 5 minutes, fetching three sources at a time, and then refreshes your stack within its [limits](#limits-per-refresh). When it finds new items, one toast names them, for example `3 new: Title …`. A source's first load shows no toast.
 
@@ -179,13 +181,13 @@ Check whether it affects this project and what we'd need to change.
 | `{title}`, `{url}`, `{source}` | Copy template: the item's headline, its address, and its source's name. |
 | `{pkg}`, `{current}`, `{new}`, `{url}` | Release template: the package's name, the version you use (`unknown` when the mod has none), the release's version (its title when it names none), and the release's address. |
 
-A template must contain `{title}` or `{url}` (the release template: `{pkg}` or `{url}`), may use no other placeholder of its kind, and is at most 1000 characters. The mod collapses each filled value to one line, because feed text is untrusted, and removes a pair of quotes that encloses the whole template. `/news template <text>` sets the copy template, and `/news deps template <text>` sets the release template for every project.
+A template must contain `{title}` or `{url}` (the release template: `{pkg}` or `{url}`), may use no other placeholder of its kind, and is at most 1000 characters. The mod collapses each filled value to one line, because feed text is untrusted, and removes a pair of quotes that encloses the whole template. `/herald template <text>` sets the copy template, and `/herald deps template <text>` sets the release template for every project.
 
 ## Summaries and languages
 
 The band and the pane show a one-line summary under each headline, and `…` while it is pending. The mod writes summaries from the item's title and the excerpt the feed carries (at most 500 characters), not from the linked page.
 
-`/news lang` sets the language of every summary:
+`/herald lang` sets the language of every summary:
 
 | Value | Summaries are written in |
 |-------|--------------------------|
@@ -199,17 +201,17 @@ The mod keeps one summary per item, language and length. Changing the language s
 
 The mod follows the releases of the packages your project depends on. It reads the project's manifests and lockfiles, finds each package's GitHub repository through its registry, reads the repository's release feed on the refresh timer, and shows releases newer than your version in the band and the pane. Settings, followed packages and releases are kept per project.
 
-The project is the closest directory at or above the session's directory that holds `.git`, never your home directory or one above it. Without a `.git` it is the session's directory alone. At a filesystem root there is no project, and `/news deps` says so.
+The project is the closest directory at or above the session's directory that holds `.git`, never your home directory or one above it. Without a `.git` it is the session's directory alone. At a filesystem root there is no project, and `/herald deps` says so.
 
 ### What the mod follows
 
-The mod detects the stack a moment after the session starts, on `/news deps rescan`, after a command that changes what is followed, and on the refresh timer when a manifest or lockfile it read has changed. The timer re-reads only the files it read before, so a manifest added somewhere new waits for the next session or a rescan. The ecosystems are npm, Python, Go, Rust, Ruby, PHP, .NET, Java, Swift and Dart. The file names, the skipped directories and the walk limits are in [Files stack detection reads](docs/security.md#files-stack-detection-reads).
+The mod detects the stack a moment after the session starts, on `/herald deps rescan`, after a command that changes what is followed, and on the refresh timer when a manifest or lockfile it read has changed. The timer re-reads only the files it read before, so a manifest added somewhere new waits for the next session or a rescan. The ecosystems are npm, Python, Go, Rust, Ruby, PHP, .NET, Java, Swift and Dart. The file names, the skipped directories and the walk limits are in [Files stack detection reads](docs/security.md#files-stack-detection-reads).
 
 - **One entry per package.** A package that several manifests declare is followed once per ecosystem and name, from its runtime, root-declared declaration first.
 - **Version in use.** The version a lockfile pins, else the manifest's exact version, else the lowest version the declared range allows. Releases at or below it are hidden.
-- **Dev dependencies.** Left out until you run `/news deps dev on`. A dev dependency is one the manifest marks as not installed by default. In npm that is `devDependencies`. In Python it is `[project.optional-dependencies]`, `[dependency-groups]`, uv `dev-dependencies`, every Poetry group, Poetry `dev-dependencies` and optional Poetry dependencies, and requirements files named for development (`requirements-dev.txt`: the name holds dev, develop, test, tests, testing, lint, doc, docs, ci, typing, types, check or bench).
-- **Cap.** At most 50 packages (`/news deps cap`, 1 to 500). Over the cap, runtime dependencies come before dev ones, and root-declared before the rest.
-- **Added and ignored.** A package you add with `/news deps add` is followed first, counts toward the cap and is not read from any file. A package you ignore is never followed.
+- **Dev dependencies.** Left out until you run `/herald deps dev on`. A dev dependency is one the manifest marks as not installed by default. In npm that is `devDependencies`. In Python it is `[project.optional-dependencies]`, `[dependency-groups]`, uv `dev-dependencies`, every Poetry group, Poetry `dev-dependencies` and optional Poetry dependencies, and requirements files named for development (`requirements-dev.txt`: the name holds dev, develop, test, tests, testing, lint, doc, docs, ci, typing, types, check or bench).
+- **Cap.** At most 50 packages (`/herald deps cap`, 1 to 500). Over the cap, runtime dependencies come before dev ones, and root-declared before the rest.
+- **Added and ignored.** A package you add with `/herald deps add` is followed first, counts toward the cap and is not read from any file. A package you ignore is never followed.
 
 ### How a package finds its releases
 
@@ -217,9 +219,9 @@ The mod detects the stack a moment after the session starts, on `/news deps resc
 2. Otherwise the package's registry does ([Network hosts](docs/security.md#network-hosts)). A Go module under `github.com/` or `golang.org/x/` needs no request. Swift and Dart (pub) have no registry lookup.
 3. The mod reads `https://github.com/OWNER/REPO/releases.atom`, or `tags.atom` when the repository publishes no releases.
 
-A package is unresolved when its repository is not on GitHub, its registry does not know it, its name is not valid for that registry or it has no lookup. `/news deps` lists it with the reason, and nothing shows for it. A mapping, an unresolved one included, is kept for 7 days. A failed request is not kept: `/news deps` shows that package as `not looked up yet` (or with its older mapping), the failure goes to the debug log only, and the mod waits an hour before it tries again.
+A package is unresolved when its repository is not on GitHub, its registry does not know it, its name is not valid for that registry or it has no lookup. `/herald deps` lists it with the reason, and nothing shows for it. A mapping, an unresolved one included, is kept for 7 days. A failed request is not kept: `/herald deps` shows that package as `not looked up yet` (or with its older mapping), the failure goes to the debug log only, and the mod waits an hour before it tries again.
 
-`/news deps map` sets where a package's releases are read, in every project, and the mapping never expires. To replace it, run `map` again; `/news deps map <package> off` removes it, so the package is looked up in its registry again. `/news reset` does not clear it. `/news deps add owner/repo` follows a repository as the `github` ecosystem: no registry lookup, every tag counts as a release, and with no version in use every level is `unknown`. For any other package, a release whose tag names another package of the repository (`other@1.2.0`) is skipped.
+`/herald deps map` sets where a package's releases are read, in every project, and the mapping never expires. To replace it, run `map` again; `/herald deps map <package> off` removes it, so the package is looked up in its registry again. `/herald reset` does not clear it. `/herald deps add owner/repo` follows a repository as the `github` ecosystem: no registry lookup, every tag counts as a release, and with no version in use every level is `unknown`. For any other package, a release whose tag names another package of the repository (`other@1.2.0`) is skipped.
 
 ### How a release is classified
 
@@ -229,7 +231,7 @@ Each release also gets a `breaking` and a `security` flag. Keywords set them fir
 
 ### Show and toast levels
 
-`/news deps level` sets which releases the band and the pane show, and `/news deps toast` sets which new releases raise a toast. A release's level describes the release; the show and toast levels are your settings, and a release appears where its level and flags pass them.
+`/herald deps level` sets which releases the band and the pane show, and `/herald deps toast` sets which new releases raise a toast. A release's level describes the release; the show and toast levels are your settings, and a release appears where its level and flags pass them.
 
 | Level | Passes |
 |-------|--------|
@@ -246,9 +248,9 @@ The first time the mod reads a package's feed, it shows the releases above your 
 ### What you see
 
 - **Rows.** `📦 pkg current → new`, then ` · title` when the title says more than the version; `⚠` replaces `📦` on a flagged release. A second line shows the ecosystem, the level when known, `pre-release` and the flags, for example `npm · major · breaking`. A row has a flag check and no Haiku summary.
-- **Your stack tab.** Press `y` in the pane. Releases are grouped by ecosystem. The filter field takes words, up to 100 characters, that must all appear in the package name, ecosystem, level or a flag. Where the surface has no text field (mobile), the filter in force shows as a dim `Filter: …` line, and `/news deps filter <text>` sets it. The filter lives in session state only: a new session, `/clear`, `/resume`, `/branch` and a change of project start without it.
+- **Your stack tab.** Press `y` in the pane. Releases are grouped by ecosystem. The filter field takes words, up to 100 characters, that must all appear in the package name, ecosystem, level or a flag. Where the surface has no text field (mobile), the filter in force shows as a dim `Filter: …` line, and `/herald deps filter <text>` sets it. The filter lives in session state only: a new session, `/clear`, `/resume`, `/branch` and a change of project start without it.
 - **Toast.** One toast per refresh names the new releases at the toast level, flagged ones first: `2 releases: lodash 4.17.20 → 5.0.0 ⚠, zod 3.22.0 → 3.23.0`. With three or more it names the first: `3 releases: lodash 4.17.20 → 5.0.0 ⚠ …`.
-- **Nothing drawn.** `/news deps` lists the followed packages and where their releases come from, not the releases.
+- **Nothing drawn.** `/herald deps` lists the followed packages and where their releases come from, not the releases.
 
 ### Limits per refresh
 
@@ -266,24 +268,24 @@ The stack refreshes after every source refresh, on the same timer.
 
 ### Commands for your stack
 
-`/news deps` acts on the project you are in. A package is `<ecosystem>:<name>`, such as `npm:zod`, or its bare name when only one package has it. The ecosystems are `npm`, `pypi`, `go`, `cargo`, `rubygems`, `packagist`, `nuget`, `maven` (as `group:artifact`), `swift`, `pub` and `github`; aliases such as `python`, `rust` and `dart` work. A level is read in any case, ignoring spaces.
+`/herald deps` acts on the project you are in. A package is `<ecosystem>:<name>`, such as `npm:zod`, or its bare name when only one package has it. The ecosystems are `npm`, `pypi`, `go`, `cargo`, `rubygems`, `packagist`, `nuget`, `maven` (as `group:artifact`), `swift`, `pub` and `github`; aliases such as `python`, `rust` and `dart` work. A level is read in any case, ignoring spaces.
 
 | Subcommand | Argument | What it does | Example |
 |------------|----------|--------------|---------|
-| `/news deps` | none | Lists the project root, its settings, the counts, and each followed package by ecosystem with its version, `(added)` if you added it, and where its releases come from (a repository, `(tags)`, `(mapped)`, `unresolved` with the reason, or not looked up yet), then the ignored packages. It reads the store, makes no request, and names the first 200 packages. | `/news deps` |
-| `help` | none | Lists the subcommands. A wrong or missing argument replies with the reason and the usage and changes nothing. | `/news deps help` |
-| `on`, `off` | none | Turns the stack on or off for this project. While off, the mod makes no request, shows no release and raises no toast; other sources stay. A request or Haiku call already in flight when you run `off` finishes, and its result is stored but not shown. `on` detects the stack again. | `/news deps off` |
-| `rescan` | none | Detects the stack again and refreshes its releases. Refused while the stack is off. | `/news deps rescan` |
-| `ignore <package>` | A package the project follows or has added | Stops following, looking up and showing it. Refused for any other package. | `/news deps ignore npm:left-pad` |
-| `unignore <package>` | An ignored package | Follows it again when a manifest declares it or you added it. | `/news deps unignore left-pad` |
-| `add <ecosystem:package\|owner/repo>` | A package, or a GitHub repository as `owner/repo`, `github:owner/repo` or its address | Follows a package no manifest declares, or a repository as the `github` ecosystem, and takes it off the ignored list. Refused when it is followed already, or at 500 added packages. | `/news deps add vercel/next.js` |
-| `map <package> <owner/repo\|feed-url\|off>` | A followed, added or ignored package, then a repository or feed address, or `off` | Reads the package's releases from that repository or feed, replacing any earlier mapping, and drops the releases kept from the old feed. `off` removes your mapping (in every project) and drops this project's kept releases of the package; it is refused when the package has no mapping you set. | `/news deps map npm:lodash lodash/lodash`, `/news deps map npm:lodash off` |
-| `dev <on\|off>` | `on` or `off` | Follows dev dependencies too, default off. | `/news deps dev on` |
-| `level <level>` | `all`, `minor+`, `major+breaking+security` or `breaking+security` | Sets what the band and the pane show, default `minor+`. | `/news deps level major+breaking+security` |
-| `toast <level\|off>` | A level or `off` | Sets which new releases raise a toast, default `breaking+security`. | `/news deps toast off` |
-| `cap <1-500>` | A whole number | Follows at most that many packages, default 50. | `/news deps cap 100` |
-| `template <text>` | Text with `{pkg}`, `{current}`, `{new}` and `{url}` | Sets the release template for every project. | `/news deps template Is {pkg} {new} safe? {url}` |
-| `filter [text]` | Words, or nothing | Sets the Your stack tab's filter; nothing clears it. | `/news deps filter breaking` |
+| `/herald deps` | none | Lists the project root, its settings, the counts, and each followed package by ecosystem with its version, `(added)` if you added it, and where its releases come from (a repository, `(tags)`, `(mapped)`, `unresolved` with the reason, or not looked up yet), then the ignored packages. It reads the store, makes no request, and names the first 200 packages. | `/herald deps` |
+| `help` | none | Lists the subcommands. A wrong or missing argument replies with the reason and the usage and changes nothing. | `/herald deps help` |
+| `on`, `off` | none | Turns the stack on or off for this project. While off, the mod makes no request, shows no release and raises no toast; other sources stay. A request or Haiku call already in flight when you run `off` finishes, and its result is stored but not shown. `on` detects the stack again. | `/herald deps off` |
+| `rescan` | none | Detects the stack again and refreshes its releases. Refused while the stack is off. | `/herald deps rescan` |
+| `ignore <package>` | A package the project follows or has added | Stops following, looking up and showing it. Refused for any other package. | `/herald deps ignore npm:left-pad` |
+| `unignore <package>` | An ignored package | Follows it again when a manifest declares it or you added it. | `/herald deps unignore left-pad` |
+| `add <ecosystem:package\|owner/repo>` | A package, or a GitHub repository as `owner/repo`, `github:owner/repo` or its address | Follows a package no manifest declares, or a repository as the `github` ecosystem, and takes it off the ignored list. Refused when it is followed already, or at 500 added packages. | `/herald deps add vercel/next.js` |
+| `map <package> <owner/repo\|feed-url\|off>` | A followed, added or ignored package, then a repository or feed address, or `off` | Reads the package's releases from that repository or feed, replacing any earlier mapping, and drops the releases kept from the old feed. `off` removes your mapping (in every project) and drops this project's kept releases of the package; it is refused when the package has no mapping you set. | `/herald deps map npm:lodash lodash/lodash`, `/herald deps map npm:lodash off` |
+| `dev <on\|off>` | `on` or `off` | Follows dev dependencies too, default off. | `/herald deps dev on` |
+| `level <level>` | `all`, `minor+`, `major+breaking+security` or `breaking+security` | Sets what the band and the pane show, default `minor+`. | `/herald deps level major+breaking+security` |
+| `toast <level\|off>` | A level or `off` | Sets which new releases raise a toast, default `breaking+security`. | `/herald deps toast off` |
+| `cap <1-500>` | A whole number | Follows at most that many packages, default 50. | `/herald deps cap 100` |
+| `template <text>` | Text with `{pkg}`, `{current}`, `{new}` and `{url}` | Sets the release template for every project. | `/herald deps template Is {pkg} {new} safe? {url}` |
+| `filter [text]` | Words, or nothing | Sets the Your stack tab's filter; nothing clears it. | `/herald deps filter breaking` |
 
 `dev`, `cap`, `ignore`, `unignore` and `add` detect the stack again and start a refresh only while the stack is on. `map` starts one only when the package is followed and the stack is on. `rescan` is refused while the stack is off.
 
@@ -293,25 +295,25 @@ The mod calls Haiku through your Claude Code session, so the calls count against
 
 | Call | When it happens |
 |------|-----------------|
-| One-line summary | For each new item a refresh finds, newest first, at most 12 per run; for each item on a band page and in the pane. The first `/news` of a session, before the pane has been drawn, summarizes up to 20 items. |
+| One-line summary | For each new item a refresh finds, newest first, at most 12 per run; for each item on a band page and in the pane. The first `/herald` of a session, before the pane has been drawn, summarizes up to 20 items. |
 | Long summary | When you press Summarize on an item. |
 | Page extraction | When a page source's text has a different hash from the last extraction. |
 | Release check | One call per release, to flag it from its notes. For releases a refresh has not seen before, never on a package's first read: at most 12 per run, notes cut to 4000 characters. For release rows the band or the pane shows that have no verdict yet: at most 12 per view, notes cut to 1000 characters. |
 
 The mod caches every summary (by item, language and length) and every release verdict (by release id), so it asks for each once while it stays cached. A failed call is retried the next time the item is shown; after the model gives no answer for a release, a view waits an hour before asking again. A release gets no check when the keywords already flag both breaking and security with an advisory id, or after two malformed answers. Release checks follow the number of new releases of the packages you follow, not the time: a quiet day costs none, and a refresh run makes at most 12.
 
-To cut the cost, pause the rotation with `a` (each band page it reaches gets summaries and checks) or run `/news rotate 3600`; run `/news deps off` to stop all stack requests and calls; lower `/news deps cap`, `ignore` packages or raise `/news deps level` to check fewer releases. `/news deps toast off` cuts nothing, because the check on new releases runs whatever the toast level.
+To cut the cost, pause the rotation with `a` (each band page it reaches gets summaries and checks) or run `/herald rotate 3600`; run `/herald deps off` to stop all stack requests and calls; lower `/herald deps cap`, `ignore` packages or raise `/herald deps level` to check fewer releases. `/herald deps toast off` cuts nothing, because the check on new releases runs whatever the toast level.
 
 ## Privacy and permissions
 
-The mod sends three kinds of data off your machine. Package names (and for NuGet and Maven the version in use) go to the package registries and `github.com`, only while a project's stack is on. Feed and page requests go to the host of each enabled source, and to the address you give to `/news add` or `/news add-page`. Item titles and excerpts, page text and release notes go to Haiku through your Claude Code session. The registries and hosts are listed in [Network hosts](docs/security.md#network-hosts).
+The mod sends three kinds of data off your machine. Package names (and for NuGet and Maven the version in use) go to the package registries and `github.com`, only while a project's stack is on. Feed and page requests go to the host of each enabled source, and to the address you give to `/herald add` or `/herald add-page`. Item titles and excerpts, page text and release notes go to Haiku through your Claude Code session. The registries and hosts are listed in [Network hosts](docs/security.md#network-hosts).
 
 ### What the mod never reads
 
 The mod does not read your prompts, the conversation or your tool calls. The `hooks:` line of `claude plugin validate .` lists every event it listens to:
 
 ```text
-./register.tsx hooks: session.start, command.run{command=news}, ui.render{component=AbovePrompt}, ui.render{component=Pane, requestId=news}, classic.SessionStart{source=clear|resume|fork}
+./register.tsx hooks: session.start, command.run{command=herald}, ui.render{component=AbovePrompt}, ui.render{component=Pane, requestId=herald}, classic.SessionStart{source=clear|resume|fork}
 ```
 
 It hooks no `prompt.submit`, no `tool.call` and no transcript event. The only files it reads are the manifests and lockfiles in [Files stack detection reads](docs/security.md#files-stack-detection-reads). To check it yourself, run `claude plugin validate <plugin folder>` and read the `hooks:` and `calls:` lines.
@@ -327,23 +329,23 @@ It hooks no `prompt.submit`, no `tool.call` and no transcript event. The only fi
 | `$.clock.after` | Deadlines for fetches and refresh runs, waits between retries, scheduling stack detection. |
 | `$.clock.every` | The refresh timer and the band rotation timer. |
 | `$.clock.now` | Timestamps for saved items, refresh runs, feed mappings, feed reads and failures. |
-| `$.command.register` | Declares the `/news` command. |
+| `$.command.register` | Declares the `/herald` command. |
 | `$.env.get` | Reads `HOME` and `USERPROFILE` (so a `.git` at or above your home directory is not a project) and `OS` (to pick the opener and clipboard tool on Windows). |
 | `$.fs.list` | Lists the project's directories to find its root and manifests. |
 | `$.fs.read` | Reads the project's manifests and lockfiles, up to 4 MiB each. |
-| `$.http.fetch` | Fetches feeds and pages, checks the address of `/news add` and `/news add-page`, looks packages up in their registries, reads release feeds. |
+| `$.http.fetch` | Fetches feeds and pages, checks the address of `/herald add` and `/herald add-page`, looks packages up in their registries, reads release feeds. |
 | `$.model.complete` | Asks Haiku for summaries, page headlines and release flags. |
 | `$.process.run` | Runs `uname -s`, the browser opener and, if `$.ui.copy` fails, a clipboard tool. |
 | `$.session.root` | The directory stack detection starts from. |
 | `$.session.surfaces` | Whether the session draws panes, to choose between the pane and the text reply. |
-| `$.settings.read` | Claude Code's `language` setting, for `/news lang user`. |
+| `$.settings.read` | Claude Code's `language` setting, for `/herald lang user`. |
 | `$.state.get` | The values the band and the pane draw. |
 | `$.state.set` | Writes those values: items, saved list, summaries, band page, pane tab, refresh status, and the stack's releases, settings and filter. |
 | `$.store.get` | Reads the [stored data](#stored-data). |
 | `$.store.set` | Writes the stored data. |
 | `$.ui.copy` | Puts the filled template on the clipboard of the surface you pressed on. |
 | `$.ui.log` | Debug lines, and the lines of a long summary in the transcript. |
-| `$.ui.open` | Opens the `/news` pane. |
+| `$.ui.open` | Opens the `/herald` pane. |
 | `$.ui.resolve` | The `Box`, `Text`, `Button` and `Link` elements the band and the pane draw with, and the `Input` of the stack tab's filter where the surface has one. |
 | `$.ui.toast` | The new-item, new-release and "Copied" toasts, and action errors. |
 
@@ -365,20 +367,20 @@ The mod keeps its data in `$.store`, which every Claude Code session on the mach
 | `releaseFlags` | Haiku's verdict for each release, by release id. At most 500, the oldest dropped first. |
 | `stack` | Per project root, at most 5 projects (the least recently refreshed is dropped): each followed package's newest 5 releases (at most 100 per project, notes cut to 1000 characters), its last 10 release ids seen, and when its feed was last read. |
 
-`/news reset` restores the factory sources, with their factory on or off state, and the default settings, and removes the sources you added with their items, seen ids and page hashes. It keeps your saved items and leaves `deps`, `depFeeds`, `releaseFlags` and `stack` as they are, your `deps map` mappings included.
+`/herald reset` restores the factory sources, with their factory on or off state, and the default settings, and removes the sources you added with their items, seen ids and page hashes. It keeps your saved items and leaves `deps`, `depFeeds`, `releaseFlags` and `stack` as they are, your `deps map` mappings included.
 
-On Claude Code 2.1.293 the store file was observed at `~/.claude/plugins/store/<plugin>_<source>-<id>.json` (`news_inline-…json` for a `--plugin-dir` load). Claude Code's documentation does not name this file, so the path is observed, not documented. To delete everything the mod stored, quit Claude Code and delete that file.
+On Claude Code 2.1.293 the store file was observed at `~/.claude/plugins/store/herald_<source>-<id>.json` (`herald_inline-…json` for a `--plugin-dir` load). Claude Code's documentation does not name this file, so the path is observed, not documented. To delete everything the mod stored, quit Claude Code and delete that file. The store is kept per plugin name, so a store from before the mod was renamed from news to Herald is not read and is not migrated.
 
 ## Troubleshooting
 
 | Symptom | Check |
 |---------|-------|
-| The band does not appear. | It is drawn once an enabled source has items, so wait for the first refresh. `/news list` shows each source's item count and last error. It is also hidden while a Claude Code survey shows. |
-| `/news` does nothing visible. | Run `/plugin` and look for `news` on the `mods active` line. If it is missing, run `/reload-plugins`. |
-| A source shows an error in `/news list`. | It failed its last fetch, and the mod keeps its older items. See [Limitations](#limitations) for headers and fetch policy. |
-| A release does not show. | It is at or below your version; it is a patch release and the show level is `minor+`; it is a pre-release and the show level is not `all`; its package waits for a lookup (10 per refresh), is paused for an hour after a failure, or is `unresolved` in `/news deps`; or the stack is off for this project. |
-| A package is `unresolved`. | Its registry names no GitHub repository, GitHub does not have it, or its name is not valid for that registry. Run `/news deps map <package> <owner/repo\|feed-url>`. |
-| A hotkey types the letter into the prompt. | The band or the pane does not have keyboard focus. Open the pane with `/news`. |
+| The band does not appear. | It is drawn once an enabled source has items, so wait for the first refresh. `/herald list` shows each source's item count and last error. It is also hidden while a Claude Code survey shows. |
+| `/herald` does nothing visible. | Run `/plugin` and look for `herald` on the `mods active` line. If it is missing, run `/reload-plugins`. |
+| A source shows an error in `/herald list`. | It failed its last fetch, and the mod keeps its older items. See [Limitations](#limitations) for headers and fetch policy. |
+| A release does not show. | It is at or below your version; it is a patch release and the show level is `minor+`; it is a pre-release and the show level is not `all`; its package waits for a lookup (10 per refresh), is paused for an hour after a failure, or is `unresolved` in `/herald deps`; or the stack is off for this project. |
+| A package is `unresolved`. | Its registry names no GitHub repository, GitHub does not have it, or its name is not valid for that registry. Run `/herald deps map <package> <owner/repo\|feed-url>`. |
+| A hotkey types the letter into the prompt. | The band or the pane does not have keyboard focus. Open the pane with `/herald`. |
 | A summary shows `…` for a long time. | It waits for a model call. A failed call is retried the next time the item is shown. |
 
 ## Limitations
@@ -386,9 +388,9 @@ On Claude Code 2.1.293 the store file was observed at `~/.claude/plugins/store/<
 - **The Linux opener's exit code is not checked.** The mod starts `xdg-open` detached through `sh`, so a missing `xdg-open` shows no error. The headline link still works.
 - **`$.process.run` is available in the CLI only.** On the Desktop app, Open and the clipboard fallback can fail with a toast. Copy uses `$.ui.copy` first, and the headline link opens the item.
 - **The `clip.exe` fallback can garble non-ASCII text.** It reads the OEM code page. The mod tries PowerShell first on Windows and WSL.
-- **Source fetches add no headers of their own.** Claude Code may add its own, and its documentation does not say which. Registry and release feed requests send the `User-Agent` in [docs/security.md](docs/security.md#what-leaves-your-machine). A feed that needs a specific User-Agent shows as a failed source in `/news list`.
+- **Source fetches add no headers of their own.** Claude Code may add its own, and its documentation does not say which. Registry and release feed requests send the `User-Agent` in [docs/security.md](docs/security.md#what-leaves-your-machine). A feed that needs a specific User-Agent shows as a failed source in `/herald list`.
 - **`$.http.fetch` cannot be aborted.** A request that hangs counts as failed for its source after 90 seconds, and a stack registry or feed request after 30 seconds, but it keeps running until it ends. Turning a refresh off or restarting it waits for the request in progress to fail.
-- **The mod has no host allowlist and does not block private addresses.** `/news add`, `/news add-page` and `/news deps map <package> <feed-url>` fetch any http or https address you give, including `localhost` and addresses on your network. Redirects are followed, so a redirect can lead to any host, those included.
+- **The mod has no host allowlist and does not block private addresses.** `/herald add`, `/herald add-page` and `/herald deps map <package> <feed-url>` fetch any http or https address you give, including `localhost` and addresses on your network. Redirects are followed, so a redirect can lead to any host, those included.
 - **A web-fetch policy of your organization can refuse the fetches.** The sources then show as failed.
 - **Every session refreshes on its own.** Two open sessions fetch each source twice per interval, look up and read your stack twice, and share one store. The one hour pause after a failure is not shared.
 - **Hotkeys need keyboard focus** on the band or the pane.
@@ -397,7 +399,7 @@ On Claude Code 2.1.293 the store file was observed at `~/.claude/plugins/store/<
 
 | Behaviour | Why |
 |-----------|-----|
-| The plugin is named `news`. | `claude plugin validate` refuses names that start with `claude-`. |
+| The plugin is named `herald` and the marketplace `claude-herald`. | `claude plugin validate` refuses plugin names that start with `claude-`; a marketplace name may. |
 | `p` and `n` page the band. | Claude Code accepts only a lowercase letter or a digit as a hotkey, and a band digit also fires from an empty prompt. |
 | Copy uses `$.ui.copy` first, then `pbcopy`, `wl-copy`, `xclip` or `clip.exe` by system (PowerShell on Windows and WSL), when `$.ui.copy` copies nothing for a reason other than a refusal. | `$.ui.copy` writes to the clipboard of the surface you pressed on and needs no external tool. |
 | Source tabs take `1` to `9` by position, Your stack is `y`, Saved is `0`. | Saved keeps one key however many sources you follow. |
@@ -405,9 +407,9 @@ On Claude Code 2.1.293 the store file was observed at `~/.claude/plugins/store/<
 | The band header draws `◀` `▶` `⏸` as they are, and release rows draw `📦` and `⚠` in a glyph column two cells wide. | Some terminals draw `◀` `▶` `⏸` as two-cell emoji, which can misalign the header; `📦` is two cells, so the column pads a one-cell glyph. |
 | A long summary has 3 to 5 lines, or 1 or 2 when the model's reply has fewer than three sentences. | The mod does not pad a short reply. |
 | The pane shows dates as `Oct 8`, in UTC. | The date does not depend on the machine's time zone. |
-| The first `/news` of a session summarizes up to 20 items before the pane is drawn. | The mod learns how many rows fit only when the pane is drawn. |
+| The first `/herald` of a session summarizes up to 20 items before the pane is drawn. | The mod learns how many rows fit only when the pane is drawn. |
 | A release row gets a flag check, not a summary. | Its level and flags come from the classification, and Summarize still writes a summary of the notes. |
-| The release template is one setting for all projects; levels, cap and dev toggle are per project. | The template sits beside the copy template, and `/news reset` restores both. |
+| The release template is one setting for all projects; levels, cap and dev toggle are per project. | The template sits beside the copy template, and `/herald reset` restores both. |
 
 ## Development
 
