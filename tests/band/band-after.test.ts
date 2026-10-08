@@ -85,4 +85,40 @@ describe('band-after', () => {
       isPaused: true,
     })
   })
+  test('over pages of one, next, prev and the timer move one item, wrapping at both ends', () => {
+    expect(Band.bandAfter(RUNNING, 'next', 7, 1)).toEqual({
+      offset: 1,
+      selected: 0,
+      isPaused: true,
+    })
+    expect(Band.bandAfter({ ...RUNNING, offset: 6 }, 'next', 7, 1)).toEqual({
+      offset: 0,
+      selected: 0,
+      isPaused: true,
+    })
+    expect(Band.bandAfter(RUNNING, 'prev', 7, 1)).toEqual({
+      offset: 6,
+      selected: 0,
+      isPaused: true,
+    })
+    expect(Band.bandAfter({ ...RUNNING, offset: 4 }, 'rotate', 7, 1)).toEqual({
+      offset: 5,
+      selected: 0,
+      isPaused: false,
+    })
+    expect(Band.bandAfter(RUNNING, 'rotate', 1, 1)).toEqual(RUNNING)
+  })
+
+  test('a three-item page read over pages of one starts at its first item, and the reverse at the page holding it', () => {
+    expect(Band.bandAfter({ offset: 3, selected: 2, isPaused: true }, 'rotate', 7, 1)).toEqual({
+      offset: 3,
+      selected: 0,
+      isPaused: true,
+    })
+    expect(Band.bandAfter({ offset: 4, selected: 0, isPaused: true }, 'rotate', 7)).toEqual({
+      offset: 3,
+      selected: 0,
+      isPaused: true,
+    })
+  })
 })

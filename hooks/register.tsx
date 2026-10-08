@@ -265,6 +265,21 @@ function refreshStackSoon($: EngineInterface, isRescan: boolean): void {
 }
 
 /**
+ * Whether the Herald pane is open, drawn and the pane the surface shows, by the engine's record of this plugin's panes; false when the engine cannot say, so the band is drawn.
+ *
+ * @param $ the render hook's engine
+ */
+async function isPaneShown($: EngineInterface): Promise<boolean> {
+  try {
+    const panes = await $.ui.panes()
+
+    return panes.some(pane => pane.id === Names.PANE_ID && pane.isShown && pane.isPlaced)
+  } catch {
+    return false
+  }
+}
+
+/**
  * Declares `/herald` for the session; a refused registration is logged to debug, never thrown.
  *
  * @param $ the hook's engine
@@ -330,9 +345,9 @@ export const register: Register = on => {
     return { text: reply.text }
   })
 
-  // The band reads state only; its Buttons write through the Host when pressed.
+  // The band reads state only (it notes its page size in the rotation); its Buttons write through the Host when pressed.
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
-    if (e.props.hasSurvey) {
+    if (e.props.hasSurvey || (await isPaneShown($))) {
       return next(e)
     }
 
@@ -347,22 +362,47 @@ export const register: Register = on => {
       return next(e)
     }
 
-    const page = Band.bandPageOf(await read($, BAND), items)
+    const columns = e.props.bodyColumns
+
+    ROTATION.pageSize = Band.bandPageSizeOf(columns, items.length)
+
+    const page = Band.bandPageOf(await read($, BAND), items, ROTATION.pageSize)
     const { Box, Text, Button, Link } = $.ui.resolve(e)
+    const handlers = bandHandlersOf($, page.items[page.span.selected])
+
+    if (Band.isCompactBand(columns, items.length)) {
+      return Band.compactBandView(
+        { Box, Text, Button, Link },
+        Band.compactBandModelOf(page, sources, columns),
+        handlers,
+        await next(e),
+      )
+    }
 
     return Band.bandView(
       { Box, Text, Button, Link },
-      Band.bandModelOf(
-        page,
-        sources,
-        await read($, SUMMARIES),
-        await read($, SAVED),
-        e.props.bodyColumns,
-      ),
-      bandHandlersOf($, page.items[page.span.selected]),
+      Band.bandModelOf(page, sources, await read($, SUMMARIES), await read($, SAVED), columns),
+      handlers,
       await next(e),
     )
   })
+
+  // Opening or closing the pane draws the band again, which yields while the pane shows; a failure never holds the pane.
+  on('ui.open', { id: 'herald' }, async ($, e, next) => {
+    const opened = await next(e)
+
+    $.ui.invalidate('ui.render')
+
+    return opened
+  }).catch(($, e, next) => next(e))
+
+  on('ui.close', { id: 'herald' }, async ($, e, next) => {
+    const closed = await next(e)
+
+    $.ui.invalidate('ui.render')
+
+    return closed
+  }).catch(($, e, next) => next(e))
 
   // The pane reads state only (it notes the window size in a module holder); its Buttons write through the Host when pressed.
   // The id stays literal so validate reports it; a test mounts the pane by Names.PANE_ID to keep them equal.

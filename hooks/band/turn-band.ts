@@ -20,7 +20,7 @@ function isSame(a: BandState, b: BandState): boolean {
 }
 
 /**
- * Applies a move to the band in state (nothing written when it changes nothing) and, when the page changed, hands the new page to the rotation's `onPage`; never throws.
+ * Applies a move to the band in state, over pages of the rotation's size (nothing written when it changes nothing) and, when the page changed, hands the new page to the rotation's `onPage`; never throws.
  *
  * @param host the engine
  * @param rotation the rotation
@@ -39,15 +39,16 @@ export async function turnBand(
       shownStackItemsOf(await host.state.stack.read()),
     )
     const before = await host.state.band.read()
+    const size = rotation.pageSize
 
-    if (isSame(before, bandAfter(before, move, items.length))) {
+    if (isSame(before, bandAfter(before, move, items.length, size))) {
       return undefined
     }
 
-    const after = await host.state.band.update(band => bandAfter(band, move, items.length))
-    const page = bandPageOf(after, items)
+    const after = await host.state.band.update(band => bandAfter(band, move, items.length, size))
+    const page = bandPageOf(after, items, size)
 
-    if (page.span.start === bandPageOf(before, items).span.start) {
+    if (page.span.start === bandPageOf(before, items, size).span.start) {
       return undefined
     }
 

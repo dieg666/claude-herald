@@ -51,7 +51,7 @@ function rowView(ui: BandUi, row: BandRow): RenderElement {
 }
 
 /**
- * The band: the header (its name, the position, back, next, auto), the page's items, the selected item's actions followed by the selection buttons, then what the mods below drew; a header or actions line too narrow at its widest is laid out on two explicit rows, so the rows depend on the width and the total only.
+ * The full band: the header (its name, the position, back, next, auto), the page's items, the selected item's actions followed by the selection buttons, then what the mods below drew; drawn only where the header and the actions line fit on one row at their widest (narrower, the band is compact), so its rows depend on the item count only.
  *
  * @param ui the elements
  * @param model what to draw
@@ -66,11 +66,7 @@ export function bandView(
 ): RenderElement {
   const { Box, Text, Button } = ui
   const pages = (
-    <Box
-      flexDirection="row"
-      columnGap={GROUP_GAP_COLUMNS}
-      marginLeft={model.isHeaderSplit ? 0 : GROUP_GAP_COLUMNS}
-    >
+    <Box flexDirection="row" columnGap={GROUP_GAP_COLUMNS} marginLeft={GROUP_GAP_COLUMNS}>
       <Button
         key="prev"
         label={BAND_LABELS.prev}
@@ -118,21 +114,12 @@ export function bandView(
 
   return (
     <Box flexDirection="column">
-      {model.isHeaderSplit ? (
-        <Box flexDirection="column">
-          <Box flexDirection="row" columnGap={GROUP_GAP_COLUMNS}>
-            {title}
-          </Box>
-          {pages}
-        </Box>
-      ) : (
-        <Box flexDirection="row" columnGap={GROUP_GAP_COLUMNS}>
-          {title}
-          {pages}
-        </Box>
-      )}
+      <Box flexDirection="row" columnGap={GROUP_GAP_COLUMNS}>
+        {title}
+        {pages}
+      </Box>
       {model.rows.map(row => rowView(ui, row))}
-      {actionRowView(ui, model.isSelectedSaved, handlers, [selection], model.isActionsSplit)}
+      {actionRowView(ui, model.isSelectedSaved, handlers, [selection])}
       {below}
     </Box>
   )

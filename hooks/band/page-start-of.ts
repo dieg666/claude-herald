@@ -6,11 +6,12 @@ import { lastPageStartOf } from './last-page-start-of.js'
  *
  * @param offset the stored offset
  * @param total how many items there are
+ * @param size how many items a page holds
  */
-export function pageStartOf(offset: number, total: number): number {
+export function pageStartOf(offset: number, total: number, size = BAND_PAGE_SIZE): number {
   if (!Number.isInteger(offset) || offset <= 0) {
     return 0
   }
 
-  return Math.min(offset - (offset % BAND_PAGE_SIZE), lastPageStartOf(total))
+  return Math.min(offset - (offset % size), lastPageStartOf(total, size))
 }

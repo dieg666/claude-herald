@@ -181,38 +181,13 @@ describe('band-view', () => {
       await ui.unmount()
     })
 
-    test(`on ${surface}: too narrow for the header or the actions at their widest, the back, next and auto Buttons and the up and down Buttons each take a row of their own`, async ($, on) => {
-      mock.clock(on)
-      Fixtures.bandOn(on, STORE)
-
-      await $.classic.SessionStart({ source: 'clear' })
-
-      const ui = await $.ui.mount({
-        ...BAND,
-        surface,
-        props: { ...Fixtures.BAND_PROPS, bodyColumns: 40 },
-      })
-      const { header, actions } = await partsOf(ui)
-
-      expect(header?.children?.map(drawnAs)).toEqual([
-        'Box:[Text:Herald:bold,Text:1–3 of 7]',
-        'Box:[Button:prev:p:◀,Button:next:n:▶,Button:auto:a:⏸ auto]',
-      ])
-      expect(actions?.children?.map(drawnAs)).toEqual([
-        'Box:[Button:open:o:Open,Button:summarize:s:Summarize,Button:save:v:Save]',
-        'Box:[Button:copy:c:Copy for Claude,Box:[Button:up:k:↑,Button:down:j:↓]]',
-      ])
-
-      await ui.unmount()
-    })
-
-    test(`on ${surface}: the header and the actions take as many rows as before at 174, 120, 80 and 40 columns`, async ($, on) => {
+    test(`on ${surface}: the header and the actions take as many rows as before at 174, 120, 80 and 65 columns`, async ($, on) => {
       mock.clock(on)
       Fixtures.bandOn(on, { ...STORE, items: { src: Fixtures.datedItemsOf('src', 30) } })
 
       await $.classic.SessionStart({ source: 'clear' })
 
-      for (const columns of [174, 120, 80, 40]) {
+      for (const columns of [174, 120, 80, 65]) {
         const ui = await $.ui.mount({
           ...BAND,
           surface,
@@ -236,7 +211,7 @@ describe('band-view', () => {
     })
 
     test(
-      `on ${surface}: the band's rows depend on the width and the total only, not on the selection being saved or on the position text`,
+      `on ${surface}: the full band's rows are the same at every width it is drawn at, saved selection or not, whatever the position text`,
       { timeoutMs: 60_000 },
       async ($, on) => {
         mock.clock(on)
@@ -250,11 +225,8 @@ describe('band-view', () => {
 
         await $.classic.SessionStart({ source: 'clear' })
 
-        const wide = Band.headerColumnsOf(168)
         const actionsWide = Band.actionsColumnsOf()
-        const widths = [
-          ...new Set([40, 44, 64, wide - 1, wide, actionsWide - 1, actionsWide, actionsWide + 1]),
-        ]
+        const widths = [actionsWide, actionsWide + 1, 80, 120]
         const at = (columns: number) => ({
           ...BAND,
           surface,
@@ -295,8 +267,8 @@ describe('band-view', () => {
         const later = await rowsAt()
 
         for (const columns of widths) {
-          // The header and the actions, each one row or two, plus three items of two rows and what is below.
-          const expected = (columns < wide ? 2 : 1) + 6 + (columns < actionsWide ? 2 : 1) + 1
+          // The header and the actions, one row each, plus three items of two rows and what is below.
+          const expected = 1 + 6 + 1 + 1
 
           expect([columns, first[columns], later[columns]]).toEqual([
             columns,
@@ -577,7 +549,7 @@ describe('band-view', () => {
         items: {
           src: Fixtures.datedItemsOf('src', 2).map((item, index) => ({
             ...item,
-            title: index === 0 ? 'a'.repeat(50) : '漢'.repeat(30),
+            title: index === 0 ? 'a'.repeat(100) : '漢'.repeat(60),
           })),
         },
         summaries: [
@@ -586,7 +558,7 @@ describe('band-view', () => {
             lang: 'feed',
             kind: 'short',
             version: Summaries.SUMMARY_PROMPT_VERSION,
-            text: 'b'.repeat(40),
+            text: 'b'.repeat(100),
           },
         ],
       })
@@ -596,15 +568,15 @@ describe('band-view', () => {
       const ui = await $.ui.mount({
         ...BAND,
         surface,
-        props: { ...Fixtures.BAND_PROPS, bodyColumns: 20 },
+        props: { ...Fixtures.BAND_PROPS, bodyColumns: 70 },
       })
 
-      // Twenty cells less the mark and a space leave eighteen for a headline, and none for a name.
+      // Seventy cells less the mark and a space leave sixty-eight for a headline, and none for a name.
       expect((await linksOf(ui)).map(([, text]) => text)).toEqual([
-        `${'a'.repeat(17)}…`,
-        `${'漢'.repeat(8)}…`,
+        `${'a'.repeat(67)}…`,
+        `${'漢'.repeat(33)}…`,
       ])
-      expect(await ui.find({ type: 'Text', text: `${'b'.repeat(15)}…` })).toBeDefined()
+      expect(await ui.find({ type: 'Text', text: `${'b'.repeat(65)}…` })).toBeDefined()
     })
 
     test(`on ${surface}: an address that is not http(s) draws its title as plain text`, async ($, on) => {

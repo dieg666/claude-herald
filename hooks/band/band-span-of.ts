@@ -8,10 +8,11 @@ import { pageStartOf } from './page-start-of.js'
  *
  * @param band the band state
  * @param total how many items there are
+ * @param size how many items a page holds
  */
-export function bandSpanOf(band: BandState, total: number): BandSpan {
-  const start = pageStartOf(band.offset, total)
-  const count = Math.max(0, Math.min(BAND_PAGE_SIZE, total - start))
+export function bandSpanOf(band: BandState, total: number, size = BAND_PAGE_SIZE): BandSpan {
+  const start = pageStartOf(band.offset, total, size)
+  const count = Math.max(0, Math.min(size, total - start))
   const selected = Number.isInteger(band.selected) && band.selected > 0 ? band.selected : 0
 
   return { start, count, selected: Math.min(selected, Math.max(0, count - 1)) }

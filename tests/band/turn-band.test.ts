@@ -77,6 +77,18 @@ describe('turn-band', () => {
     expect([paused.pages, few.pages]).toEqual([[], []])
   })
 
+  test('over the page size the band last drew with, one while it is compact, a turn moves and hands over one item', async () => {
+    const { host, state, rotation, pages } = await bandWith(7)
+
+    rotation.pageSize = 1
+
+    expect((await Band.turnBand(host, rotation, 'next'))?.map(item => item.id)).toEqual(['src:2'])
+    expect((await Band.turnBand(host, rotation, 'prev'))?.map(item => item.id)).toEqual(['src:1'])
+    expect((await Band.turnBand(host, rotation, 'prev'))?.map(item => item.id)).toEqual(['src:7'])
+    expect(state.band).toEqual({ offset: 6, selected: 0, isPaused: true })
+    expect(pages).toEqual([['src:2'], ['src:1'], ['src:7']])
+  })
+
   test('a page handed over whose summaries fail is logged, not thrown', async () => {
     const { host, logs } = await bandWith(4)
     const rotation = Band.rotationOf(async () => {

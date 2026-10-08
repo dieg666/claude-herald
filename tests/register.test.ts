@@ -1442,4 +1442,102 @@ describe('register', () => {
     expect(fetched.slice(before)).toEqual([NEW_FEED])
     expect(toasts).toEqual([])
   })
+  for (const surface of ['terminal', 'desktop'] as const) {
+    const BAND_ON = { plugin: 'herald', component: 'AbovePrompt', surface } as const
+    // Items without text ask for no summaries, so nothing but the pane opening or closing draws the band again.
+    const PANE_STORE = {
+      sources: [Fixtures.sourceAt('src')],
+      items: { src: Fixtures.datedItemsOf('src', 4).map(item => ({ ...item, text: '' })) },
+    }
+
+    test(
+      `on ${surface}: while the Herald pane is shown the band draws only what the mods below drew, and comes back once it closes`,
+      { plugins: [Fixtures.PANE_CLOSER] },
+      async ($, on) => {
+        mock.clock(on)
+        Fixtures.bandOn(on, PANE_STORE)
+        Fixtures.panesOn(on, [surface])
+
+        await $.classic.SessionStart({ source: 'clear' })
+
+        const ui = await $.ui.mount({ ...BAND_ON, props: Fixtures.BAND_PROPS })
+
+        expect(await ui.find({ key: 'next' })).toBeDefined()
+
+        expect((await $.command.run(Fixtures.heraldOf(''))).text).toBe('Opened the Herald pane.')
+        expect(await ui.drawn()).toEqual(Fixtures.BELOW_BAND)
+
+        // Beside a docked pane the band's column narrows; still nothing of the band's own.
+        const docked = await $.ui.mount({
+          ...BAND_ON,
+          props: { ...Fixtures.BAND_PROPS, bodyColumns: 40 },
+        })
+
+        expect(await docked.drawn()).toEqual(Fixtures.BELOW_BAND)
+        await docked.unmount()
+
+        expect((await $.command.run(Fixtures.CLOSE_PANE)).text).toBe('closed')
+        expect(await ui.find({ key: 'next' })).toBeDefined()
+        expect(await ui.find({ type: 'Text', text: 'drawn below' })).toBeDefined()
+
+        await ui.unmount()
+      },
+    )
+
+    test(`on ${surface}: a fresh drawing, after /clear or a reload, asks the engine, so the band stays hidden while the pane stays open`, async ($, on) => {
+      mock.clock(on)
+      Fixtures.bandOn(on, PANE_STORE)
+      Fixtures.panesOn(on, [surface])
+
+      await $.classic.SessionStart({ source: 'clear' })
+      await $.command.run(Fixtures.heraldOf(''))
+      await $.classic.SessionStart({ source: 'clear' })
+
+      const ui = await $.ui.mount({ ...BAND_ON, props: Fixtures.BAND_PROPS })
+
+      expect(await ui.drawn()).toEqual(Fixtures.BELOW_BAND)
+
+      await ui.unmount()
+    })
+
+    test(`on ${surface}: a pane waiting undrawn for room, or behind another pane's tab, leaves the band drawn`, async ($, on) => {
+      mock.clock(on)
+      Fixtures.bandOn(on, PANE_STORE)
+
+      const panes = Fixtures.panesOn(on, [surface], {
+        isPlaced: false,
+        reason: 'needs 144 columns',
+      })
+
+      await $.classic.SessionStart({ source: 'clear' })
+      await $.command.run(Fixtures.heraldOf(''))
+
+      const waiting = await $.ui.mount({ ...BAND_ON, props: Fixtures.BAND_PROPS })
+
+      expect(panes.map(pane => [pane.id, pane.isPlaced])).toEqual([['herald', false]])
+      expect(await waiting.find({ key: 'next' })).toBeDefined()
+      await waiting.unmount()
+
+      panes.splice(0, 1, { ...panes[0]!, isPlaced: true, isShown: false })
+
+      const behind = await $.ui.mount({ ...BAND_ON, props: Fixtures.BAND_PROPS })
+
+      expect(await behind.find({ key: 'next' })).toBeDefined()
+      await behind.unmount()
+    })
+
+    test(`on ${surface}: when the engine cannot list the panes, the band is drawn`, async ($, on) => {
+      mock.clock(on)
+      Fixtures.bandOn(on, PANE_STORE)
+      on('ui.panes', () => ({ deny: 'no record' }))
+
+      await $.classic.SessionStart({ source: 'clear' })
+
+      const ui = await $.ui.mount({ ...BAND_ON, props: Fixtures.BAND_PROPS })
+
+      expect(await ui.find({ key: 'next' })).toBeDefined()
+
+      await ui.unmount()
+    })
+  }
 })

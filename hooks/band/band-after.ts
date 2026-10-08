@@ -10,12 +10,18 @@ import { lastPageStartOf } from './last-page-start-of.js'
  * @param band the band now
  * @param move what happened
  * @param total how many items there are
+ * @param size how many items a page holds
  */
-export function bandAfter(band: BandState, move: BandMove, total: number): BandState {
-  const { start, count, selected } = bandSpanOf(band, total)
+export function bandAfter(
+  band: BandState,
+  move: BandMove,
+  total: number,
+  size = BAND_PAGE_SIZE,
+): BandState {
+  const { start, count, selected } = bandSpanOf(band, total, size)
   const shown = Math.max(1, count)
-  const following = start + BAND_PAGE_SIZE >= total ? 0 : start + BAND_PAGE_SIZE
-  const preceding = start === 0 ? lastPageStartOf(total) : start - BAND_PAGE_SIZE
+  const following = start + size >= total ? 0 : start + size
+  const preceding = start === 0 ? lastPageStartOf(total, size) : start - size
 
   switch (move) {
     case 'next':
@@ -23,7 +29,7 @@ export function bandAfter(band: BandState, move: BandMove, total: number): BandS
     case 'prev':
       return { offset: preceding, selected: 0, isPaused: true }
     case 'rotate':
-      return band.isPaused || total <= BAND_PAGE_SIZE
+      return band.isPaused || total <= size
         ? { offset: start, selected, isPaused: band.isPaused }
         : { offset: following, selected: 0, isPaused: false }
     case 'auto':

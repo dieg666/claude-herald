@@ -73,17 +73,21 @@ The band appears above the prompt once the first refresh has fetched items, and 
 
 ## Use the band
 
-The band appears above the prompt once at least one enabled source has items. It lists every enabled source's items and the releases of [your stack](#your-stack) in one list, newest first, and the items without a date last. The header starts with the name, `Herald` in bold, then the position (`1–3 of N`, joined by an en dash) and only the page and auto buttons, for example `Herald  7–9 of 156    p: ◀  n: ▶  a: ⏸ auto`. The selection buttons, `k: ↑` and `j: ↓`, sit at the end of the actions line, set apart from the actions. When the band is narrower than the header or the actions line at its widest (the header with both numbers as long as the item count, 42 cells for under ten items and 48 for a hundred or more; the actions line with `Saved`, 65 cells), that line takes two rows: `p`, `n` and `a` move to a second header row, and the actions line splits into `Open`, `Summarize` and `Save`, then `Copy for Claude` with `k` and `j`. The band's height therefore depends only on the width and the item count, never on the page or on whether the selected item is saved. The selected item is marked with `›` and its headline drawn bold: the band cannot tell whether it has the keyboard, so it does not highlight the row. A news item's headline line ends with its source's name in dim text, for example `Margaret Hamilton has died` and, at the right end, `Hacker News`. On a narrow terminal a long headline keeps its room: the name is cut first, down to six cells, then dropped, and only then is the headline cut. A title that is only a version already leads with the name, so none is repeated at the right end. A release of your stack keeps its `📦` or `⚠` before the headline and shows no name. In the terminal each button shows its hotkey before its label, for example `p: ◀`. The auto button reads `⏸ auto` while the rotation runs and `▶ auto` while it is paused.
+The band appears above the prompt once at least one enabled source has items. It lists every enabled source's items and the releases of [your stack](#your-stack) in one list, newest first, and the items without a date last. The header starts with the name, `Herald` in bold, then the position (`1–3 of N`, joined by an en dash) and only the page and auto buttons, for example `Herald  7–9 of 156    p: ◀  n: ▶  a: ⏸ auto`. The selection buttons, `k: ↑` and `j: ↓`, sit at the end of the actions line, set apart from the actions. The band's height depends only on the width and the item count, never on the page or on whether the selected item is saved. The selected item is marked with `›` and its headline drawn bold: the band cannot tell whether it has the keyboard, so it does not highlight the row. A news item's headline line ends with its source's name in dim text, for example `Margaret Hamilton has died` and, at the right end, `Hacker News`. On a narrow terminal a long headline keeps its room: the name is cut first, down to six cells, then dropped, and only then is the headline cut. A title that is only a version already leads with the name, so none is repeated at the right end. A release of your stack keeps its `📦` or `⚠` before the headline and shows no name. In the terminal each button shows its hotkey before its label, for example `p: ◀`. The auto button reads `⏸ auto` while the rotation runs and `▶ auto` while it is paused.
+
+While the Herald pane is shown, the band draws nothing of its own, since the pane lists the same items; whatever other mods draw in the band stays. The band comes back when you close the pane. A pane that waits for room (opened on a narrow terminal) does not hide the band.
+
+When the band's column is narrower than the full band's actions line at its widest (65 cells with `Saved`; the header needs 42 cells for under ten items and 48 for a hundred or more), the band is compact: one line with the name, the position as `13/156`, the page and auto buttons, then the item's headline cut to fit, for example `Herald 13/156  p: ◀  n: ▶  a: ⏸ auto  Claude Code v2.1.293 adds…`. It shows one item a page, so `p`, `n` and the rotation move one item at a time, and it draws no summary, no source name, no selection buttons and no actions. The headline is still a link; for the other actions, open the pane with `/herald`. Where the headline would get fewer than 14 cells beside the controls it takes a row of its own, and where even the controls do not fit (38 cells for 100 to 999 items) the name and position, the buttons and the headline take a row each, so the compact band's height too depends only on the width and the item count.
 
 Hotkeys work while the band or the pane has keyboard focus; otherwise the keys go to the prompt. Tab moves between controls, Enter presses the focused one and Esc returns focus to the prompt. Claude Code's documentation says how a pane gets focus (opening it with `/herald` while the prompt is empty, Ctrl+X then Tab, or a click) and does not say how the band gets it, so open the pane with `/herald` to use every band action.
 
 | Key | Button | What it does |
 |-----|--------|--------------|
-| `p` | ◀ | Shows the previous page of three items, wrapping at the start, and pauses the rotation. |
+| `p` | ◀ | Shows the previous page of three items (one item in the compact band), wrapping at the start, and pauses the rotation. |
 | `n` | ▶ | Shows the next page, wrapping at the end, and pauses the rotation. |
 | `a` | ⏸ auto / ▶ auto | Pauses or resumes the rotation. |
-| `k` | ↑ | Selects the item above in the page and pauses the rotation. |
-| `j` | ↓ | Selects the item below in the page and pauses the rotation. |
+| `k` | ↑ | Selects the item above in the page and pauses the rotation. Not in the compact band. |
+| `j` | ↓ | Selects the item below in the page and pauses the rotation. Not in the compact band. |
 
 The rotation does nothing when all items fit on one page. The band yields its place while Claude Code shows a survey.
 
@@ -348,7 +352,9 @@ It hooks no `prompt.submit`, no `tool.call` and no transcript event. The only fi
 | `$.store.set` | Writes the stored data. |
 | `$.ui.copy` | Puts the filled template on the clipboard of the surface you pressed on. |
 | `$.ui.log` | Debug lines, and the lines of a long summary in the transcript. |
+| `$.ui.invalidate` | Draws the band again when the pane opens or closes, so it hides beside the pane and comes back after. |
 | `$.ui.open` | Opens the `/herald` pane. |
+| `$.ui.panes` | Whether the Herald pane is open and shown, so the band draws nothing beside it. |
 | `$.ui.resolve` | The `Box`, `Text`, `Button` and `Link` elements the band and the pane draw with, and the `Input` of the stack tab's filter where the surface has one. |
 | `$.ui.toast` | The new-item, new-release and "Copied" toasts, and action errors. |
 
@@ -378,7 +384,7 @@ On Claude Code 2.1.293 the store file was observed at `~/.claude/plugins/store/h
 
 | Symptom | Check |
 |---------|-------|
-| The band does not appear. | It is drawn once an enabled source has items, so wait for the first refresh. `/herald list` shows each source's item count and last error. It is also hidden while a Claude Code survey shows. |
+| The band does not appear. | It is drawn once an enabled source has items, so wait for the first refresh. `/herald list` shows each source's item count and last error. It is also hidden while a Claude Code survey shows and while the Herald pane is shown. |
 | `/herald` does nothing visible. | Run `/plugin` and look for `herald` on the `mods active` line. If it is missing, run `/reload-plugins`. |
 | A source shows an error in `/herald list`. | It failed its last fetch, and the mod keeps its older items. See [Limitations](#limitations) for headers and fetch policy. |
 | A release does not show. | It is at or below your version; it is a patch release and the show level is `minor+`; it is a pre-release and the show level is not `all`; its package waits for a lookup (10 per refresh), is paused for an hour after a failure, or is `unresolved` in `/herald deps`; or the stack is off for this project. |
@@ -397,6 +403,7 @@ On Claude Code 2.1.293 the store file was observed at `~/.claude/plugins/store/h
 - **A web-fetch policy of your organization can refuse the fetches.** The sources then show as failed.
 - **Every session refreshes on its own.** Two open sessions fetch each source twice per interval, look up and read your stack twice, and share one store. The one hour pause after a failure is not shared.
 - **Hotkeys need keyboard focus** on the band or the pane.
+- **Switching pane tabs does not redraw the band.** Claude Code tells a mod when its pane opens or closes, not when you switch to another mod's pane tab, so after switching away from the Herald pane the band comes back at its next redraw: the next rotation, refresh or resize.
 
 ## Design notes
 

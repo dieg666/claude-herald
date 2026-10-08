@@ -2,7 +2,6 @@ import { describe, expect, test } from 'claude-code/testing'
 
 import Band from '../../hooks/band'
 import Fixtures from '../fixtures'
-import type { SavedItem } from '../../types/index.js'
 
 describe('band-model-of', () => {
   const SOURCES = [Fixtures.sourceAt('src', { name: 'Hacker News' })]
@@ -83,23 +82,6 @@ describe('band-model-of', () => {
     expect(rowAt(39)?.source).toBeUndefined()
     // Below the headline's own width it is the headline that is cut.
     expect(rowAt(20)).toMatchObject({ title: 'A thirty-cell lon…' })
-  })
-
-  test('the header and the actions line each split into two rows below their widest, by the width and the total only', () => {
-    const modelAt = (columns: number, saved: readonly SavedItem[] = []) =>
-      Band.bandModelOf(pageAt(0, 0), SOURCES, {}, saved, columns)
-    const header = Band.headerColumnsOf(ITEMS.length)
-    const actions = Band.actionsColumnsOf()
-
-    expect(modelAt(header - 1).isHeaderSplit).toBe(true)
-    expect(modelAt(header).isHeaderSplit).toBe(false)
-    expect(modelAt(actions - 1).isActionsSplit).toBe(true)
-    expect(modelAt(actions).isActionsSplit).toBe(false)
-    // Saving the selected item changes the model's saved flag, never its split.
-    expect(modelAt(actions - 1, [{ ...ITEMS[0]!, savedAt: 1 }])).toMatchObject({
-      isSelectedSaved: true,
-      isActionsSplit: true,
-    })
   })
 
   test('the last page of one reads N of N', () => {

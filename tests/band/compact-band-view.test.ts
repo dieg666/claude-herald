@@ -1,0 +1,181 @@
+import type { ElementQuery, FoundElement } from 'claude-code/testing'
+import { describe, expect, mock, test } from 'claude-code/testing'
+
+import Band from '../../hooks/band'
+import Fixtures from '../fixtures'
+
+describe('compact-band-view', () => {
+  const SURFACES = ['terminal', 'desktop'] as const
+  const SOURCE = Fixtures.sourceAt('src', { name: 'Hacker News' })
+  const STORE = { sources: [SOURCE], items: { src: Fixtures.datedItemsOf('src', 7) } }
+  const BAND = { plugin: 'herald', component: 'AbovePrompt', props: Fixtures.BAND_PROPS } as const
+
+  type Drawing = {
+    find: (query: ElementQuery) => Promise<FoundElement | undefined>
+    findAll: (query: ElementQuery) => Promise<FoundElement[]>
+  }
+
+  const at = (surface: (typeof SURFACES)[number], columns: number) => ({
+    ...BAND,
+    surface,
+    props: { ...Fixtures.BAND_PROPS, bodyColumns: columns },
+  })
+
+  const positionOf = async (ui: Drawing) =>
+    (await ui.find({ type: 'Text', text: /^\d+\/\d+$/ }))?.text
+
+  const linksOf = async (ui: Drawing) =>
+    (await ui.findAll({ type: 'Link' })).map(link => [link.props.href, link.children.join('')])
+
+  const buttonsOf = async (ui: Drawing) =>
+    (await ui.findAll({ type: 'Button' })).map(
+      button => `${button.props.hotkey}: ${button.props.label}`,
+    )
+
+  // A node as `Type:key:hotkey:label`, `Text:text[:bold]`, `Link:text` or `Box:[children]`.
+  const drawnAs = (node: unknown): string => {
+    const { type, props = {}, children } = node as Partial<FoundElement>
+
+    if (type === 'Button') {
+      return `Button:${String(props.key)}:${String(props.hotkey)}:${String(props.label)}`
+    }
+
+    if (type === 'Box') {
+      return `Box:[${(children ?? []).map(drawnAs).join(',')}]`
+    }
+
+    const text = (children ?? []).map(child => (typeof child === 'string' ? child : drawnAs(child)))
+
+    return `${String(type)}:${text.join('')}${props.bold === true ? ':bold' : ''}`
+  }
+
+  const rootOf = async (ui: Drawing) => (await ui.findAll({ type: 'Box' }))[0]
+
+  for (const surface of SURFACES) {
+    test(`on ${surface}: below 65 cells, one line of Herald, n/N, p, n and auto, then the headline linked and bold; no summary, actions or selection, then what the mods below drew`, async ($, on) => {
+      mock.clock(on)
+      Fixtures.bandOn(on, STORE)
+
+      await $.classic.SessionStart({ source: 'clear' })
+
+      const ui = await $.ui.mount(at(surface, 60))
+      const root = await rootOf(ui)
+
+      expect(root?.children?.map(drawnAs)).toEqual([
+        'Box:[Box:[Text:Herald:bold,Text:1/7],Box:[Button:prev:p:◀,Button:next:n:▶,Button:auto:a:⏸ auto],Text:Text:Link:src 1:bold]',
+        'Text:drawn below',
+      ])
+      expect(await buttonsOf(ui)).toEqual(['p: ◀', 'n: ▶', 'a: ⏸ auto'])
+      expect(await linksOf(ui)).toEqual([['https://example.com/src/1', 'src 1']])
+      expect(await ui.find({ type: 'Text', text: 'Hacker News' })).toBeUndefined()
+      expect(await ui.find({ type: 'Text', text: /^…$/ })).toBeUndefined()
+      expect(Fixtures.rowsOf(root, 60)).toBe(2)
+
+      await ui.unmount()
+    })
+
+    test(`on ${surface}: compact at 64 cells, the full band of three at 65`, async ($, on) => {
+      mock.clock(on)
+      Fixtures.bandOn(on, STORE)
+
+      await $.classic.SessionStart({ source: 'clear' })
+
+      const narrow = await $.ui.mount(at(surface, Band.actionsColumnsOf() - 1))
+
+      expect([await positionOf(narrow), (await linksOf(narrow)).length]).toEqual(['1/7', 1])
+      await narrow.unmount()
+
+      const wide = await $.ui.mount(at(surface, Band.actionsColumnsOf()))
+
+      expect([await positionOf(wide), (await linksOf(wide)).length]).toEqual([undefined, 3])
+      expect(await wide.find({ key: 'open' })).toBeDefined()
+      await wide.unmount()
+    })
+
+    test(`on ${surface}: one item a page: n moves one and pauses, p wraps to the last, auto resumes and the clock turns one`, async ($, on) => {
+      const clock = mock.clock(on)
+
+      Fixtures.bandOn(on, { ...STORE, settings: { rotateSeconds: 20 } })
+
+      await $.session.start(Fixtures.SESSION)
+      await clock.settle()
+
+      const ui = await $.ui.mount(at(surface, 60))
+
+      await ui.press({ key: 'next' })
+
+      expect([await positionOf(ui), await buttonsOf(ui)]).toEqual([
+        '2/7',
+        ['p: ◀', 'n: ▶', 'a: ▶ auto'],
+      ])
+      expect(await linksOf(ui)).toEqual([['https://example.com/src/2', 'src 2']])
+
+      await ui.press({ key: 'prev' })
+      await ui.press({ key: 'prev' })
+
+      expect(await positionOf(ui)).toBe('7/7')
+
+      await ui.press({ key: 'auto' })
+      await clock.advance(20_000)
+
+      expect([await positionOf(ui), (await linksOf(ui)).map(([, text]) => text)]).toEqual([
+        '1/7',
+        ['src 1'],
+      ])
+
+      await clock.advance(20_000)
+
+      expect(await positionOf(ui)).toBe('2/7')
+
+      await ui.unmount()
+    })
+
+    test(
+      `on ${surface}: the compact band takes the same rows on every page at each width, long headline or short`,
+      { timeoutMs: 60_000 },
+      async ($, on) => {
+        mock.clock(on)
+
+        const items = Fixtures.datedItemsOf('src', 12).map((item, index) => ({
+          ...item,
+          title:
+            index % 3 === 0
+              ? 'A long headline '.repeat(8)
+              : index % 3 === 1
+                ? 'x'
+                : '漢'.repeat(40),
+        }))
+
+        Fixtures.bandOn(on, { sources: [SOURCE], items: { src: items } })
+
+        await $.classic.SessionStart({ source: 'clear' })
+
+        const controls = Band.compactControlsColumnsOf(items.length)
+        // One row, the headline's own row, then the name, the Buttons and the headline each on one.
+        const expected: Record<number, number> = {
+          64: 1,
+          [controls + 16]: 1,
+          [controls + 15]: 2,
+          [controls]: 2,
+          [controls - 1]: 3,
+          24: 3,
+        }
+
+        for (const [width, rows] of Object.entries(expected)) {
+          const columns = Number(width)
+          const ui = await $.ui.mount(at(surface, columns))
+          const seen = new Set<number>()
+
+          for (let turn = 0; turn < items.length; turn++) {
+            seen.add(Fixtures.rowsOf(await rootOf(ui), columns))
+            await ui.press({ key: 'next' })
+          }
+
+          // The band's own rows plus the row of what the mods below drew.
+          expect([columns, [...seen]]).toEqual([columns, [rows + 1]])
+          await ui.unmount()
+        }
+      },
+    )
+  }
+})
