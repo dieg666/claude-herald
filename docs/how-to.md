@@ -75,7 +75,7 @@ The reply says how many items the band shows. To check, count the rows on the ba
 
 ## Add several sources at once
 
-To add several sources in one step, paste a block of `/herald add` lines into the prompt:
+To add several sources in one step, type `/herald ` (with the space) in the prompt, then paste a block of `/herald add` lines after it and press Enter:
 
 ```text
 /herald add https://github.com/vercel/next.js/releases.atom Next.js
@@ -83,7 +83,7 @@ To add several sources in one step, paste a block of `/herald add` lines into th
 /herald add https://github.com/oven-sh/bun/releases.atom Bun
 ```
 
-Each line that starts with `/` runs as its own command, in order, and the reply shows one block per command, so a line that fails does not stop the others. To check, run `/herald list`: every source that was added is listed. For the rules of a paste, see [Pasting several commands](reference.md#pasting-several-commands).
+Each line that starts with `/` runs as its own command, in order, and the reply shows one block per command, so a line that fails does not stop the others. Pasted into an empty prompt, a block of more than three lines or 800 characters is sent to Claude as a message instead. To check, run `/herald list`: every source that was added is listed. For the rules of a paste, see [Pasting several commands](reference.md#pasting-several-commands).
 
 ## Delete stored data
 

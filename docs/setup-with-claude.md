@@ -6,7 +6,7 @@ You need Herald installed ([Install](../README.md#install)) and a Claude Code se
 
 1. Paste the prompt below into Claude Code.
 2. Answer Claude's questions. They come as a few multiple-choice rounds, and one text question if you have feeds or pages of your own.
-3. Read the code block Claude answers with, then paste it into the prompt. Each line runs as its own command ([Pasting several commands](reference.md#pasting-several-commands)), and a line that fails doesn't stop the others.
+3. Read the code block Claude answers with. In the prompt, type `/herald ` (with the space), paste the block after it, and press Enter. Each line runs as its own command ([Pasting several commands](reference.md#pasting-several-commands)), and a line that fails doesn't stop the others. Pasted into an empty prompt, a block of more than three lines or 800 characters is collapsed into `[Pasted text #1 …]` and sent to Claude as a message, so nothing runs.
 4. To check, run `/herald list`: it shows each source as on or off, on the band or hidden from it, and in the pane or hidden from it.
 
 To change the setup later, or if Herald is already set up, paste the prompt again: Claude asks for your `/herald list` output first and leaves your own sources alone. You can also run the commands yourself ([Commands](reference.md#commands)). The factory sources are in [Sources](reference.md#sources).
@@ -27,7 +27,7 @@ Step 2. Interview me with the AskUserQuestion tool. A call takes at most 4 quest
 - Whether Herald follows the dependencies of the project I am in (Your stack, default on).
 - Whether I want to change the copy-for-Claude text (yes or no). Ask for the text only if I say yes.
 
-Step 3. Answer with ONE code block of /herald lines, one command per line, and nothing else inside it: no comments, no blank lines. Before the block, write one sentence telling me to read it and then paste it into my prompt. After it, write one sentence saying that add and add-page fetch the address and can fail, that a failed line reports why, and that I can fix it and paste it again.
+Step 3. Answer with ONE code block of /herald lines, one command per line, and nothing else inside it: no comments, no blank lines. Before the block, write one sentence telling me to read it, type /herald and a space in my prompt, and paste the block after it. After it, write one sentence saying that add and add-page fetch the address and can fail, that a failed line reports why, and that I can fix it and paste it again.
 
 Order the lines: first disable, remove, enable, add and add-page, then band and pane, then the settings. Turn off with disable the factory sources I did not keep; use remove only if I ask for a source to be gone. Claude status starts off, so it needs no line unless I keep it. For every setting I answered, write a line when my answer differs from what I have now (from the /herald list output or my answers if I gave them), not only from the factory default. Leave out lines that change nothing.
 

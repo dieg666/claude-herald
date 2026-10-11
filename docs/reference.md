@@ -69,7 +69,9 @@ A feed added without a name takes the title the feed gives itself, or its host w
 
 ## Pasting several commands
 
-When you paste several `/herald` lines at once, each runs as its own command. Claude Code passes everything after the first `/herald` to the mod, line breaks included, and the mod splits it:
+Claude Code collapses a paste of more than three lines or more than 800 characters into a `[Pasted text #N]` placeholder. A prompt that starts with the placeholder goes to Claude as a message, and no command runs. A placeholder after a typed `/herald ` expands into the command's arguments when the prompt is sent, and the mod ignores the repeated `/herald` at the start of the first line. For the steps, see [Add several sources at once](how-to.md#add-several-sources-at-once).
+
+Each line of the block runs as its own command. Claude Code passes everything after the first `/herald` to the mod, line breaks included, and the mod splits it:
 
 - A line that starts with `/` starts a new command. Any other line continues the command above it, joined with a line break, so a `template` written over several lines is stored with its line breaks. A template line that starts with `/` starts a new command instead, so the template ends above it.
 - The commands run in order, each one finished before the next. A command that fails answers with its error, and the next one still runs.

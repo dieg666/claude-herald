@@ -47,7 +47,7 @@ To try Herald for one session without installing it, or to update or uninstall i
 | `/herald disable <name>`        | Stops fetching a source, such as `Hacker News`. `/herald list` shows names.   |
 | `/herald add <url> [name]`      | Follows an RSS or Atom feed. `/herald add-page` follows a web page.           |
 
-To run several commands at once, paste several lines. Each line is its own command ([Pasting several commands](docs/reference.md#pasting-several-commands)):
+To run several commands at once, type `/herald ` (with the space) in the prompt and paste the lines after it. Each line is its own command ([Pasting several commands](docs/reference.md#pasting-several-commands)):
 
 ```text
 /herald add https://github.com/vercel/next.js/releases.atom Next.js
