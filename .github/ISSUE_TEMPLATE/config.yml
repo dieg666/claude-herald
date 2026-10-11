@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Privacy policy
+    url: https://github.com/dieg666/claude-herald/blob/main/docs/privacy.md
+    about: What Herald reads, sends and stores.
+  - name: Security and privacy details
+    url: https://github.com/dieg666/claude-herald/blob/main/docs/security.md
+    about: The calls, hosts, files and accepted risks, before you report a concern.
