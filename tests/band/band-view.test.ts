@@ -815,6 +815,62 @@ describe('band-view', () => {
     })
   }
 
+  for (const surface of SURFACES) {
+    test(
+      `on ${surface}: at a stored size of five the band draws five rows a page and pages five at a time; at one, one`,
+      { timeoutMs: 30_000 },
+      async ($, on) => {
+        const clock = mock.clock(on)
+
+        Fixtures.bandOn(on, {
+          sources: [SOURCE],
+          items: { src: Fixtures.datedItemsOf('src', 12) },
+          settings: { bandSize: 5, rotateSeconds: 20 },
+        })
+
+        await $.session.start(Fixtures.SESSION)
+        await clock.settle()
+
+        const ui = await $.ui.mount({ ...BAND, surface })
+
+        expect([await rangeOf(ui), (await linksOf(ui)).length]).toEqual(['1–5 of 12', 5])
+
+        await clock.advance(20_000)
+
+        expect(await rangeOf(ui)).toBe('6–10 of 12')
+
+        await ui.press({ key: 'next' })
+
+        expect([await rangeOf(ui), (await linksOf(ui)).map(([, text]) => text)]).toEqual([
+          '11–12 of 12',
+          ['src 11', 'src 12'],
+        ])
+
+        await ui.press({ key: 'next' })
+
+        expect(await rangeOf(ui)).toBe('1–5 of 12')
+
+        await ui.press({ key: 'up' })
+
+        expect(await selectedOf(ui)).toBe('https://example.com/src/5')
+
+        await $.command.run(Fixtures.heraldOf('band size 1'))
+
+        expect([await rangeOf(ui), (await linksOf(ui)).length, await selectedOf(ui)]).toEqual([
+          '5 of 12',
+          1,
+          'https://example.com/src/5',
+        ])
+
+        await ui.press({ key: 'prev' })
+
+        expect(await rangeOf(ui)).toBe('4 of 12')
+
+        await ui.unmount()
+      },
+    )
+  }
+
   const stackBandOn = (
     on: Parameters<typeof Fixtures.bandOn>[0],
     settings: Parameters<typeof Fixtures.stackStoreOf>[1],

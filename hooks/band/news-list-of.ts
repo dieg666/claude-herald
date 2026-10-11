@@ -7,9 +7,6 @@ import { timeOf } from '../items/time-of.js'
 import { BAND_PAGE_SIZE } from './band-page-size.js'
 import { newestItemOf } from './newest-item-of.js'
 
-/** How many flagged stack releases lead the list, so the band's first page keeps a place for another source. */
-const LEAD_LIMIT = BAND_PAGE_SIZE - 1
-
 /** An item with its time and its place in the list given. */
 type Entry = { readonly item: Item; readonly time: number; readonly index: number }
 
@@ -32,18 +29,20 @@ function compareEntries(a: Entry, b: Entry): number {
 }
 
 /**
- * The news list of the given sources (none filtered here) and the stack, as the band and the All tab list it: the sources' items, only the newest of a release feed's, and the stack's packages, one item each (the package's target release, see `stackPackageItemsOf`); items read are left out first while any unread one remains (all kept once every one is read); then the newest `BAND_PAGE_SIZE - 1` of the stack's packages with a breaking or security release (those drawn with ⚠) lead (undated ones last), then every other dated item newest first across sources (ties by source id, then in stored order), then the undated ones in source order, stack items last.
+ * The news list of the given sources (none filtered here) and the stack, as the band and the All tab list it: the sources' items, only the newest of a release feed's, and the stack's packages, one item each (the package's target release, see `stackPackageItemsOf`); items read are left out first while any unread one remains (all kept once every one is read); then the newest `bandSize - 1` of the stack's packages (one fewer than the full band shows, so its first page keeps a place for another source) with a breaking or security release (those drawn with ⚠) lead (undated ones last), then every other dated item newest first across sources (ties by source id, then in stored order), then the undated ones in source order, stack items last.
  *
  * @param sources the sources listed, in order
  * @param items the kept items by source id, newest first
  * @param stack the stack items shown, newest first, of every release of a package
  * @param read the read item ids by source id
+ * @param bandSize how many items the full band shows at once
  */
 export function newsListOf(
   sources: readonly Source[],
   items: Readonly<ItemsBySource>,
   stack: readonly Item[] = [],
   read: Readonly<IdsBySource> = {},
+  bandSize = BAND_PAGE_SIZE,
 ): Item[] {
   const all = [
     ...sources.flatMap(source => {
@@ -63,7 +62,7 @@ export function newsListOf(
   const lead = entries
     .filter(isFlagged)
     .sort((a, b) => (a.time === b.time ? a.index - b.index : b.time - a.time))
-    .slice(0, LEAD_LIMIT)
+    .slice(0, Math.max(0, bandSize - 1))
   const rest = entries.filter(entry => !lead.includes(entry))
   const isDated = (entry: Entry) => entry.time !== Number.NEGATIVE_INFINITY
   const dated = rest.filter(isDated).sort(compareEntries)

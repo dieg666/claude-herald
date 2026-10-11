@@ -1,9 +1,12 @@
+import { DEFAULT_SETTINGS } from '../defaults/default-settings.js'
 import { COMMAND_NAME } from '../names/command-name.js'
+import { BAND_SIZE_BOUNDS } from '../store/band-size-bounds.js'
 import { addFeed } from './add-feed.js'
 import { addPage } from './add-page.js'
 import { listSources } from './list-sources.js'
 import { removeSource } from './remove-source.js'
 import { resetHerald } from './reset-herald.js'
+import { runBand } from './run-band.js'
 import { runDeps } from './run-deps.js'
 import { setEnabled } from './set-enabled.js'
 import { setLang } from './set-lang.js'
@@ -57,8 +60,14 @@ export const SUBCOMMANDS: Readonly<Record<string, Subcommand>> = {
   band: {
     usage: 'band on|off <name>',
     summary: 'show or hide a source in the band, the rotating lines above the prompt',
+    forms: [
+      {
+        usage: 'band size <n>',
+        summary: `items the band shows at once, ${BAND_SIZE_BOUNDS.min} to ${BAND_SIZE_BOUNDS.max} (default ${DEFAULT_SETTINGS.bandSize})`,
+      },
+    ],
     needsArgument: true,
-    run: (host, rest) => setSurface(host, rest, 'band'),
+    run: runBand,
   },
   pane: {
     usage: 'pane on|off <name>',

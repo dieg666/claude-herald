@@ -82,6 +82,8 @@ export type Settings = {
   refreshMinutes: number
   /** Seconds between band rotations. */
   rotateSeconds: number
+  /** How many items the full band shows at once, 1 to 9; the compact band shows one. */
+  bandSize: number
   lang: SummaryLang
   /** Whether Herald asks Haiku for one-line summaries on its own and draws them in the band and the pane; Summarize works either way. */
   autoSummaries: boolean

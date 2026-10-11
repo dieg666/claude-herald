@@ -10,6 +10,8 @@ export type Subcommand = {
   readonly usage: string
   /** What it does, one short line. */
   readonly summary: string
+  /** Other ways to type it, each listed on a line of its own in the usage. */
+  readonly forms?: readonly { readonly usage: string; readonly summary: string }[]
   /** Whether it refuses to run with nothing after its name. */
   readonly needsArgument: boolean
   /** Runs it with what follows its name, trimmed, and the stack loop whose queue orders the stack's store and state writes. */

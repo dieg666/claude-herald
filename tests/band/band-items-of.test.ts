@@ -396,4 +396,24 @@ describe('band-items-of', () => {
       ['requests', '2.31.1'],
     ])
   })
+
+  test("the flagged packages that lead follow the band's size: at one none leads and a flagged package goes by date", () => {
+    const flaggedOld = Fixtures.stackItemAt('old', '2.0.0', {
+      current: '1.0.0',
+      level: 'major',
+      breaking: true,
+      publishedAt: '2025-12-01T00:00:00Z',
+    })
+    const sources = [Fixtures.sourceAt('a'), Fixtures.sourceAt('hidden', { isOnBand: false })]
+    const items = { a: Fixtures.datedItemsOf('a', 1), hidden: Fixtures.datedItemsOf('hidden', 1) }
+
+    expect(Band.bandItemsOf(sources, items, [flaggedOld], {}, 1).map(item => item.id)).toEqual([
+      'a:1',
+      flaggedOld.id,
+    ])
+    expect(Band.bandItemsOf(sources, items, [flaggedOld], {}, 2).map(item => item.id)).toEqual([
+      flaggedOld.id,
+      'a:1',
+    ])
+  })
 })

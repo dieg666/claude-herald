@@ -366,18 +366,21 @@ export const register: Register = on => {
     return { text }
   })
 
-  // The band reads state and the clock only (it notes its page size in the rotation); its Buttons write through the Host when pressed.
+  // The band reads state and the clock only (it notes whether it is compact in the rotation); its Buttons write through the Host when pressed.
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     if (e.props.hasSurvey || (await isPaneShown($))) {
       return next(e)
     }
 
     const sources = await read($, SOURCES)
+    const settings = await read($, SETTINGS)
+    const bandSize = Store.bandSizeOf(settings.bandSize)
     const items = Band.bandItemsOf(
       sources,
       await read($, ITEMS),
       Stack.shownStackItemsOf(await read($, STACK_STATE)),
       await read($, READ),
+      bandSize,
     )
 
     if (items.length === 0) {
@@ -387,13 +390,17 @@ export const register: Register = on => {
     const columns = e.props.bodyColumns
     const now = await $.clock.now()
 
-    ROTATION.pageSize = Band.bandPageSizeOf(columns, items.length)
+    ROTATION.isCompact = Band.isCompactBand(columns, items.length)
 
-    const page = Band.bandPageOf(await read($, BAND), items, ROTATION.pageSize)
+    const page = Band.bandPageOf(
+      await read($, BAND),
+      items,
+      Band.bandPageSizeOf(columns, items.length, bandSize),
+    )
     const { Box, Text, Button, Link } = $.ui.resolve(e)
     const handlers = bandHandlersOf($, page.items[page.span.selected])
 
-    if (Band.isCompactBand(columns, items.length)) {
+    if (ROTATION.isCompact) {
       return Band.compactBandView(
         { Box, Text, Button, Link },
         Band.compactBandModelOf(page, sources, columns, now),
@@ -410,7 +417,7 @@ export const register: Register = on => {
         await read($, SUMMARIES),
         await read($, SAVED),
         columns,
-        (await read($, SETTINGS)).autoSummaries === true,
+        settings.autoSummaries === true,
         now,
       ),
       handlers,
