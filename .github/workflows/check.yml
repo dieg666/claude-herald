@@ -20,6 +20,8 @@ env:
 
 jobs:
   check:
+    # Every run waits for a maintainer to approve it in the ci environment, the owner's runs included.
+    environment: ci
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
