@@ -1,21 +1,34 @@
 # Band and pane
 
-This page describes what the band and the `/herald` pane draw, the keys they take and the actions on an item. For the terms used here, such as compact band, window, show level and toast level, see [Terms](reference.md#terms).
+This page describes what the band and the `/herald` pane draw, which sources show on each, the keys they take and the actions on an item. The band is the rotating lines above the prompt. The pane is the window `/herald` opens, with a tab each for All, every source, Your stack and Saved. For the terms used here, such as compact band, window, show level and toast level, see [Terms](reference.md#terms).
+
+## Sources on each surface
+
+Three settings decide where a source's items show. All three keep the source and its items.
+
+| Setting | Command | Effect |
+|---------|---------|--------|
+| Enabled or disabled | `/herald enable <name>`, `/herald disable <name>` | A disabled source is not fetched and shows nowhere. |
+| On the band or hidden from it | `/herald band on <name>`, `/herald band off <name>` | A source hidden from the band is still fetched and still shows in the pane. |
+| In the pane or hidden from it | `/herald pane on <name>`, `/herald pane off <name>` | A source hidden from the pane is still fetched and still shows on the band. It has no tab and no rows in All. |
+
+A source is on the band when it is enabled and not hidden from the band, and in the pane when it is enabled and not hidden from the pane. Hiding a source does not stop it: a source hidden from both is still fetched, and a page source still uses Haiku to extract its items. Its new items raise no toast and get no automatic one-line summary, since neither surface shows it. To stop fetching a source, disable it. The band and pane settings survive disabling and enabling the source. `/herald list` shows all three for every source. Your stack is not a source in this sense: neither command hides it.
+
+Items that arrive while a source is hidden from the pane count as new when you show it again.
 
 ## Band
 
-The band appears above the prompt once at least one enabled source has items. It lists every enabled source's items and [your stack](your-stack.md) in one list, three items a page, and turns the page every 20 seconds (`/herald rotate` changes it). Your stack's releases count as one source, with one row for each followed package rather than for each release.
+The band appears above the prompt once at least one source on the band has items. It lists the items of the sources on the band and of [your stack](your-stack.md) in one list, three items a page, and turns the page every 20 seconds (`/herald rotate` changes it). Your stack has one row for each followed package rather than for each release.
 
 ### Order of items
 
-The list mixes items by source, so a busy source such as Hacker News cannot fill a page:
+The list is a timeline, newest first across all sources:
 
-- **Flagged packages first.** Packages of your stack with a release flagged breaking or security among the ones shown (drawn with `⚠`) go before the mix. The list starts with the newest two of them by their target's date, however old, so a row such as `⚠ jsdom 25.0.1 → 30.1.2` is on the first page even when every news item is newer. Since releases of your stack are never marked read, those two stay first until you upgrade past them. Further flagged packages take your stack's usual turns in the mix.
-- **Then the mix.** The list takes each source's newest item in turn, the newest of them first, round after round. A page of three never shows two items of one source while another source still has items, and a source with many items gets one place a round, its remaining items filling the later pages.
-- **Room for news on the first page.** The page's third place, and the two places right after the leading releases, go to other sources while they have items, so the first page never shows a third package of your stack.
-- **Undated items last.** Items without a date come last.
+- **Flagged packages first.** Packages of your stack with a release flagged breaking or security among the ones shown (drawn with `⚠`) lead the list. The newest two of them by their target's date come first, however old, so a row such as `⚠ jsdom 25.0.1 → 30.1.2` is on the first page even when every news item is newer. Since releases of your stack are never marked read, those two stay first until you upgrade past them. Further flagged packages sort by date like any other item.
+- **Then by date.** Every other dated item, news and your stack's packages alike, comes newest first. Items with the same date sort by source, in a fixed order, then in the order the feed lists them.
+- **Undated items last.** Items without a date come after the dated ones, in source order, with your stack's packages at the end.
 
-The order depends only on the items and on what you have read, so it stays the same from one turn to the next until an item arrives, leaves or is read. The compact band turns through the sources the same way.
+The order depends only on the items and on what you have read, so it stays the same from one turn to the next until an item arrives, leaves or is read. The compact band turns through the same list one item at a time.
 
 ### Why the band shows one release per source
 
@@ -25,19 +38,19 @@ The newest goes by date (the first in feed order on a tie) and by date alone, so
 
 ### Read items
 
-The band skips the news items you have read, opened with `o` or copied with `c`, while any unread item remains. The rest keep the band's order, mixed by source, and the position counts them only, for example `1–3 of 12` once 3 of 15 are read. An item you open or copy leaves the band right away and the next one takes its place.
+The band skips the news items you have read, opened with `o` or copied with `c`, while any unread item remains. The rest keep the band's order, and the position counts them only, for example `1–3 of 12` once 3 of 15 are read. An item you open or copy leaves the band right away and the next one takes its place.
 
 A release source's newest release stands for the source: once you have read it, the source shows nothing in the band until a newer release arrives, and an older release never takes its place. Once every item is read, the band lists them all again, a release source still with its newest release only and the flagged releases of your stack still first. Releases of your stack are never counted as read. The pane's All tab lists the same items in the same order with the read ones kept, dim.
 
 ### Header and keys
 
-The header starts with the name, `Herald` in bold, then the position (`1–3 of N`, joined by an en dash) and only the page and auto buttons, for example `Herald  7–9 of 156    p: ◀  n: ▶  a: ⏸ auto`. The selection buttons, `k: ↑` and `j: ↓`, sit at the end of the actions line, set apart from the actions. In the terminal each button shows its hotkey before its label, for example `p: ◀`. The auto button reads `⏸ auto` while the rotation runs and `▶ auto` while it is paused.
+The header starts with the name, `Herald` in bold, then the position (`1–3 of N`, joined by an en dash) and only the page and auto buttons, for example `Herald  7–9 of 156    p: ◀  n: ▶  a: ⏸ auto`. The selection buttons, `k: ↑` and `j: ↓`, sit at the end of the actions line, set apart from the actions. In the terminal each button shows its hotkey before its label, for example `p: ◀`. The auto button reads `⏸ auto` while the rotation runs and `↻ auto` while it is paused.
 
 | Key | Button | What it does |
 |-----|--------|--------------|
 | `p` | ◀ | Shows the previous page of three items (one item in the compact band), wrapping at the start, and pauses the rotation. |
 | `n` | ▶ | Shows the next page, wrapping at the end, and pauses the rotation. |
-| `a` | ⏸ auto / ▶ auto | Pauses or resumes the rotation. |
+| `a` | ⏸ auto / ↻ auto | Pauses or resumes the rotation. |
 | `k` | ↑ | Selects the item above in the page and pauses the rotation. Not in the compact band. |
 | `j` | ↓ | Selects the item below in the page and pauses the rotation. Not in the compact band. |
 
@@ -99,7 +112,7 @@ Hotkeys work while the band or the pane has keyboard focus; otherwise the keys g
 
 ### Tabs
 
-The tab row at the top shows the All tab, a tab per enabled source, then Your stack and Saved. The tabs take one line when the pane is wide enough and wrap onto more lines otherwise.
+The tab row at the top shows the All tab, a tab per source in the pane (enabled and not hidden from it with `/herald pane off`), then Your stack and Saved. The tabs take one line when the pane is wide enough and wrap onto more lines otherwise.
 
 - **Active tab.** The active tab is drawn as highlighted text, bold and underlined in the theme's inverse colors, and the other tabs are dim buttons with their hotkeys. Pressing the active tab's own key does nothing and keeps the pane focused, because that key stays bound to a button that draws nothing. Tab passes over it as one step with nothing highlighted, where the active tab sits in the row.
 - **Labels.** A source's tab shows the band's short label while the source keeps its factory name (`Claude Code` for Claude Code releases, `Agent SDK` for Claude Agent SDK (TS)), else the name you gave it. `/herald list` and the rest of the text keep the full names. Labels are drawn whole, unless cutting the names longer than 16 cells (with `…`, wide characters counting two cells) puts the tabs on fewer lines. A name wider than the pane is always cut to fit one line.
@@ -125,6 +138,7 @@ The title line under the tabs holds the `k: ↑` and `j: ↓` buttons and, at it
 
 The pane shows a window of the active tab's items around the selection, one line each with its headline link and, at the right end, its date.
 
+- **Order.** A source's own tab lists that source's items newest first, the undated ones after them. All lists the items of every source in the pane in the band's order (see [Order of items](#order-of-items)).
 - **Date column.** The column is 7 cells wide (a space and 6 cells), right-aligned, on every tab including Your stack, so the dates end at the pane's edge. An item less than a day old shows its age as the band does (`now`, `5m`, `2h`, `23h`), an older one its date in UTC (`Oct 7`, `Sep 28`), and an undated one leaves the column blank. The age is worked out when the pane draws, from the clock, so it refreshes whenever the pane redraws.
 - **Selection.** The selected item is highlighted across the whole row, headline, source name and date, in the theme's inverse colors, and keeps its `›`.
 - **Read items.** The other rows stay plain, except that a news item you have read, opened with `o` or copied with `c`, has its headline drawn dim, on All, on its source's tab and on Saved.
@@ -134,7 +148,7 @@ The pane shows a window of the active tab's items around the selection, one line
 
 ### All tab
 
-The pane opens on the All tab, first in the tab row, on `l` (the band's `a` is taken by auto, and `l` is a key no band or pane button uses). All lists what the band pages through, in the band's order and built by the same code: the newest two packages of your stack with a breaking or security release first, then every enabled source's items mixed by source, your stack counted as one source, one row per package, a release source by its newest release only, and items without a date last. Unlike the band it keeps the items you have read, in their place, their headlines drawn dim.
+The pane opens on the All tab, first in the tab row, on `l` (the band's `a` is taken by auto, and `l` is a key no band or pane button uses). All lists what the band pages through, in the band's order and built by the same code, but from the sources in the pane: the newest two packages of your stack with a breaking or security release first, then every item newest first across the sources, a package of your stack as one row, a release source by its newest release only, and items without a date last. Unlike the band it keeps the items you have read, in their place, their headlines drawn dim.
 
 Each row starts with the band's source column, 12 cells wide: a news item's source as its short label, dim, or in the theme's Claude color for a release; a package of your stack its `📦` or `⚠` and its name, with `current → target` as its headline and the target's date. Then come the headline and, at the right end, the date (or the age of an item less than a day old), for example `› Hacker News   Margaret Hamilton has died   Oct 7` or `› Hacker News   Margaret Hamilton has died   2h`.
 
@@ -147,7 +161,7 @@ A dim state line says what happened and what changes it. A source whose last ref
 | Tab | State line |
 |-----|------------|
 | All, sources that failed | Above its rows, or in their place when empty: `Couldn't refresh Hacker News: HTTP 503` for one source, `Couldn't refresh 2 sources: Hacker News, GitHub` for more. The time of the last refresh that worked shows on each source's own tab. |
-| All, empty | `Nothing from any source yet. Herald checks the sources every 5 min.`, `No source has items right now. Herald checks the sources every 5 min.` once one of them refreshed, `Loading the news…` while a refresh runs, or `Every source is off. /herald enable <name> turns one on.` |
+| All, empty | `Nothing from any source yet. Herald checks the sources every 5 min.`, `No source has items right now. Herald checks the sources every 5 min.` once one of them refreshed, `Loading the news…` while a refresh runs, `Every source is off. /herald enable <name> turns one on.`, or `Every source is hidden from the pane. /herald pane on <name> shows one.` |
 | A source that never loaded | `Nothing from Hacker News yet. Herald checks it every 5 min.`, or `Loading Hacker News…` while a refresh runs |
 | A source whose feed is empty | `Hacker News has no items right now. Herald checks it every 5 min.` |
 | Saved | `Nothing saved yet. Press v on an item to keep it here.` |
@@ -168,8 +182,8 @@ A docked pane keeps the footer on its last row however few items the tab has, an
 
 | Key | Button | What it does |
 |-----|--------|--------------|
-| `l` | All | Shows every enabled source's items and your stack's releases in the band's order, the read ones dim. The pane opens on it. |
-| `1` to `9` | The first nine source tabs | Shows that source's items. Tabs follow the order of `/herald list`, enabled sources only. |
+| `l` | All | Shows the items of every source in the pane and your stack's releases in the band's order, the read ones dim. The pane opens on it. |
+| `1` to `9` | The first nine source tabs | Shows that source's items. Tabs follow the order of `/herald list`, sources in the pane only. |
 | `y` | Your stack | Shows the releases of your dependencies. The tab exists once the session's project is known; while the project's stack is off it lists nothing and says how to turn it on. |
 | `0` | Saved | Shows your saved items. |
 | `k` | ↑ | Selects the previous item. Stops at the first. |
@@ -183,10 +197,14 @@ The same four actions apply to the selected item in the band and in the pane, on
 
 | Key | Button | What it does |
 |-----|--------|--------------|
-| `o` | Open | Opens the item's address in your default browser and counts the item as read. The headline is also a link, but a click on it is not counted, since Claude Code does not tell the mod. Addresses that are not http or https are refused. |
+| `o` | Open | Opens the item's address in your default browser and counts the item as read. Addresses that are not http or https are refused. |
 | `s` | Summarize | Writes a 3 to 5 line summary under the item's title in the transcript, without starting a turn, whether automatic summaries are on or off. Claude does not read these lines. For a release, the summary comes from its notes. An item without text gets a line that says so instead, with no model call. |
 | `v` | Save / Saved | Adds the item to the Saved tab. The button reads Saved for an item already saved, and pressing it changes nothing. |
 | `c` | Copy for Claude | Copies the [copy template](reference.md#copy-template) filled with the item to the clipboard and shows a "📋 Copied" toast. It never submits a prompt, and it counts the item as read once the text reached a clipboard. The text comes from the feed, so pasting it into the prompt makes it part of your prompt. |
+
+### Headline links
+
+Every headline is also a hyperlink, drawn as an OSC 8 hyperlink in the terminal. To open the article with the mouse, Ctrl+click the headline (Cmd+click on macOS). Whether a plain click also opens it depends on whether your terminal supports OSC 8 hyperlinks and how it is set to open them. If clicking does nothing, select the row and press `o`. A click on a headline is not counted as read, since Claude Code does not tell the mod; `o` and `c` are.
 
 ## Layout details
 

@@ -4,7 +4,7 @@
 
 ![Claude Code 2.1.287 or later](https://img.shields.io/badge/Claude%20Code-2.1.287%2B-d97757) [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-Herald is a Claude Code mod, a plugin that draws its own interface inside Claude Code. It keeps you up to date on Claude, the tools around it and the packages your project depends on, without leaving the terminal. A band above the prompt rotates the latest headlines and flags the releases of your dependencies that are breaking or security fixes.
+Herald is a Claude Code mod, a plugin that draws its own interface inside Claude Code. It keeps you up to date on Claude, the tools around it and the packages your project depends on, without leaving the terminal. The band, the rotating lines above the prompt, shows the latest headlines and flags the releases of your dependencies that are breaking or security fixes. The pane, the window `/herald` opens, has a tab for each source.
 
 ![The Herald band above the Claude Code prompt. The first page shows two npm packages flagged with a warning sign for breaking releases, the next package from 14.2.15 to 16.4.0 and jsdom from 25.0.1 to 30.1.2, and a Hacker News headline. The band then turns to the next page of news and releases.](docs/media/hero.gif)
 
@@ -25,27 +25,29 @@ To try Herald for one session without installing it, or to update or uninstall i
 
 ### A band above the prompt
 
-The band shows three items a page and turns the page every 20 seconds. It mixes every enabled source so that a busy one cannot fill a page, and it puts the newest flagged releases of your stack first. Each row shows the source, the item's age and a headline that links to the item. Items you have opened or copied leave the band.
+The band shows three items a page and turns the page every 20 seconds. It lists the items of your sources newest first, and it puts the newest flagged releases of your stack first. Each row shows the source, the item's age and a headline that links to the item. Items you have opened or copied leave the band.
 
-| Key      | What it does                                                         |
-| -------- | -------------------------------------------------------------------- |
-| `p`, `n` | Shows the previous or next page.                                     |
-| `a`      | Pauses or resumes the rotation.                                      |
-| `k`, `j` | Selects the item above or below.                                     |
-| `o`      | Opens the item in your browser.                                      |
-| `s`      | Writes a 3 to 5 line Haiku summary under the item in the transcript. |
-| `v`      | Saves the item for later.                                            |
-| `c`      | Copies the item for Claude, as a prompt to paste.                    |
+To open an article, press `o` on the selected row, or Ctrl+click the headline (Cmd+click on macOS). If clicking does nothing in your terminal, see [Headline links](docs/band-and-pane.md#headline-links).
+
+| Key      | What it does                                                                    |
+| -------- | ------------------------------------------------------------------------------- |
+| `p`, `n` | Shows the previous or next page.                                                |
+| `a`      | Pauses or resumes the rotation (`⏸ auto` while it runs, `↻ auto` while paused). |
+| `k`, `j` | Selects the item above or below.                                                |
+| `o`      | Opens the item in your browser.                                                 |
+| `s`      | Writes a 3 to 5 line Haiku summary under the item in the transcript.            |
+| `v`      | Saves the item for later.                                                       |
+| `c`      | Copies the item for Claude, as a prompt to paste.                               |
 
 Hotkeys work while the band or the pane has the keyboard: press ctrl+x tab or click it (see [Keyboard focus](docs/band-and-pane.md#keyboard-focus)). On a narrow terminal the band turns compact and shows one headline a page.
 
 ### A pane for every source
 
-`/herald` opens a pane with an All tab, a tab per source with a count of new items, a Your stack tab and a Saved tab.
+The pane has an All tab, a tab per source with a count of new items, a Your stack tab and a Saved tab.
 
 ![The Herald pane. It opens on the All tab, moves the selection, switches to the Hacker News tab, then to the Your stack tab, and back to All.](docs/media/pane.gif)
 
-All lists the band's items in the band's order and keeps the ones you have read, dim. Press `l` for All, `1` to `9` for the source tabs, `y` for Your stack and `0` for Saved.
+All lists the items of your sources newest first, as the band does, and keeps the ones you have read, dim. Press `l` for All, `1` to `9` for the source tabs, `y` for Your stack and `0` for Saved.
 
 ### Release tracking for your stack
 
@@ -106,14 +108,24 @@ For the exact calls, hosts, files and accepted risks, see [Security and privacy 
 | `/herald deps ignore <package>`   | Stops following one package, such as `npm:left-pad`.                                                               |
 | `/herald deps toast off`          | Stops release toasts.                                                                                              |
 | `/herald deps off`                | Stops following this project's dependencies and leaves the other sources alone.                                    |
-| `/herald disable Hacker News`     | Turns a source off. `/herald list` shows the names.                                                                |
+| `/herald disable Hacker News`     | Stops fetching a source, so it shows nowhere. `/herald list` shows the names.                                      |
+| `/herald band off <name>`         | Hides a source from the band only; it is still fetched and stays in the pane.                                      |
+| `/herald pane off <name>`         | Hides a source from the pane only; it is still fetched and stays on the band.                                      |
 | `/herald add <url> [name]`        | Follows an RSS or Atom feed. `/herald add-page` follows a web page.                                                |
 | `/herald interval <minutes>`      | Sets the minutes between refreshes, 5 by default.                                                                  |
 | `/herald rotate <seconds>`        | Sets the seconds between band pages, 20 by default.                                                                |
 | `/herald lang <feed\|user\|code>` | Sets the language of summaries, such as `es`.                                                                      |
 | `/herald summaries on`            | Writes a one-line Haiku summary under each headline. Off by default; `s` summarizes one item on demand either way. |
 
-For every command and setting, see the [Reference](docs/reference.md#commands).
+To run several commands at once, paste several lines:
+
+```text
+/herald add https://github.com/vercel/next.js/releases.atom Next.js
+/herald add https://github.com/vitejs/vite/releases.atom Vite
+/herald add https://github.com/oven-sh/bun/releases.atom Bun
+```
+
+Each line is its own command ([Pasting several commands](docs/reference.md#pasting-several-commands)). For every command and setting, see the [Reference](docs/reference.md#commands).
 
 ## FAQ
 

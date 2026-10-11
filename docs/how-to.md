@@ -1,6 +1,6 @@
 # How-to guides
 
-These guides cover installing, updating and removing Herald, cutting its model calls and fixing common problems. For what each command and setting does, see the [Reference](reference.md).
+These guides cover installing, updating and removing Herald, choosing what the band and the pane show, cutting its model calls and fixing common problems. For what each command and setting does, see the [Reference](reference.md).
 
 ## Install from the marketplace
 
@@ -48,6 +48,31 @@ To uninstall, run `claude plugin uninstall herald@claude-herald`, or use the **I
 
 Claude Code does not document whether an uninstall deletes the mod's data. To delete it, see [Delete stored data](#delete-stored-data).
 
+## Hide a source from the band or the pane
+
+The band is the rotating lines above the prompt, and the pane is the window `/herald` opens. To keep a source out of one of them while it stays on and is still fetched, run one of these:
+
+```text
+/herald band off Hacker News
+/herald pane off Hacker News
+```
+
+`band off` removes the source's items from the band. `pane off` removes its tab and its rows in All. To show the source again, run `/herald band on <name>` or `/herald pane on <name>`.
+
+To check, run `/herald list`: the source's line reads `band off` or `pane off`. A source hidden from both is still fetched (a page source still uses Haiku), and its new items raise no toast and get no automatic summary. To stop fetching a source, run `/herald disable <name>`. For how the three settings differ, see [Sources on each surface](band-and-pane.md#sources-on-each-surface).
+
+## Add several sources at once
+
+To add several sources in one step, paste a block of `/herald add` lines into the prompt:
+
+```text
+/herald add https://github.com/vercel/next.js/releases.atom Next.js
+/herald add https://github.com/vitejs/vite/releases.atom Vite
+/herald add https://github.com/oven-sh/bun/releases.atom Bun
+```
+
+Each line that starts with `/` runs as its own command, in order, and the reply shows one block per command, so a line that fails does not stop the others. To check, run `/herald list`: every source that was added is listed. For the rules of a paste, see [Pasting several commands](reference.md#pasting-several-commands).
+
 ## Delete stored data
 
 Herald keeps its data in one store file. For what the store holds, see [Stored data](reference.md#stored-data).
@@ -72,8 +97,9 @@ Each model call counts against your plan or is billed to your API key. For when 
 
 | Symptom | Check |
 |---------|-------|
-| The band does not appear. | It is drawn once an enabled source has items, so wait for the first refresh. `/herald list` shows each source's item count and last error. It is also hidden at times; see [When the band is hidden](band-and-pane.md#when-the-band-is-hidden). |
+| The band does not appear. | It is drawn once a source on the band has items, so wait for the first refresh. `/herald list` shows each source's item count, last error, and `band on` or `band off`. If every source reads `band off`, run `/herald band on <name>`. It is also hidden at times; see [When the band is hidden](band-and-pane.md#when-the-band-is-hidden). |
 | `/herald` does nothing visible. | Run `/plugin` and look for `herald` on the `mods active` line. If it is missing, run `/reload-plugins`. |
+| A source is missing from the band or from the pane. | Run `/herald list`. If its line starts with `off`, run `/herald enable <name>`. If its line reads `band off` or `pane off`, run `/herald band on <name>` or `/herald pane on <name>`. |
 | A source shows an error in `/herald list`, or `Couldn't refresh` in the pane. | It failed its last fetch, and the mod keeps its older items and tries again at the next refresh. If it keeps failing, see [Fix a source that keeps failing](#fix-a-source-that-keeps-failing). |
 | A release does not show. | It is at or below your version; it is a patch release and the show level is `minor+`; it is a pre-release and the show level is not `all`; its package waits for a lookup (10 per refresh), is paused for an hour after a failure, or is `unresolved` in `/herald deps`; or the stack is off for this project. |
 | A package is `unresolved`. | Its registry names no GitHub repository, GitHub does not have it, or its name is not valid for that registry. Run `/herald deps map <package> <owner/repo\|feed-url>`. |
