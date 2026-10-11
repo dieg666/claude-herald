@@ -322,12 +322,13 @@ export const register: Register = on => {
     return next(e)
   })
 
-  on('command.run', { command: 'herald' }, async ($, e) => {
+  on('command.run', { command: 'herald' }, async ($, e, next) => {
     const reply = await Commands.runHerald(
       hostOf($),
       e.args,
       STACK,
       PANE_WINDOW.size ?? Pane.PANE_FIRST_WINDOW,
+      next.signal,
     )
 
     if (reply.restartRefresh === true) {
@@ -353,6 +354,16 @@ export const register: Register = on => {
     }
 
     return { text: reply.text }
+  }).catch(($, e, next) => {
+    const reason = next.error.message ?? next.error.kind
+
+    try {
+      hostOf($).debug(`herald: /${Names.COMMAND_NAME} failed: ${reason}`)
+    } catch {
+      // Logging is refused on re-entry; the answer still stands.
+    }
+
+    return { text: `/${Names.COMMAND_NAME} failed: ${reason}` }
   })
 
   // The band reads state and the clock only (it notes its page size in the rotation); its Buttons write through the Host when pressed.
