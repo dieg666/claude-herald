@@ -41,6 +41,24 @@ describe('set-enabled', () => {
     expect(Object.keys(stored.get('items') as object)).toEqual(['feed'])
   })
 
+  test('disable and enable keep which surfaces show the source, and leave the others as they were', async ($, on) => {
+    const clock = mock.clock(on)
+    const hidden = { ...FEED, isOnBand: false, isInPane: false }
+    const bandOnly = Fixtures.sourceAt('other', { isInPane: false })
+    const stored = Fixtures.storeOn(on, { sources: [hidden, bandOnly] })
+
+    Fixtures.webOn(on, new Map([[FEED.url, Feeds.rssWithItems(1)]]))
+
+    await $.command.run(Fixtures.heraldOf('disable my feed'))
+
+    expect(stored.get('sources')).toEqual([{ ...hidden, isEnabled: false }, bandOnly])
+
+    await $.command.run(Fixtures.heraldOf('enable my feed'))
+    await clock.settle()
+
+    expect(stored.get('sources')).toEqual([hidden, bandOnly])
+  })
+
   test('a source already in that state is left alone', async ($, on) => {
     const stored = Fixtures.storeOn(on, { sources: [FEED] })
 

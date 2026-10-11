@@ -149,6 +149,21 @@ describe('band-items-of', () => {
     ).toEqual(['a', 'b', 'c'])
   })
 
+  test('with every news source hidden from the band, the stack still lists its packages', () => {
+    const [react, vite] = Fixtures.STACK_SAMPLE
+    const sources = [
+      Fixtures.sourceAt('a', { isOnBand: false }),
+      Fixtures.sourceAt('b', { isOnBand: false, isInPane: false }),
+    ]
+    const items = { a: Fixtures.datedItemsOf('a', 2), b: Fixtures.datedItemsOf('b', 2) }
+
+    expect(Band.bandItemsOf(sources, items, [react!, vite!]).map(item => item.id)).toEqual([
+      react?.id,
+      vite?.id,
+    ])
+    expect(Band.bandItemsOf(sources, items)).toEqual([])
+  })
+
   test('read items are left out first, then the rest go newest first', () => {
     const { sources, items, stack } = Fixtures.SKEWED_BAND
     const read = { hn: ['hn:1', 'hn:3'], sdk: ['sdk:1', 'sdk:2'], willison: ['willison:1'] }

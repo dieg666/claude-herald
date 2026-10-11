@@ -54,7 +54,11 @@ export async function runHeraldLine(
     const reason = messageOf(error)
     const label = key === '' ? `/${COMMAND_NAME}` : `/${COMMAND_NAME} ${key}`
 
-    host.debug(`herald: ${label}: ${reason}`)
+    try {
+      await host.debug(`herald: ${label}: ${reason}`)
+    } catch {
+      // Logging is refused on re-entry; the answer still stands.
+    }
 
     return { text: `${label} failed: ${reason}` }
   }

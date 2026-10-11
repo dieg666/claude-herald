@@ -981,6 +981,118 @@ describe('register', () => {
     expect(await ui.find({ type: 'Text', text: 'Cached src:2.' })).toBeDefined()
   })
 
+  test(
+    'a source hidden from the band stays hidden after the store is hydrated by session.start and by /clear',
+    { plugins: [Fixtures.STATE_PEEK] },
+    async ($, on) => {
+      const clock = mock.clock(on)
+      const shown = Fixtures.sourceAt('a')
+      const hidden = Fixtures.sourceAt('b')
+      const { stored } = Fixtures.bandOn(on, {
+        sources: [shown, hidden],
+        items: { a: Fixtures.datedItemsOf('a', 2), b: Fixtures.datedItemsOf('b', 2, 5) },
+      })
+
+      await $.classic.SessionStart({ source: 'clear' })
+
+      const ui = await $.ui.mount(BAND)
+
+      expect(await linksOf(ui)).toEqual(['a 1', 'a 2', 'b 1'])
+
+      await $.command.run(Fixtures.heraldOf('band off b'))
+      await ui.redraw()
+
+      expect(await linksOf(ui)).toEqual(['a 1', 'a 2'])
+      expect(stored.get('sources')).toEqual([shown, { ...hidden, isOnBand: false }])
+
+      for (const hydrate of [
+        () => $.session.start(Fixtures.SESSION),
+        () => $.classic.SessionStart({ source: 'clear' }),
+      ]) {
+        await hydrate()
+        await clock.settle()
+        await ui.redraw()
+
+        expect(peeked((await $.command.run(Fixtures.PEEK)).text)).toMatchObject({
+          sources: [shown, { ...hidden, isOnBand: false }],
+        })
+        expect(await linksOf(ui)).toEqual(['a 1', 'a 2'])
+      }
+
+      await ui.unmount()
+    },
+  )
+
+  test(
+    '/herald band off hides a source from the band: its items are summarized neither now nor on the next page',
+    { timeoutMs: 20_000 },
+    async ($, on) => {
+      const clock = mock.clock(on)
+      const { asked } = Fixtures.bandOn(on, {
+        sources: [Fixtures.sourceAt('x'), Fixtures.sourceAt('y')],
+        items: { x: Fixtures.datedItemsOf('x', 4), y: Fixtures.datedItemsOf('y', 6, 10) },
+        settings: Fixtures.SUMMARIES_ON,
+      })
+
+      await $.session.start(Fixtures.SESSION)
+      await clock.settle()
+
+      const ui = await $.ui.mount(BAND)
+
+      expect([...asked].sort()).toEqual(['x 1', 'x 2', 'x 3'])
+
+      await $.command.run(Fixtures.heraldOf('band off x'))
+      await clock.settle()
+
+      expect(asked.slice(3).sort()).toEqual(['y 1', 'y 2', 'y 3'])
+
+      await ui.press({ key: 'next' })
+      await clock.settle()
+
+      expect(asked.slice(3).sort()).toEqual(['y 1', 'y 2', 'y 3', 'y 4', 'y 5', 'y 6'])
+      expect(asked.filter(title => title.startsWith('x')).length).toBe(3)
+      expect(await linksOf(ui)).toEqual(['y 4', 'y 5', 'y 6'])
+
+      await ui.unmount()
+    },
+  )
+
+  test(
+    'a source hidden from the pane but on the band: opening the pane asks no summary for its items, the band still does for its page',
+    { plugins: [Fixtures.PANE_CLOSER], timeoutMs: 20_000 },
+    async ($, on) => {
+      const clock = mock.clock(on)
+      const { asked } = Fixtures.bandOn(on, {
+        sources: [Fixtures.sourceAt('q'), Fixtures.sourceAt('p', { isInPane: false })],
+        items: { q: Fixtures.datedItemsOf('q', 3), p: Fixtures.datedItemsOf('p', 3, 10) },
+        settings: { ...Fixtures.SUMMARIES_ON, rotateSeconds: 3600 },
+      })
+
+      Fixtures.panesOn(on, ['terminal'])
+
+      await $.session.start(Fixtures.SESSION)
+      await clock.settle()
+
+      const ui = await $.ui.mount(BAND)
+
+      expect([...asked].sort()).toEqual(['q 1', 'q 2', 'q 3'])
+
+      await $.command.run(Fixtures.heraldOf(''))
+      await clock.settle()
+
+      expect(asked.filter(title => title.startsWith('p'))).toEqual([])
+
+      await $.command.run(Fixtures.CLOSE_PANE)
+      await ui.press({ key: 'next' })
+      await clock.settle()
+
+      expect([...asked].sort()).toEqual(['p 1', 'p 2', 'p 3', 'q 1', 'q 2', 'q 3'])
+      expect(await linksOf(ui)).toEqual(['p 1', 'p 2', 'p 3'])
+
+      await ui.unmount()
+    },
+  )
+
   const REACT_FEED = 'https://github.com/owner/react/releases.atom'
   const REACT_PROJECT = Fixtures.stackTreeOf([
     Fixtures.stackItemAt('react', '19.0.0', { current: '18.2.0' }),

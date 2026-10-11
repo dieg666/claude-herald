@@ -29,6 +29,22 @@ describe('save-new-source', () => {
     expect((state.status as { refreshedAt: unknown }).refreshedAt).toEqual({ new: 1000 })
   })
 
+  test('the sources already saved keep which surfaces show them, the new one shows on both', async () => {
+    const hidden = Fixtures.sourceAt('hidden', { isOnBand: false, isInPane: false })
+    const { host, web, stored } = Fixtures.fakeHostOf({ sources: [hidden] })
+
+    web.set(URL, { status: 200, text: Feeds.rssWithItems(1) })
+    await Commands.saveNewSource(host, DRAFT)
+    await settle()
+
+    const [kept, added] = stored.get('sources') as Record<string, unknown>[]
+
+    expect(kept).toEqual(hidden)
+    expect(added).toMatchObject({ id: 'new', isEnabled: true })
+    expect(Object.keys(added ?? {})).not.toContain('isOnBand')
+    expect(Object.keys(added ?? {})).not.toContain('isInPane')
+  })
+
   test('a first refresh that fails records no time', async () => {
     const { host, web, stored, state } = Fixtures.fakeHostOf({ sources: [] })
 

@@ -56,6 +56,15 @@ describe('remove-source', () => {
     expect(stored.get('sources')).toEqual([])
   })
 
+  test('the sources left keep which surfaces show them', async ($, on) => {
+    const hidden = Fixtures.sourceAt('hidden', { isOnBand: false, isInPane: false })
+    const stored = Fixtures.storeOn(on, { sources: [ONE, hidden] })
+
+    await $.command.run(Fixtures.heraldOf('remove one'))
+
+    expect(stored.get('sources')).toEqual([hidden])
+  })
+
   test('an unknown name or address is refused and nothing changes', async ($, on) => {
     const stored = Fixtures.storeOn(on, { sources: [ONE, TWO] })
 

@@ -101,6 +101,18 @@ describe('run-herald', () => {
     expect(logs).toEqual([expect.stringMatching(/^debug: herald: \/herald list: /)])
   })
 
+  test('a failure whose debug line the engine refuses still answers its text', async ($, on) => {
+    on('store.get', () => ({ deny: 'store unavailable' }))
+    on('ui.log', () => ({ deny: 'logging refused' }))
+
+    expect((await $.command.run(Fixtures.heraldOf('list'))).text).toMatch(
+      /^\/herald list failed: .*store unavailable/,
+    )
+    expect((await $.command.run(Fixtures.heraldOf('list\n/herald list'))).text).toMatch(
+      /\/herald list failed: .*store unavailable/,
+    )
+  })
+
   test('every subcommand answers a non-empty text, success or refusal', async ($, on) => {
     mock.clock(on)
     Fixtures.storeOn(on, { sources: [Fixtures.sourceAt('one')] })

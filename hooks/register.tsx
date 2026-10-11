@@ -354,16 +354,16 @@ export const register: Register = on => {
     }
 
     return { text: reply.text }
-  }).catch(($, e, next) => {
-    const reason = next.error.message ?? next.error.kind
+  }).catch(async ($, e, next) => {
+    const text = Commands.failureTextOf(next.error, e.args)
 
     try {
-      hostOf($).debug(`herald: /${Names.COMMAND_NAME} failed: ${reason}`)
+      await hostOf($).debug(`herald: ${text}`)
     } catch {
       // Logging is refused on re-entry; the answer still stands.
     }
 
-    return { text: `/${Names.COMMAND_NAME} failed: ${reason}` }
+    return { text }
   })
 
   // The band reads state and the clock only (it notes its page size in the rotation); its Buttons write through the Host when pressed.
