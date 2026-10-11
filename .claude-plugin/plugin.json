@@ -1,6 +1,6 @@
 {
   "name": "herald",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "Herald: news and releases for your stack, right above the prompt.",
   "author": {
     "name": "Diego"
