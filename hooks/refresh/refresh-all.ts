@@ -28,7 +28,7 @@ function isOtherRunning(loop: RefreshLoop, controller: AbortController): boolean
 }
 
 /**
- * One run's work: every enabled source a few at a time, each within its deadline, then status (with when each clean source refreshed), the toast (for the sources on the band or in the pane) and `onRun` with the run's signal; never rejects.
+ * One run's work: every enabled source a few at a time, each within its deadline, then status (with when each clean source refreshed), the toast and `onRun` with the run's signal, both given only the new items of sources on the band or in the pane; never rejects.
  *
  * @param host the engine
  * @param loop the loop the run belongs to
@@ -58,8 +58,13 @@ async function runOf(
       ),
     )
 
+    const shown = new Set(
+      sources
+        .filter(source => isBandSource(source) || isPaneSource(source))
+        .map(source => source.id),
+    )
     const fresh = outcomes.flatMap(outcome => outcome.newItems)
-    const newItems = mergeItems([], fresh, fresh.length)
+    const newItems = mergeItems([], fresh, fresh.length).filter(item => shown.has(item.sourceId))
 
     const errors = Object.fromEntries(
       sources.flatMap((source, index) => {
@@ -84,15 +89,8 @@ async function runOf(
       refreshedAt: { ...status.refreshedAt, ...refreshedAt },
     }))
 
-    const shown = new Set(
-      sources
-        .filter(source => isBandSource(source) || isPaneSource(source))
-        .map(source => source.id),
-    )
-    const toasted = newItems.filter(item => shown.has(item.sourceId))
-
-    if (toasted.length > 0) {
-      host.toast(toastTextOf(toasted, sources))
+    if (newItems.length > 0) {
+      host.toast(toastTextOf(newItems, sources))
     }
 
     const run: RefreshRun = { isSkipped: false, newItems, errors }

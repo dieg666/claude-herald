@@ -449,6 +449,49 @@ describe('register', () => {
   })
 
   test(
+    'a busy source hidden from both the band and the pane asks for no summary and leaves the per-run budget to the sources shown',
+    { timeoutMs: 20_000 },
+    async ($, on) => {
+      const clock = mock.clock(on)
+      const hidden = Fixtures.sourceAt('hidden', { isOnBand: false, isInPane: false })
+      const hiddenFeed = (count: number) => Feeds.rssWithItems(count).replaceAll('Item ', 'Hidden ')
+      const pages = new Map([
+        [FEED.url, Feeds.rssWithItems(1)],
+        [hidden.url, hiddenFeed(1)],
+      ])
+      const asked: string[] = []
+
+      Fixtures.storeOn(on, {
+        sources: [hidden, FEED],
+        settings: { ...Fixtures.SUMMARIES_ON, refreshMinutes: 2 },
+      })
+      webOn(on, pages)
+      on('ui.toast', () => ({ value: undefined }))
+      on('model.complete', ($, e) => {
+        asked.push(/^Title: (.*)$/m.exec(e.prompt)?.[1] ?? '')
+
+        return { value: Fixtures.answerOf('Summary.') }
+      })
+      on('session.start', () => ({ cwd: '/work' }))
+
+      await $.session.start(Fixtures.SESSION)
+      await clock.settle()
+
+      const visible = Summaries.SUMMARY_LIMITS.newPerRun
+
+      pages.set(hidden.url, hiddenFeed(3 * visible))
+      pages.set(FEED.url, Feeds.rssWithItems(visible + 1))
+      await clock.advance(PERIOD)
+      await clock.settle()
+
+      expect(asked.filter(title => title.startsWith('Hidden'))).toEqual([])
+      expect(new Set(asked)).toEqual(
+        new Set(Array.from({ length: visible + 1 }, (_, i) => `Item ${i} & more`)),
+      )
+    },
+  )
+
+  test(
     'summary requests for new items run at most two at a time',
     { timeoutMs: 20_000 },
     async ($, on) => {
