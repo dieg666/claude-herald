@@ -1,0 +1,68 @@
+name: Bug report
+description: Something in Herald does not work or draws wrong
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please do not paste private feed URLs, tokens or anything else secret. Replace them with `<redacted>`.
+  - type: input
+    id: herald-version
+    attributes:
+      label: Herald version
+      description: Shown by `claude plugin list`.
+      placeholder: 0.1.2
+    validations:
+      required: true
+  - type: input
+    id: claude-code-version
+    attributes:
+      label: Claude Code version
+      description: The output of `claude --version`.
+      placeholder: 2.1.296 (Claude Code)
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      placeholder: macOS 15, Ubuntu 24.04, Windows 11
+    validations:
+      required: true
+  - type: input
+    id: terminal
+    attributes:
+      label: Terminal name and size
+      description: The terminal (or the Desktop app) and its size in columns and rows.
+      placeholder: Ghostty, 120x40
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Run `/herald`
+        2. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: textarea
+    id: herald-list
+    attributes:
+      label: Output of `/herald list`
+      description: Optional. Helps when a source is involved. Remove private feed URLs first.
+      render: text
+    validations:
+      required: false
