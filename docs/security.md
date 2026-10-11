@@ -1,6 +1,6 @@
 # Security and privacy details
 
-This page is for people who review what the mod reads, runs and contacts. The [README](../README.md#privacy-at-a-glance) has the summary.
+This page is for people who review what the mod reads, runs and contacts. The [README](../README.md#what-herald-sends-runs-reads-and-hooks) has the summary.
 
 ## What leaves your machine
 

@@ -7,7 +7,7 @@ This page lists Herald's terms, commands, sources, templates, summary settings, 
 | Term | Meaning |
 |------|---------|
 | Mod | A plugin that changes how Claude Code looks and behaves. This repository is one plugin, named `herald`. |
-| Surface | An app that draws Claude Code: the terminal or the Desktop app. |
+| Surface | An app that draws Claude Code: the terminal or the Desktop app. Where no surface draws panes, such as `claude -p`, VS Code and cloud sessions, `/herald` and `/herald deps` answer with text. |
 | Transcript | The conversation area above the prompt. |
 | Toast | A short notice that Claude Code shows briefly. |
 | Survey | A Claude Code survey prompt. The band is not drawn while one shows. |

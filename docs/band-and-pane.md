@@ -110,6 +110,8 @@ Hotkeys work while the band or the pane has keyboard focus; otherwise the keys g
 
 `/herald` opens the pane and asks for keyboard focus, which Claude Code grants while the prompt is empty. Esc closes the pane. Within a session the pane reopens on the tab it last showed; a new session, `/clear`, `/resume` and `/branch` start again on All.
 
+![The Herald pane. It opens on the All tab, moves the selection, switches to the Hacker News tab, then to the Your stack tab, and back to All.](media/pane.gif)
+
 ### Tabs
 
 The tab row at the top shows the All tab, a tab per source in the pane (enabled and not hidden from it with `/herald pane off`), then Your stack and Saved. The tabs take one line when the pane is wide enough and wrap onto more lines otherwise.
