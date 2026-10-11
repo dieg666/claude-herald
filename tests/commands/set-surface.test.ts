@@ -82,7 +82,7 @@ describe('set-surface', () => {
       "/herald band on|off <name> shows or hides a source in the band, the rotating lines above the prompt; the source's name is missing.",
     )
     expect((await $.command.run(Fixtures.heraldOf('band My Feed'))).text).toBe(
-      '/herald band on|off <name> shows or hides a source in the band, the rotating lines above the prompt; "My" is neither on nor off.',
+      '/herald band on|off <name> shows or hides a source in the band, the rotating lines above the prompt; /herald band size <n> sets how many items it shows at once, 1 to 9; "My" is neither on, off nor size.',
     )
     expect(stored.get('sources')).toEqual([FEED])
   })

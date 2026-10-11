@@ -1,13 +1,12 @@
 import type { BandState, Item } from '../../types/index.js'
-import { shownStackItemsOf } from '../deps/stack/shown-stack-items-of.js'
 import type { Host } from '../host/host.js'
 import { messageOf } from '../refresh/message-of.js'
 import { bandAfter } from './band-after.js'
-import { bandItemsOf } from './band-items-of.js'
 import type { BandMove } from './band-move.js'
 import { bandPageOf } from './band-page-of.js'
 import { handPage } from './hand-page.js'
 import type { Rotation } from './rotation.js'
+import { shownBandOf } from './shown-band-of.js'
 
 /**
  * Whether two band states are the same.
@@ -20,7 +19,7 @@ function isSame(a: BandState, b: BandState): boolean {
 }
 
 /**
- * Applies a move to the band in state, over pages of the rotation's size (nothing written when it changes nothing) and, when the page changed, hands the new page to the rotation's `onPage`; never throws.
+ * Applies a move to the band in state, over pages of the size the band shows, which is one while it last drew compact; nothing is written when the move changes nothing, and when the page changed it hands the new page to the rotation's `onPage`; never throws.
  *
  * @param host the engine
  * @param rotation the rotation
@@ -33,14 +32,8 @@ export async function turnBand(
   move: BandMove,
 ): Promise<readonly Item[] | undefined> {
   try {
-    const items = bandItemsOf(
-      await host.state.sources.read(),
-      await host.state.items.read(),
-      shownStackItemsOf(await host.state.stack.read()),
-      await host.state.read.read(),
-    )
+    const { items, size } = await shownBandOf(host, rotation)
     const before = await host.state.band.read()
-    const size = rotation.pageSize
 
     if (isSame(before, bandAfter(before, move, items.length, size))) {
       return undefined

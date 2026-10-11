@@ -121,4 +121,59 @@ describe('band-after', () => {
       isPaused: true,
     })
   })
+
+  test('at a page of five, next and prev turn five at a time and wrap; the timer leaves five items or fewer alone', () => {
+    expect(Band.bandAfter(RUNNING, 'next', 12, 5)).toEqual({
+      offset: 5,
+      selected: 0,
+      isPaused: true,
+    })
+    expect(Band.bandAfter({ ...RUNNING, offset: 5 }, 'next', 12, 5)).toEqual({
+      offset: 10,
+      selected: 0,
+      isPaused: true,
+    })
+    expect(Band.bandAfter({ ...RUNNING, offset: 10 }, 'next', 12, 5)).toEqual({
+      offset: 0,
+      selected: 0,
+      isPaused: true,
+    })
+    expect(Band.bandAfter(RUNNING, 'prev', 12, 5)).toEqual({
+      offset: 10,
+      selected: 0,
+      isPaused: true,
+    })
+    expect(Band.bandAfter(RUNNING, 'rotate', 5, 5)).toEqual(RUNNING)
+    expect(Band.bandAfter(RUNNING, 'rotate', 6, 5)).toEqual({
+      offset: 5,
+      selected: 0,
+      isPaused: false,
+    })
+    expect(Band.bandAfter({ ...RUNNING, offset: 10, selected: 1 }, 'down', 12, 5)).toEqual({
+      offset: 10,
+      selected: 0,
+      isPaused: true,
+    })
+    expect(Band.bandAfter(RUNNING, 'up', 12, 5)).toEqual({ offset: 0, selected: 4, isPaused: true })
+  })
+
+  test('at a page of one, every turn moves one item and the selection stays on it', () => {
+    expect(Band.bandAfter(RUNNING, 'next', 4, 1)).toEqual({
+      offset: 1,
+      selected: 0,
+      isPaused: true,
+    })
+    expect(Band.bandAfter(RUNNING, 'prev', 4, 1)).toEqual({
+      offset: 3,
+      selected: 0,
+      isPaused: true,
+    })
+    expect(Band.bandAfter({ ...RUNNING, offset: 3 }, 'rotate', 4, 1)).toEqual(RUNNING)
+    expect(Band.bandAfter({ ...RUNNING, offset: 2 }, 'down', 4, 1)).toEqual({
+      offset: 2,
+      selected: 0,
+      isPaused: true,
+    })
+    expect(Band.bandAfter(RUNNING, 'rotate', 1, 1)).toEqual(RUNNING)
+  })
 })

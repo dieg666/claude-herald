@@ -4,157 +4,105 @@
 
 ![Claude Code 2.1.287 or later](https://img.shields.io/badge/Claude%20Code-2.1.287%2B-d97757) [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-Herald is a Claude Code mod, a plugin that draws its own interface inside Claude Code. It keeps you up to date on Claude, the tools around it and the packages your project depends on, without leaving the terminal. The band, the rotating lines above the prompt, shows the latest headlines and flags the releases of your dependencies that are breaking or security fixes. The pane, the window `/herald` opens, has a tab for each source.
+Like dangerous mode and can't be bothered to read? Paste this into Claude Code and let it do the reading:
+
+```text
+Check that `claude --version` is 2.1.287 or later. Then run `claude plugin marketplace add dieg666/claude-herald` and `claude plugin install herald@claude-herald`, and tell me to run /reload-plugins. Then fetch https://raw.githubusercontent.com/dieg666/claude-herald/main/docs/setup-with-claude.md and carry out the prompt in it to set Herald up for me.
+```
+
+Claude runs the install commands, then fetches and follows [setup-with-claude.md](docs/setup-with-claude.md) from this repository (read it first if you prefer). It ends by handing you a block of `/herald` lines to paste.
+
+Herald is a Claude Code mod, a plugin that draws its own interface inside Claude Code. It keeps you up to date on Claude, the tools around it and the packages your project depends on, without leaving the terminal.
+
+- The **band** is the rotating lines above the prompt. It shows the latest headlines and flags the releases of your dependencies that are breaking or security fixes.
+- The **pane** is the window `/herald` opens. It has a tab for each source, plus Your stack and Saved.
+
+Herald starts with sources such as Anthropic news, the Claude Code releases and Hacker News, and you can add your own RSS or Atom feeds and web pages ([Sources](docs/reference.md#sources)). It also reads your project's manifests and lockfiles, follows the GitHub releases of each package, and marks the breaking and security ones with `⚠` ([Your stack](docs/your-stack.md)).
 
 ![The Herald band above the Claude Code prompt. The first page shows two npm packages flagged with a warning sign for breaking releases, the next package from 14.2.15 to 16.4.0 and jsdom from 25.0.1 to 30.1.2, and a Hacker News headline. The band then turns to the next page of news and releases.](docs/media/hero.gif)
 
 ## Install
 
-You need Claude Code 2.1.287 or later. Run these in your shell:
+You need Claude Code 2.1.287 or later, in a terminal or the Desktop app, and a session that can call a model. Herald uses a little Haiku, Claude's small model, under your plan or API key, to check releases and to read web-page sources. Automatic summaries are off by default ([Haiku calls and cost](docs/reference.md#haiku-calls-and-cost)). Run these in your shell, where `herald@claude-herald` is the plugin `herald` from the marketplace `claude-herald`:
 
 ```bash
 claude plugin marketplace add dieg666/claude-herald
 claude plugin install herald@claude-herald
 ```
 
-If a session is open, run `/reload-plugins` in it. Then run `/herald` to open the pane. The band appears once the first refresh has fetched items, and releases of your dependencies join it once Herald has read their feeds.
+If a session is open, run `/reload-plugins` in it. Then run `/herald`: the pane opens at once. Herald starts a refresh when the session starts, and the band appears above the prompt as soon as that refresh has fetched items. Releases of your dependencies join it once Herald has read their feeds. Where nothing is drawn, such as `claude -p`, VS Code and cloud sessions, `/herald` answers with the latest items as text.
 
 To try Herald for one session without installing it, or to update or uninstall it, see [How-to guides](docs/how-to.md).
 
-## What you get
-
-### A band above the prompt
-
-The band shows three items a page and turns the page every 20 seconds. It lists the items of your sources newest first, and it puts the newest flagged releases of your stack first. Each row shows the source, the item's age and a headline that links to the item. Items you have opened or copied leave the band.
-
-To open an article, press `o` on the selected row, or Ctrl+click the headline (Cmd+click on macOS). If clicking does nothing in your terminal, see [Headline links](docs/band-and-pane.md#headline-links).
-
-| Key      | What it does                                                                    |
-| -------- | ------------------------------------------------------------------------------- |
-| `p`, `n` | Shows the previous or next page.                                                |
-| `a`      | Pauses or resumes the rotation (`⏸ auto` while it runs, `↻ auto` while paused). |
-| `k`, `j` | Selects the item above or below.                                                |
-| `o`      | Opens the item in your browser.                                                 |
-| `s`      | Writes a 3 to 5 line Haiku summary under the item in the transcript.            |
-| `v`      | Saves the item for later.                                                       |
-| `c`      | Copies the item for Claude, as a prompt to paste.                               |
-
-Hotkeys work while the band or the pane has the keyboard: press ctrl+x tab or click it (see [Keyboard focus](docs/band-and-pane.md#keyboard-focus)). On a narrow terminal the band turns compact and shows one headline a page.
-
-### A pane for every source
-
-The pane has an All tab, a tab per source with a count of new items, a Your stack tab and a Saved tab.
-
-![The Herald pane. It opens on the All tab, moves the selection, switches to the Hacker News tab, then to the Your stack tab, and back to All.](docs/media/pane.gif)
-
-All lists the items of your sources newest first, as the band does, and keeps the ones you have read, dim. Press `l` for All, `1` to `9` for the source tabs, `y` for Your stack and `0` for Saved.
-
-### Release tracking for your stack
-
-Herald reads your project's package manifests and lockfiles, finds each package's GitHub repository through its registry and follows its releases. It compares each release with the version you use and marks it `⚠` when it is flagged breaking or security, by keywords and by Haiku reading the release notes.
-
-![The Your stack tab: five npm packages behind, three of them marked with a warning sign for breaking releases, each with its current version, the newest version, the level and the date.](docs/media/stack.png)
-
-It reads npm, Python, Go, Rust, Ruby, PHP, .NET, Java, Swift and Dart projects. By default the band and the pane show minor, major and flagged releases, and only breaking and security releases raise a toast ([Show and toast levels](docs/your-stack.md#show-and-toast-levels)). Run `/herald deps` to see which packages it follows, and `/herald deps ignore <package>` to stop following one. For the rest, see [Your stack](docs/your-stack.md).
-
-### Sources to start with
-
-Herald starts with ten sources, nine of them on: Anthropic news, the release feeds of Claude Code, the Claude Agent SDK (TS), the Anthropic Python SDK and the MCP spec, Hacker News, Simon Willison, AINews (smol.ai) and the GitHub changelog. The tenth, Claude status, is off. You can turn any of them on or off and add your own RSS or Atom feeds and web pages.
-
-## Privacy at a glance
-
-Herald asks Claude Code only for what its features need:
-
-- **It never reads your prompts, your conversation or what Claude does in your session.**
-- **It reads only package manifests and lockfiles from your project's files**, such as `package.json` and `uv.lock`. [Files stack detection reads](docs/security.md#files-stack-detection-reads) has the full list.
-- **It sends package names to the package registries, GitHub and a few Go import hosts to find releases** ([Network hosts](docs/security.md#network-hosts)). For NuGet and Maven it also sends the version you use. To stop that for a project, turn Your stack off with `/herald deps off`.
-- **It fetches the news sources you have on**, and the addresses you add yourself.
-- **It uses a little Haiku through your own Claude Code session**, to check releases and to read web-page sources. Automatic summaries are off.
-- **It has no telemetry.** Nothing goes to the author.
-- **Its data stays on your machine**, in a JSON file in Claude Code's plugin store. To delete it, see [Delete stored data](docs/how-to.md#delete-stored-data).
-- **Feed text is treated as untrusted.** Copy for Claude puts text on your clipboard but never submits a prompt.
-
-For the exact calls, hosts, files and accepted risks, see [Security and privacy details](docs/security.md).
-
-## What Herald sends, runs and hooks
-
-**What it sends and where.** Fetch requests go to the news sources you have on: `www.anthropic.com`, `github.com` (Claude Code, Claude Agent SDK, Anthropic Python SDK and MCP spec releases), `hnrss.org` (with `news.ycombinator.com` as a fallback), `simonwillison.net`, `news.smol.ai` and `github.blog`, plus `status.claude.com` if you turn Claude status on, and any feed or page address you add. While Your stack is on, package names go in the URL path to the registries of the ecosystems your project uses (`registry.npmjs.org`, `pypi.org`, `crates.io`, `proxy.golang.org` and a few Go import hosts, `rubygems.org`, `repo.packagist.org`, `api.nuget.org`, `repo1.maven.org`), and repository paths go to `github.com` for their `releases.atom` or `tags.atom` feed. Item and release text goes to Haiku through your own Claude Code session. Nothing else leaves your machine. [Network hosts](docs/security.md#network-hosts) has every host and when it is contacted.
-
-**What it runs and why.** It runs only fixed programs, each with an argument vector and no shell of its own, to open a link in your browser and to copy text for Claude:
-
-- `uname -s`, to tell macOS from other systems.
-- `open` (macOS), `rundll32 url.dll,FileProtocolHandler` (Windows) or `xdg-open` (elsewhere, started through `sh -c` with the address as `$1`), to open an http or https link.
-- `pbcopy` (macOS), `powershell` and `clip.exe` (Windows), or `wl-copy` and `xclip` (elsewhere), to put text on the clipboard. The text goes to the program's standard input.
-
-[Commands the mod runs](docs/security.md#commands-the-mod-runs) has each exact command.
-
-**What it reads from your machine.** Package manifests and lockfiles in your project, the environment values `HOME` and `USERPROFILE` (to stop the project search at your home directory) and `OS` (to tell Windows apart), and Claude Code's `language` setting (for the language of summaries). It asks for no secrets.
-
-**What each hook does.** It has no hook on prompts, tool calls or the transcript.
-
-- `session.start` loads its stored data, starts the refresh and rotation timers and registers `/herald`.
-- `command.run` for `herald` answers `/herald` and its subcommands.
-- `ui.render` above the prompt draws the band; it adds the band to what other mods draw there and changes nothing else.
-- `ui.render` for the `herald` pane draws the pane.
-- `ui.open` and `ui.close` for the `herald` pane redraw the band, which steps aside while the pane shows; they change nothing in the pane itself.
-- `SessionStart` on clear, resume or fork reloads the stored data and registers `/herald` again, because those reset the mod's state.
-
 ## First commands
 
-| Command                           | What it does                                                                                                       |
-| --------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `/herald`                         | Opens the pane.                                                                                                    |
-| `/herald deps`                    | Shows which packages Herald follows for this project and where each one's releases come from.                      |
-| `/herald deps ignore <package>`   | Stops following one package, such as `npm:left-pad`.                                                               |
-| `/herald deps toast off`          | Stops release toasts.                                                                                              |
-| `/herald deps off`                | Stops following this project's dependencies and leaves the other sources alone.                                    |
-| `/herald disable Hacker News`     | Stops fetching a source, so it shows nowhere. `/herald list` shows the names.                                      |
-| `/herald band off <name>`         | Hides a source from the band only; it is still fetched and stays in the pane.                                      |
-| `/herald pane off <name>`         | Hides a source from the pane only; it is still fetched and stays on the band.                                      |
-| `/herald add <url> [name]`        | Follows an RSS or Atom feed. `/herald add-page` follows a web page.                                                |
-| `/herald interval <minutes>`      | Sets the minutes between refreshes, 5 by default.                                                                  |
-| `/herald rotate <seconds>`        | Sets the seconds between band pages, 20 by default.                                                                |
-| `/herald lang <feed\|user\|code>` | Sets the language of summaries, such as `es`.                                                                      |
-| `/herald summaries on`            | Writes a one-line Haiku summary under each headline. Off by default; `s` summarizes one item on demand either way. |
+| Command                         | What it does                                                                  |
+| ------------------------------- | ----------------------------------------------------------------------------- |
+| `/herald`                       | Opens the pane.                                                               |
+| `/herald deps`                  | Shows which packages Herald follows for this project.                         |
+| `/herald deps ignore <package>` | Stops following one package, such as `npm:left-pad`.                          |
+| `/herald deps off`              | Stops following this project's dependencies and leaves the other sources.     |
+| `/herald band off <name>`       | Hides a source from the band only. It is still fetched and stays in the pane. |
+| `/herald pane off <name>`       | Hides a source from the pane only. It is still fetched and stays on the band. |
+| `/herald disable <name>`        | Stops fetching a source, such as `Hacker News`. `/herald list` shows names.   |
+| `/herald add <url> [name]`      | Follows an RSS or Atom feed. `/herald add-page` follows a web page.           |
 
-To run several commands at once, paste several lines:
+To run several commands at once, paste several lines. Each line is its own command ([Pasting several commands](docs/reference.md#pasting-several-commands)):
 
 ```text
 /herald add https://github.com/vercel/next.js/releases.atom Next.js
 /herald add https://github.com/vitejs/vite/releases.atom Vite
-/herald add https://github.com/oven-sh/bun/releases.atom Bun
 ```
 
-Each line is its own command ([Pasting several commands](docs/reference.md#pasting-several-commands)). For every command and setting, see the [Reference](docs/reference.md#commands).
-
-## FAQ
-
-**Does Herald send my code anywhere?** No. It reads only package manifests and lockfiles from your project's files, and it sends package names to find their releases. To stop that for a project, run `/herald deps off`.
-
-**What does it cost?** With automatic summaries off, Herald makes a few small Haiku calls per refresh, with a cap: it checks new releases of your stack and reads a page source's headlines when the page changes. Every answer is cached. The calls count against your plan or are billed to your API key. For the caps, see [Haiku calls and cost](docs/reference.md#haiku-calls-and-cost).
-
-**Why does a release not show up?** It might be at or below your version, an unflagged patch release (hidden by default), a pre-release, or waiting for its lookup. For the checks, see [Fix common problems](docs/how-to.md#fix-common-problems).
-
-**How do I remove Herald and its data?** See [Uninstall](docs/how-to.md#uninstall) and [Delete stored data](docs/how-to.md#delete-stored-data).
-
-**Why is the plugin `herald` and the marketplace `claude-herald`?** `claude plugin validate` refuses plugin names that start with `claude-`. For other design choices, see [Design decisions and deviations](docs/design.md).
+To open an article, press `o` on the selected row, or Ctrl+click the headline (Cmd+click on macOS). The keys work while the band or the pane has the keyboard: press ctrl+x tab or click it. If clicking does nothing in your terminal, select the row and press `o` ([Headline links](docs/band-and-pane.md#headline-links)). For every command and setting, see the [Reference](docs/reference.md#commands).
 
 ## Documentation
 
-- [How-to guides](docs/how-to.md): install, update and uninstall, delete stored data, reduce Haiku calls and fix common problems.
-- [Band and pane](docs/band-and-pane.md): what the band and the pane draw, their keys and the item actions.
-- [Your stack](docs/your-stack.md): which packages Herald follows, how it finds and classifies releases, and the `/herald deps` subcommands.
-- [Reference](docs/reference.md): terms, commands, sources, templates, summaries, Haiku calls, stored data and limitations.
-- [Security and privacy details](docs/security.md): hooks, calls, hosts, files read, commands run, telemetry, untrusted content and accepted risks.
+- [How-to guides](docs/how-to.md): install, update, uninstall, delete stored data, cut Haiku calls and fix problems.
+- [Set up Herald with Claude](docs/setup-with-claude.md): a prompt that has Claude ask what you want and write the commands.
+- [Band and pane](docs/band-and-pane.md): what they draw, their keys and the item actions.
+- [Your stack](docs/your-stack.md): which packages Herald follows and how it classifies releases.
+- [Reference](docs/reference.md): terms, commands, sources, summaries, stored data and limitations.
+- [Security and privacy details](docs/security.md): hooks, calls, hosts, files, commands and accepted risks.
 - [Privacy policy](docs/privacy.md): what Herald reads, sends and stores, in short.
 - [Design decisions and deviations](docs/design.md): why Herald behaves as it does.
 - [Development](docs/development.md): run the checks and change the mod. [README media](docs/media/README.md) says how the screenshots and recordings are made.
 
-## Requirements
+## What Herald sends, runs, reads and hooks
 
-- Claude Code 2.1.287 or later. Tested with Claude Code 2.1.293.
-- A terminal or the Desktop app to draw the band and the pane. In other places, such as `claude -p`, VS Code and cloud sessions, `/herald` answers with the latest items as text and `/herald deps` lists your stack as text.
-- A session that can call a model. Page headlines, release checks and summaries use Haiku through your plan or API key. Herald asks for one-line summaries on its own only while automatic summaries are on; they are off by default.
+Herald never reads your prompts, your conversation or what Claude does in your session. It has no telemetry and sends nothing to its author. Its data stays on your machine, in a JSON file in Claude Code's plugin store. Feed and page text is treated as untrusted data, and Copy for Claude only puts text on your clipboard: it never submits a prompt.
+
+**What it sends and where.** Fetch requests go to the news sources you have on and to any feed or page address you add. While Your stack is on, package names (for NuGet and Maven also the version you use) go in the URL path to the registries of your project's ecosystems, and repository paths go to `github.com` for release feeds. To stop that for a project, run `/herald deps off`. Item and release text goes to Haiku through your own Claude Code session. Nothing else leaves your machine.
+
+**Which hosts it contacts** ([Network hosts](docs/security.md#network-hosts)):
+
+- For news: `www.anthropic.com`, `github.com`, `hnrss.org` (with `news.ycombinator.com` as a fallback), `simonwillison.net`, `news.smol.ai`, `github.blog`, and `status.claude.com` if you turn Claude status on.
+- For Your stack: `registry.npmjs.org`, `pypi.org`, `crates.io`, `proxy.golang.org` and a few Go import hosts, `rubygems.org`, `repo.packagist.org`, `api.nuget.org`, `repo1.maven.org` and `github.com`.
+
+**What it runs and why** ([Commands the mod runs](docs/security.md#commands-the-mod-runs)). Only fixed programs, each with an argument vector. Text for the clipboard goes to the program's standard input.
+
+- `uname -s`, to tell macOS from other systems.
+- `open` (macOS), `rundll32 url.dll,FileProtocolHandler` (Windows) or `xdg-open` (elsewhere, started through `sh -c` with the address as `$1`), to open an http or https link.
+- `pbcopy` (macOS), `powershell` and `clip.exe` (Windows), or `wl-copy` and `xclip` (elsewhere), to copy text for Claude.
+
+**What it reads.**
+
+- Package manifests and lockfiles in your project ([Files stack detection reads](docs/security.md#files-stack-detection-reads)).
+- The environment values `HOME` and `USERPROFILE`, to stop the project search at your home directory, and `OS`, to tell Windows apart.
+- Claude Code's `language` setting, for the language of summaries.
+
+It reads no other environment values and asks for no secrets.
+
+**What each hook does.** It has no hook on prompts, tool calls or the transcript.
+
+- `session.start` loads the stored data, starts the refresh and rotation timers and registers `/herald`.
+- `command.run` for `herald` answers `/herald` and its subcommands.
+- `ui.render` above the prompt draws the band. It adds the band to what other mods draw there and changes nothing else.
+- `ui.render` for the `herald` pane draws the pane.
+- `ui.open` and `ui.close` for the `herald` pane redraw the band, which steps aside while the pane shows. They change nothing in the pane itself.
+- `SessionStart` on clear, resume or fork reloads the stored data and registers `/herald` again, because those reset the mod's state.
+
+[Security and privacy details](docs/security.md) has every host, file, call and command, and the accepted risks.
 
 ## License
 

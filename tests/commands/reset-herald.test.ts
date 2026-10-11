@@ -72,4 +72,49 @@ describe('reset-herald', () => {
 
     expect(fetched.length).toBe(2 * once)
   })
+
+  test(
+    'from a band of five, the selected item stays selected on the page of three that holds it',
+    { timeoutMs: 30_000 },
+    async ($, on) => {
+      mock.clock(on)
+      Fixtures.bandOn(on, {
+        sources: [...Defaults.FACTORY_SOURCES],
+        items: { 'hacker-news': Fixtures.datedItemsOf('hacker-news', 12) },
+        settings: { bandSize: 5 },
+      })
+
+      await $.classic.SessionStart({ source: 'clear' })
+
+      const ui = await $.ui.mount({
+        plugin: 'herald',
+        component: 'AbovePrompt',
+        props: Fixtures.BAND_PROPS,
+        surface: 'terminal',
+      })
+      const rangeOf = async () => (await ui.find({ type: 'Text', text: / of \d+$/ }))?.text
+      const selectedOf = async () => {
+        const [bold] = (await ui.findAll({ type: 'Text' })).filter(
+          text => text.props.bold === true && text.text !== 'Herald',
+        )
+
+        return (bold?.children[0] as { props: { href?: unknown } } | undefined)?.props.href
+      }
+
+      await ui.press({ key: 'next' })
+      await ui.press({ key: 'down' })
+
+      expect([await rangeOf(), await selectedOf()]).toEqual([
+        '6–10 of 12',
+        'https://example.com/hacker-news/7',
+      ])
+
+      await $.command.run(Fixtures.heraldOf('reset'))
+
+      expect([await rangeOf(), await selectedOf()]).toEqual([
+        '7–9 of 12',
+        'https://example.com/hacker-news/7',
+      ])
+    },
+  )
 })

@@ -60,4 +60,29 @@ describe('news-list-of', () => {
 
     expect(list.map(item => item.id)).toEqual([stack[1]?.id, stack[2]?.id, 'a:1', stack[0]?.id])
   })
+
+  test("the flagged packages that lead follow the band's size, one fewer than it shows: none at one, four at five", () => {
+    const flagged = (name: string, day: number) =>
+      Fixtures.stackItemAt(name, '2.0.0', {
+        current: '1.0.0',
+        level: 'major',
+        security: true,
+        publishedAt: `2025-12-0${day}T00:00:00Z`,
+      })
+    const stack = [1, 2, 3, 4, 5, 6].map(day => flagged(`p${day}`, day))
+    const sources = [Fixtures.sourceAt('a')]
+    const items = { a: Fixtures.datedItemsOf('a', 2) }
+    const names = new Map(stack.map(item => [item.id, item.release.name]))
+    const idsAt = (bandSize: number) =>
+      Band.newsListOf(sources, items, stack, {}, bandSize).map(
+        item => names.get(item.id) ?? item.id,
+      )
+
+    expect(idsAt(1)).toEqual(['a:1', 'a:2', 'p6', 'p5', 'p4', 'p3', 'p2', 'p1'])
+    expect(idsAt(3)).toEqual(['p6', 'p5', 'a:1', 'a:2', 'p4', 'p3', 'p2', 'p1'])
+    expect(idsAt(5)).toEqual(['p6', 'p5', 'p4', 'p3', 'a:1', 'a:2', 'p2', 'p1'])
+    expect(Band.newsListOf(sources, items, stack).map(item => item.id)).toEqual(
+      Band.newsListOf(sources, items, stack, {}, 3).map(item => item.id),
+    )
+  })
 })

@@ -1,11 +1,10 @@
 import type { Item } from '../../types/index.js'
-import { shownStackItemsOf } from '../deps/stack/shown-stack-items-of.js'
 import type { Host } from '../host/host.js'
 import { messageOf } from '../refresh/message-of.js'
-import { bandItemsOf } from './band-items-of.js'
 import { bandPageOf } from './band-page-of.js'
 import { handPage } from './hand-page.js'
 import type { Rotation } from './rotation.js'
+import { shownBandOf } from './shown-band-of.js'
 
 /**
  * Hands the page the band shows now to the rotation's `onPage`, not waiting; never throws.
@@ -21,13 +20,8 @@ export async function handShownPage(
   signal?: AbortSignal,
 ): Promise<readonly Item[]> {
   try {
-    const items = bandItemsOf(
-      await host.state.sources.read(),
-      await host.state.items.read(),
-      shownStackItemsOf(await host.state.stack.read()),
-      await host.state.read.read(),
-    )
-    const page = bandPageOf(await host.state.band.read(), items, rotation.pageSize)
+    const { items, size } = await shownBandOf(host, rotation)
+    const page = bandPageOf(await host.state.band.read(), items, size)
 
     handPage(host, rotation, page.items, signal)
 

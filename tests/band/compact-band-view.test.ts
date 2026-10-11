@@ -282,6 +282,37 @@ describe('compact-band-view', () => {
     })
 
     test(
+      `on ${surface}: at a stored size of five the compact band still shows one item and turns one`,
+      { timeoutMs: 30_000 },
+      async ($, on) => {
+        const clock = mock.clock(on)
+
+        Fixtures.bandOn(on, { ...STORE, settings: { bandSize: 5, rotateSeconds: 20 } })
+
+        await $.session.start(Fixtures.SESSION)
+        await clock.settle()
+
+        const ui = await $.ui.mount(at(surface, 60))
+
+        expect([await positionOf(ui), (await linksOf(ui)).length]).toEqual(['1/7', 1])
+
+        await ui.press({ key: 'next' })
+
+        expect([await positionOf(ui), await linksOf(ui)]).toEqual([
+          '2/7',
+          [['https://example.com/src/2', 'src 2']],
+        ])
+
+        await ui.press({ key: 'auto' })
+        await clock.advance(20_000)
+
+        expect(await positionOf(ui)).toBe('3/7')
+
+        await ui.unmount()
+      },
+    )
+
+    test(
       `on ${surface}: the compact band takes the same rows on every page at each width, long headline or short`,
       { timeoutMs: 60_000 },
       async ($, on) => {

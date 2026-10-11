@@ -7,7 +7,7 @@ This page lists Herald's terms, commands, sources, templates, summary settings, 
 | Term | Meaning |
 |------|---------|
 | Mod | A plugin that changes how Claude Code looks and behaves. This repository is one plugin, named `herald`. |
-| Surface | An app that draws Claude Code: the terminal or the Desktop app. |
+| Surface | An app that draws Claude Code: the terminal or the Desktop app. Where no surface draws panes, such as `claude -p`, VS Code and cloud sessions, `/herald` and `/herald deps` answer with text. |
 | Transcript | The conversation area above the prompt. |
 | Toast | A short notice that Claude Code shows briefly. |
 | Survey | A Claude Code survey prompt. The band is not drawn while one shows. |
@@ -39,6 +39,7 @@ Every command replies with text as well as updating the drawing. A missing or in
 | `/herald enable <name>` | A source's name | Turns a source on and refreshes it. |
 | `/herald disable <name>` | A source's name | Turns a source off. It is kept but no longer fetched, and shows on neither the band nor the pane. |
 | `/herald band on\|off <name>` | `on` or `off`, then a source's name (any case), id or address | Shows a source on the band, the rotating lines above the prompt, or hides it from the band. The source stays on and is still fetched, and the pane is not affected. A source hidden from both the band and the pane is still fetched (a page source still uses Haiku to extract its items), but its new items raise no toast and get no automatic summary. `/herald disable` stops the fetching. |
+| `/herald band size <n>` | 1 to 9, default 3 | Sets how many items the full band shows at once. The compact band always shows one. The band leads with one fewer flagged releases of your stack than its size, so a size of 1 leads with none. |
 | `/herald pane on\|off <name>` | `on` or `off`, then a source's name (any case), id or address | Shows a source in the pane, the `/herald` window, or hides it from the pane: no tab and no rows in All. The source stays on and is still fetched, and the band is not affected. See the `band` row for a source hidden from both. |
 | `/herald interval <minutes>` | 1 to 1440, default 5 | Sets the minutes between refreshes and refreshes now. |
 | `/herald rotate <seconds>` | 5 to 3600, default 20 | Sets the seconds between band pages. |
@@ -46,7 +47,7 @@ Every command replies with text as well as updating the drawing. A missing or in
 | `/herald lang <feed\|user\|code>` | `feed`, `user` or a language code such as `es` or `pt-BR`, default `feed` | Sets the [summary language](#summaries-and-languages). |
 | `/herald template <text>` | Text with `{title}`, `{url}` or `{source}` | Sets the [copy template](#copy-template). |
 | `/herald deps [subcommand]` | A subcommand and its argument, or none | Shows and tunes [your stack](your-stack.md) for the project you are in. Every subcommand is in [Commands for your stack](your-stack.md#commands-for-your-stack). |
-| `/herald reset` | none | Restores the factory sources, shown on both the band and the pane, and the default settings, the release template included, so automatic summaries are off again. It keeps your saved items and your stack. |
+| `/herald reset` | none | Restores the factory sources, shown on both the band and the pane, and the default settings, the release template included, so automatic summaries are off again and the band shows three items. It keeps your saved items and your stack. |
 | `/herald help` | none | Lists the commands. The `deps` line points to `/herald deps help`. |
 
 The mod refuses an address that another source already follows and a name that another source already has, and it says which. Quotes around a name are optional: `/herald disable Claude status` and `/herald disable "Claude status"` do the same. Quotes matter only when a name starts with a quote character: wrap it in the other kind of quote. A name is at most 60 characters.
@@ -168,7 +169,7 @@ The mod keeps its data in `$.store`, which every Claude Code session on the mach
 | Key | Holds |
 |-----|-------|
 | `sources` | Every source, factory or added, with its on or off state and, while it is hidden, `isOnBand: false` or `isInPane: false`. |
-| `settings` | Refresh interval, rotation seconds, summary language, whether automatic summaries are on (`autoSummaries`; missing means off), copy template and release template. |
+| `settings` | Refresh interval, rotation seconds, band size, summary language, whether automatic summaries are on (`autoSummaries`; missing means off), copy template and release template. |
 | `saved` | Your saved items. |
 | `seen` | The newest 300 item ids per source. |
 | `read` | The newest 300 ids per source of the news items you opened, copied for Claude or marked as read on Saved. |

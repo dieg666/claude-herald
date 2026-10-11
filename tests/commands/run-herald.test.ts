@@ -8,7 +8,9 @@ import Feeds from '../fixtures/feeds'
 describe('run-herald', () => {
   const USAGES = [
     '/herald ',
-    ...Object.values(Commands.SUBCOMMANDS).map(subcommand => `/herald ${subcommand.usage}`),
+    ...Object.values(Commands.SUBCOMMANDS).flatMap(subcommand =>
+      [subcommand, ...(subcommand.forms ?? [])].map(form => `/herald ${form.usage}`),
+    ),
     '/herald help',
   ]
 

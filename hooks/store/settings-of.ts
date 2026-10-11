@@ -1,5 +1,6 @@
 import type { Settings } from '../../types/index.js'
 import { DEFAULT_SETTINGS } from '../defaults/default-settings.js'
+import { bandSizeOf } from './band-size-of.js'
 import { isRecord } from './is-record.js'
 
 /**
@@ -21,7 +22,7 @@ function filledOf(value: unknown): string | undefined {
 }
 
 /**
- * Stored settings with every missing or unusable field taken from the defaults.
+ * Stored settings with every missing or unusable field taken from the defaults, and the band's size clamped to its bounds.
  *
  * @param value what the store holds under `settings`
  */
@@ -31,6 +32,7 @@ export function settingsOf(value: unknown): Settings {
   return {
     refreshMinutes: positiveOf(stored.refreshMinutes) ?? DEFAULT_SETTINGS.refreshMinutes,
     rotateSeconds: positiveOf(stored.rotateSeconds) ?? DEFAULT_SETTINGS.rotateSeconds,
+    bandSize: bandSizeOf(stored.bandSize),
     lang: filledOf(stored.lang)?.trim() ?? DEFAULT_SETTINGS.lang,
     // Only a stored true turns them on, so a store from before the setting reads as off.
     autoSummaries: stored.autoSummaries === true,

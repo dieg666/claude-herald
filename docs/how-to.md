@@ -61,6 +61,18 @@ The band is the rotating lines above the prompt, and the pane is the window `/he
 
 To check, run `/herald list`: the source's line reads `band off` or `pane off`. A source hidden from both is still fetched (a page source still uses Haiku), and its new items raise no toast and get no automatic summary. To stop fetching a source, run `/herald disable <name>`. For how the three settings differ, see [Sources on each surface](band-and-pane.md#sources-on-each-surface).
 
+## Show more or fewer items in the band
+
+To change how many items the band shows at once, run `/herald band size` with a number from 1 to 9. The default is 3:
+
+```text
+/herald band size 5
+```
+
+The band stays on the item you had selected. A narrow terminal still shows one item at a time, whatever the size. The band also leads with one fewer flagged releases than its size, so a size of 1 puts none first.
+
+The reply says how many items the band shows. To check, count the rows on the band: its position reads, for example, `1–5 of 40`. To go back, run `/herald band size 3`. For the band's rows and order, see [Band](band-and-pane.md#band).
+
 ## Add several sources at once
 
 To add several sources in one step, paste a block of `/herald add` lines into the prompt:
