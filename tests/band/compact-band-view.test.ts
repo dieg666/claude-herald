@@ -95,7 +95,7 @@ describe('compact-band-view', () => {
           sources: [SOURCE, releases],
           items: {
             src: Fixtures.datedItemsOf('src', 6),
-            rel: [{ ...Fixtures.datedItemsOf('rel', 1, 6)[0], title: 'v2.1.294' }],
+            rel: [{ ...Fixtures.datedItemsOf('rel', 1, 0.5)[0], title: 'v2.1.294' }],
           },
         })
 
@@ -116,7 +116,7 @@ describe('compact-band-view', () => {
           ])
           expect((await linksOf(ui)).map(([, text]) => text)).toEqual(['src 1'])
 
-          // The release's source comes second, before the rest of the busier one.
+          // The release is the second newest item, so it comes second.
           await ui.press({ key: 'next' })
 
           const release = await ui.find({ type: 'Text', text: /^Claude Code…$/ })
@@ -184,7 +184,7 @@ describe('compact-band-view', () => {
     )
 
     test(
-      `on ${surface}: over a skewed store each turn shows another source, at the same positions and total`,
+      `on ${surface}: over a skewed store each turn shows the next item by date across sources, at the same positions and total`,
       { timeoutMs: 20_000 },
       async ($, on) => {
         const clock = mock.clock(on)
@@ -214,11 +214,11 @@ describe('compact-band-view', () => {
 
         expect(turns).toEqual([
           ['1/27', 'hn'],
-          ['2/27', 'sdk'],
-          ['3/27', 'stack'],
-          ['4/27', 'anthropic'],
-          ['5/27', 'willison'],
-          ['6/27', 'hn'],
+          ['2/27', 'hn'],
+          ['3/27', 'sdk'],
+          ['4/27', 'hn'],
+          ['5/27', 'sdk'],
+          ['6/27', 'stack'],
         ])
 
         await ui.unmount()

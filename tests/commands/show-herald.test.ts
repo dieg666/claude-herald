@@ -194,4 +194,23 @@ describe('show-herald', () => {
       'Every source is off. /herald list shows them; /herald enable <name> turns one on.',
     )
   })
+
+  test('the digest leaves out a source hidden from the pane', async ($, on) => {
+    Fixtures.storeOn(on, {
+      ...STORE,
+      sources: [FEED, { ...QUIET, isInPane: false }, OFF],
+    })
+    Fixtures.paneOn(on, [])
+
+    expect((await $.command.run(Fixtures.heraldOf(''))).text).toBe(DIGEST.split('\n\n')[0])
+  })
+
+  test('with every enabled source hidden from the pane, the digest says how to show one', async ($, on) => {
+    Fixtures.storeOn(on, { sources: [{ ...FEED, isInPane: false }, OFF] })
+    Fixtures.paneOn(on, [])
+
+    expect((await $.command.run(Fixtures.heraldOf(''))).text).toBe(
+      'Every source is hidden from the pane, the /herald window. /herald list shows them; /herald pane on <name> shows one.',
+    )
+  })
 })

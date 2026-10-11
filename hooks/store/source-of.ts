@@ -3,7 +3,7 @@ import { isRecord } from './is-record.js'
 import { textOf } from './text-of.js'
 
 /**
- * A stored value as a Source, its known fields only, or undefined when a required field is missing.
+ * A stored value as a Source, its known fields only (a surface flag kept only when false, so one stored before the flags shows everywhere), or undefined when a required field is missing.
  *
  * @param value one stored source
  */
@@ -29,6 +29,8 @@ export function sourceOf(value: unknown): Source | undefined {
     url,
     kind,
     isEnabled: value.isEnabled !== false,
+    ...(value.isOnBand === false ? { isOnBand: false } : {}),
+    ...(value.isInPane === false ? { isInPane: false } : {}),
     ...(fallbackUrl === undefined ? {} : { fallbackUrl }),
     isFactory: value.isFactory === true,
   }

@@ -32,6 +32,8 @@ describe('run-herald', () => {
       'list',
       'enable',
       'disable',
+      'band',
+      'pane',
       'interval',
       'rotate',
       'summaries',
@@ -58,7 +60,17 @@ describe('run-herald', () => {
   test('a subcommand missing its argument answers the usage', async ($, on) => {
     Fixtures.storeOn(on, { sources: [] })
 
-    for (const name of ['add', 'add-page', 'remove', 'enable', 'disable', 'interval', 'rotate']) {
+    for (const name of [
+      'add',
+      'add-page',
+      'remove',
+      'enable',
+      'disable',
+      'band',
+      'pane',
+      'interval',
+      'rotate',
+    ]) {
       const { text } = await $.command.run(Fixtures.heraldOf(`${name}   `))
 
       expect(text).toMatch(new RegExp(`^/herald ${name} .*: the argument is missing\\.\\n\\n`))
@@ -74,7 +86,7 @@ describe('run-herald', () => {
     Fixtures.storeOn(on, { sources: [Fixtures.sourceAt('one')] })
 
     expect((await $.command.run(Fixtures.heraldOf('  LIST  '))).text).toMatch(
-      /^1 of 1 sources enabled:/,
+      /^1 of 1 sources enabled; /,
     )
   })
 
@@ -106,6 +118,9 @@ describe('run-herald', () => {
       'list',
       'enable nope',
       'disable one',
+      'band off one',
+      'pane on nope',
+      'pane maybe one',
       'interval 7',
       'interval x',
       'rotate 30',
@@ -173,7 +188,7 @@ describe('run-herald', () => {
       '/herald list',
     ])
     expect(text).toContain('/herald disable Mine\nDisabled "Mine"')
-    expect(text).toMatch(/\/herald list\n0 of 1 sources enabled:/)
+    expect(text).toMatch(/\/herald list\n0 of 1 sources enabled; /)
   })
 
   test('blank lines, surrounding spaces, any case of /herald and CRLF or CR breaks are taken in stride', async ($, on) => {

@@ -1565,7 +1565,7 @@ describe('register', () => {
       // The pane opens on All, whose first window holds the band's first twenty items; the band turns past them.
       const { asked } = Fixtures.bandOn(on, {
         sources: [Fixtures.sourceAt('a'), Fixtures.sourceAt('b')],
-        items: { a: Fixtures.datedItemsOf('a', 2, 100), b: Fixtures.datedItemsOf('b', 40) },
+        items: { a: Fixtures.datedItemsOf('a', 2), b: Fixtures.datedItemsOf('b', 40, 1) },
         settings: { ...Fixtures.SUMMARIES_ON, rotateSeconds: 20 },
       })
 
@@ -1581,16 +1581,16 @@ describe('register', () => {
         props: Fixtures.BAND_PROPS,
       })
 
-      expect([...asked].sort()).toEqual(['a 1', 'b 1', 'b 2'])
+      expect([...asked].sort()).toEqual(['a 1', 'a 2', 'b 1'])
 
       await $.command.run(Fixtures.heraldOf(''))
       await clock.settle()
 
       const opened = asked.length
 
-      // The band's order is b 1, a 1, b 2, a 2, then b 3 on; the first three were asked for already, and the line saying the offline sources failed takes the twentieth row.
+      // The band's order is a 1, a 2, then b 1 on; the first three were asked for already, and the line saying the offline sources failed takes the twentieth row.
       expect([...asked.slice(3)].sort()).toEqual(
-        ['a 2', ...Array.from({ length: 15 }, (_, i) => `b ${i + 3}`)].sort(),
+        Array.from({ length: 16 }, (_, i) => `b ${i + 2}`).sort(),
       )
 
       await clock.advance(8 * 20_000)

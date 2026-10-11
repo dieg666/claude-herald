@@ -50,6 +50,17 @@ describe('hydrate', () => {
     expect(state.summaries).toEqual({ 'src:a': 'corto' })
   })
 
+  test('sources stored before the surface flags show on both; stored flags are kept', async () => {
+    const hidden = { ...OWN_SOURCE, id: 'hidden', isOnBand: false, isInPane: false }
+    const { host, state } = Fixtures.fakeHostOf({ ...STORE, sources: [OWN_SOURCE, hidden] })
+
+    await State.hydrate(host)
+
+    expect(state.sources).toEqual([OWN_SOURCE, hidden])
+    expect(Object.keys((state.sources as object[])[0] ?? {})).not.toContain('isOnBand')
+    expect(Object.keys((state.sources as object[])[0] ?? {})).not.toContain('isInPane')
+  })
+
   test('copies the read and viewed ids into state; a store from before them gives none', async () => {
     const { host, state } = Fixtures.fakeHostOf({
       ...STORE,

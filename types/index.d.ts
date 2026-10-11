@@ -16,6 +16,10 @@ export type Source = {
   kind: SourceKind
   /** Disabled sources are kept but never fetched or shown. */
   isEnabled: boolean
+  /** False keeps an enabled source off the band, the rotating lines above the prompt; absent or true shows it there. */
+  isOnBand?: boolean
+  /** False keeps an enabled source out of the pane, the `/herald` window (no tab, not in All); absent or true shows it there. */
+  isInPane?: boolean
   /** Fetched when `url` fails. */
   fallbackUrl?: string
   /** Whether it came with the mod (restored by a reset). */

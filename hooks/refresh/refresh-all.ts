@@ -1,5 +1,7 @@
+import { isBandSource } from '../band/is-band-source.js'
 import type { Host } from '../host/host.js'
 import { mergeItems } from '../items/merge-items.js'
+import { isPaneSource } from '../pane/is-pane-source.js'
 import { loadSources } from '../store/load-sources.js'
 import { mapLimited } from './map-limited.js'
 import { messageOf } from './message-of.js'
@@ -26,7 +28,7 @@ function isOtherRunning(loop: RefreshLoop, controller: AbortController): boolean
 }
 
 /**
- * One run's work: every enabled source a few at a time, each within its deadline, then status (with when each clean source refreshed), the toast and `onRun` with the run's signal; never rejects.
+ * One run's work: every enabled source a few at a time, each within its deadline, then status (with when each clean source refreshed), the toast (for the sources on the band or in the pane) and `onRun` with the run's signal; never rejects.
  *
  * @param host the engine
  * @param loop the loop the run belongs to
@@ -82,8 +84,15 @@ async function runOf(
       refreshedAt: { ...status.refreshedAt, ...refreshedAt },
     }))
 
-    if (newItems.length > 0) {
-      host.toast(toastTextOf(newItems, sources))
+    const shown = new Set(
+      sources
+        .filter(source => isBandSource(source) || isPaneSource(source))
+        .map(source => source.id),
+    )
+    const toasted = newItems.filter(item => shown.has(item.sourceId))
+
+    if (toasted.length > 0) {
+      host.toast(toastTextOf(toasted, sources))
     }
 
     const run: RefreshRun = { isSkipped: false, newItems, errors }

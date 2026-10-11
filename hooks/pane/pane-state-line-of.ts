@@ -7,6 +7,7 @@ import { SAVED_TAB } from '../names/saved-tab.js'
 import { STACK_TAB } from '../names/stack-tab.js'
 import { collapsedTextOf } from '../page/collapsed-text-of.js'
 import { agoOf } from './ago-of.js'
+import { isPaneSource } from './is-pane-source.js'
 import type { PaneHealth } from './pane-health.js'
 import type { PaneStack } from './pane-stack.js'
 import type { PaneStateLine } from './pane-state-line.js'
@@ -26,7 +27,7 @@ function everyOf(health: PaneHealth): string {
 }
 
 /**
- * The All tab's state line, or undefined when it needs none: the enabled sources whose last refresh failed, by name (one also says why), even with items listed; an empty tab says whether it is loading, every source is off, none has items now or none has loaded yet.
+ * The All tab's state line, or undefined when it needs none: the sources in the pane whose last refresh failed, by name (one also says why), even with items listed; an empty tab says whether it is loading, every source is off, every enabled one is hidden from the pane, none has items now or none has loaded yet.
  *
  * @param list its items
  * @param health what the refresh recorded
@@ -37,8 +38,8 @@ function allStateLineOf(
   health: PaneHealth,
   sources: readonly Source[],
 ): PaneStateLine | undefined {
-  const enabled = sources.filter(source => source.isEnabled)
-  const failed = enabled.filter(source => Object.hasOwn(health.errors, source.id))
+  const listed = sources.filter(isPaneSource)
+  const failed = listed.filter(source => Object.hasOwn(health.errors, source.id))
   const nameOf = (source: Source) => collapsedTextOf(sourceLabelOf(source)).trim() || source.id
   const [first] = failed
 
@@ -55,9 +56,15 @@ function allStateLineOf(
     return undefined
   }
 
-  if (enabled.length === 0) {
+  if (!sources.some(source => source.isEnabled)) {
     return {
       text: `Every source is off. /${COMMAND_NAME} enable <name> turns one on.`,
+    }
+  }
+
+  if (listed.length === 0) {
+    return {
+      text: `Every source is hidden from the pane. /${COMMAND_NAME} pane on <name> shows one.`,
     }
   }
 
@@ -65,7 +72,7 @@ function allStateLineOf(
     return { text: 'Loading the news…' }
   }
 
-  const hasRefreshed = enabled.some(
+  const hasRefreshed = listed.some(
     source => health.refreshedAt !== undefined && Object.hasOwn(health.refreshedAt, source.id),
   )
 

@@ -2915,7 +2915,7 @@ describe('pane-view', () => {
 
   for (const surface of SURFACES) {
     test(
-      `on ${surface}: All, on l, leads with the stack's flagged releases then mixes the sources as the band does, each row naming its source; o, s, v and c act on the item under the row, a release as on the stack tab, and a news item read stays listed, dim`,
+      `on ${surface}: All, on l, leads with the stack's flagged releases then lists the rest newest first as the band does, each row naming its source; o, s, v and c act on the item under the row, a release as on the stack tab, and a news item read stays listed, dim`,
       { timeoutMs: 30_000 },
       async ($, on) => {
         const clock = mock.clock(on)
@@ -2976,13 +2976,14 @@ describe('pane-view', () => {
         expect((await linksOf(ui)).slice(0, 4)).toEqual([
           'https://github.com/owner/react/releases/tag/v19.0.0',
           'https://github.com/owner/requests/releases/tag/v2.31.1',
+          'https://github.com/owner/vite/releases/tag/v5.1.0',
           'https://example.com/a/1',
-          'https://example.com/b/1',
         ])
         expect((await linksOf(ui)).length).toBe(5 + 4)
-        expect((await columnsOf()).slice(0, 4)).toEqual([
+        expect((await columnsOf()).slice(0, 5)).toEqual([
           ['react', 'selected'],
           ['requests', 'release'],
+          ['vite', 'release'],
           ['Alpha', 'dim'],
           ['Beta', 'dim'],
         ])
@@ -3003,6 +3004,7 @@ describe('pane-view', () => {
         expect((await ui.find({ key: 'save' }))?.props.label).toBe('Saved')
         expect(runs.at(-1)).toEqual(['open', 'https://github.com/owner/react/releases/tag/v19.0.0'])
 
+        await ui.press({ key: 'down' })
         await ui.press({ key: 'down' })
         await ui.press({ key: 'down' })
 

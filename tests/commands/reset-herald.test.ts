@@ -6,14 +6,14 @@ import Fixtures from '../fixtures'
 describe('reset-herald', () => {
   const ADDED = Fixtures.sourceAt('added')
   const SAVED = { ...Fixtures.itemAt('s'), savedAt: 3 }
-  const HN = { ...Defaults.FACTORY_SOURCES[6], isEnabled: false }
+  const HN = { ...Defaults.FACTORY_SOURCES[6], isEnabled: false, isOnBand: false, isInPane: false }
   const HN_ITEM = { ...Fixtures.itemAt('h'), id: 'hacker-news:h', sourceId: 'hacker-news' }
 
   const peeked = (text: string | undefined) =>
     JSON.parse(text ?? 'null') as { sources: unknown; settings: unknown; saved: unknown }
 
   test(
-    'restores the factory sources and default settings, drops added sources, keeps saved items',
+    'restores the factory sources (shown on the band and in the pane) and default settings, drops added sources, keeps saved items',
     { plugins: [Fixtures.STATE_PEEK] },
     async ($, on) => {
       mock.clock(on)

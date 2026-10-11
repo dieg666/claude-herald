@@ -53,6 +53,23 @@ describe('refresh-all', () => {
     expect(toasts.length).toBe(1)
   })
 
+  test('new items of a source hidden from both the band and the pane raise no toast; hidden from one, they do', async () => {
+    const quiet = { ...TWO, isOnBand: false, isInPane: false }
+    const { host, web, toasts } = hostWith([{ ...ONE, isOnBand: false }, quiet])
+    const loop = Refresh.refreshLoopOf()
+
+    await Refresh.refreshAll(host, loop)
+    web.set(TWO.url, { status: 200, text: Feeds.rssWithItems(3) })
+
+    expect((await Refresh.refreshAll(host, loop)).newItems).toHaveLength(1)
+    expect(toasts).toEqual([])
+
+    web.set(ONE.url, { status: 200, text: Feeds.rssWithItems(3) })
+    await Refresh.refreshAll(host, loop)
+
+    expect(toasts).toEqual(['1 new: Item 2 & more'])
+  })
+
   test('a source added later loads its backlog silently', async () => {
     const { host, stored, toasts } = hostWith([ONE])
     const loop = Refresh.refreshLoopOf()
