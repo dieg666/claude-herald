@@ -40,6 +40,20 @@ describe('pane-page-of', () => {
     }
   })
 
+  test('a tab whose source is now hidden from the pane shows All from the top, without its items', () => {
+    const sources = SOURCES.map(source =>
+      source.id === 'b' ? { ...source, isInPane: false } : source,
+    )
+    const page = Pane.panePageOf({ tab: 'b', selected: 1 }, sources, ITEMS, SAVED, 10)
+
+    expect([page.tab.id, page.selected, page.tabs.map(tab => tab.id)]).toEqual([
+      '@all',
+      0,
+      ['@all', 'a', 'saved'],
+    ])
+    expect(page.items.some(item => item.sourceId === 'b')).toBe(false)
+  })
+
   test('with every source off the All tab is the first and lists nothing', () => {
     const page = Pane.panePageOf({ tab: 'a', selected: 0 }, [], ITEMS, SAVED, 10)
 

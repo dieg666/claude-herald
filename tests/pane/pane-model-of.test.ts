@@ -695,8 +695,8 @@ describe('pane-model-of', () => {
     ).toEqual([
       ['⚠', 'react', 6, true, '18.2.0 → 19.0.0 · React 19', undefined, 'Jan 6'],
       [undefined, 'Alpha', 9, undefined, 'a 1', undefined, 'Jan 2'],
-      [undefined, 'A source wi…', 2, true, 'v2.0.0', undefined, 'Jan 1'],
       [undefined, 'Alpha', 9, undefined, 'a 2', true, 'Jan 1'],
+      [undefined, 'A source wi…', 2, true, 'v2.0.0', undefined, 'Jan 1'],
     ])
     expect([model.keys, model.filter, model.position]).toEqual([
       ['open', 'summarize', 'save', 'copy'],

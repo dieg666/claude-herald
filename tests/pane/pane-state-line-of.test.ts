@@ -99,4 +99,24 @@ describe('pane-state-line-of', () => {
     })
     expect(Pane.paneStateLineOf(stackTab, ITEMS, { errors: {} }, stack)).toBeUndefined()
   })
+
+  test('All names failures of the sources in the pane only, and says when every enabled source is hidden from it', () => {
+    const ALL = { id: '@all', name: 'All', label: 'All', short: 'All' }
+    const shown = Fixtures.sourceAt('a', { name: 'Alpha' })
+    const hidden = Fixtures.sourceAt('b', { name: 'Beta', isInPane: false })
+    const errors = { a: 'HTTP 503', b: 'timed out' }
+
+    expect(Pane.paneStateLineOf(ALL, ITEMS, { errors }, undefined, [shown, hidden])).toEqual({
+      text: "Couldn't refresh Alpha: HTTP 503",
+    })
+    expect(Pane.paneStateLineOf(ALL, [], { errors }, undefined, [hidden])).toEqual({
+      text: 'Every source is hidden from the pane. /herald pane on <name> shows one.',
+    })
+    expect(
+      Pane.paneStateLineOf(ALL, [], { errors: {} }, undefined, [
+        { ...hidden, isEnabled: false },
+        Fixtures.sourceAt('c', { isEnabled: false }),
+      ]),
+    ).toEqual({ text: 'Every source is off. /herald enable <name> turns one on.' })
+  })
 })

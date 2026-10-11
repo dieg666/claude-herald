@@ -7,6 +7,7 @@ import { PANE_HOTKEYS } from '../names/pane-hotkeys.js'
 import { SAVED_TAB } from '../names/saved-tab.js'
 import { STACK_TAB } from '../names/stack-tab.js'
 import { collapsedTextOf } from '../page/collapsed-text-of.js'
+import { isPaneSource } from './is-pane-source.js'
 import type { PaneStack } from './pane-stack.js'
 import { PANE_TAB_COLUMNS } from './pane-tab-columns.js'
 import type { PaneTab } from './pane-tab.js'
@@ -21,7 +22,7 @@ function countOf(count: number): { readonly count?: number } {
 }
 
 /**
- * The pane's tabs, each with its full name, its label (a factory source's short label while it keeps its factory name, else the source's own) and the label cut to `PANE_TAB_COLUMNS` cells: first the All tab on l with the new items it lists, then one per enabled source in order (the first nine with the digits 1 to 9) with its new items, then the stack tab on y with its packages behind when there is a stack, then the saved tab on 0 with its items; a source whose id is the saved tab's never gets a tab.
+ * The pane's tabs, each with its full name, its label (a factory source's short label while it keeps its factory name, else the source's own) and the label cut to `PANE_TAB_COLUMNS` cells: first the All tab on l with the new items it lists, then one per source in the pane (enabled and not hidden from it) in order (the first nine with the digits 1 to 9) with its new items, then the stack tab on y with its packages behind when there is a stack, then the saved tab on 0 with its items; a source whose id is the saved tab's never gets a tab.
  *
  * @param sources every source, in order
  * @param stack the stack tab's items; no stack tab when absent
@@ -35,7 +36,7 @@ export function paneTabsOf(
   newCounts: Readonly<Record<string, number>> = {},
 ): PaneTab[] {
   const tabs = sources
-    .filter(source => source.isEnabled && source.id !== SAVED_TAB)
+    .filter(source => isPaneSource(source) && source.id !== SAVED_TAB)
     .map((source, index) => {
       const name = collapsedTextOf(source.name).trim() || source.id
       const label = collapsedTextOf(sourceLabelOf(source)).trim() || source.id

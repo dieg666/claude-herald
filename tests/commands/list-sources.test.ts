@@ -3,20 +3,24 @@ import { describe, expect, mock, test } from 'claude-code/testing'
 import Fixtures from '../fixtures'
 
 describe('list-sources', () => {
-  test('lists every source: on or off, kind, item count, name and address', async ($, on) => {
+  test('lists every source: on or off, band and pane, kind, item count, name and address, under a heading naming each surface', async ($, on) => {
     Fixtures.storeOn(on, {
       sources: [
         Fixtures.sourceAt('feed', { name: 'A feed' }),
         Fixtures.sourceAt('page', { kind: 'page', isEnabled: false }),
+        Fixtures.sourceAt('quiet', { isOnBand: false }),
+        Fixtures.sourceAt('hidden', { isInPane: false, isOnBand: false }),
       ],
       items: { feed: [Fixtures.itemAt('a'), Fixtures.itemAt('b')] },
     })
 
     expect((await $.command.run(Fixtures.heraldOf('list'))).text).toBe(
       [
-        '1 of 2 sources enabled:',
-        '  on   feed   2 items  A feed  https://example.com/feed.xml',
-        '  off  page   0 items  page  https://example.com/page.xml',
+        '3 of 4 sources enabled; band = the rotating lines above the prompt, pane = the /herald window:',
+        '  on   band on   pane on   feed   2 items  A feed  https://example.com/feed.xml',
+        '  off  band on   pane on   page   0 items  page  https://example.com/page.xml',
+        '  on   band off  pane on   feed   0 items  quiet  https://example.com/quiet.xml',
+        '  on   band off  pane off  feed   0 items  hidden  https://example.com/hidden.xml',
       ].join('\n'),
     )
   })
@@ -36,8 +40,8 @@ describe('list-sources', () => {
 
     expect((await $.command.run(Fixtures.heraldOf('list'))).text).toBe(
       [
-        '1 of 1 sources enabled:',
-        '  on   feed   0 items  feed  https://example.com/feed.xml',
+        '1 of 1 sources enabled; band = the rotating lines above the prompt, pane = the /herald window:',
+        '  on   band on   pane on   feed   0 items  feed  https://example.com/feed.xml',
         '       last error: HTTP 503',
       ].join('\n'),
     )

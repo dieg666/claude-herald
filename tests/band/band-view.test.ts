@@ -479,7 +479,7 @@ describe('band-view', () => {
 
       await ui.press({ key: 'next' })
 
-      expect([await rangeOf(ui), await autoOf(ui)]).toEqual(['4–6 of 7', '▶ auto'])
+      expect([await rangeOf(ui), await autoOf(ui)]).toEqual(['4–6 of 7', '↻ auto'])
 
       await ui.press({ key: 'next' })
 
@@ -500,7 +500,7 @@ describe('band-view', () => {
 
       await ui.press({ key: 'prev' })
 
-      expect([await rangeOf(ui), await autoOf(ui)]).toEqual(['4–6 of 7', '▶ auto'])
+      expect([await rangeOf(ui), await autoOf(ui)]).toEqual(['4–6 of 7', '↻ auto'])
 
       await ui.press({ key: 'auto' })
 
@@ -519,7 +519,7 @@ describe('band-view', () => {
 
       expect([await selectedOf(ui), await autoOf(ui)]).toEqual([
         'https://example.com/src/2',
-        '▶ auto',
+        '↻ auto',
       ])
 
       await ui.press({ key: 'down' })
@@ -568,7 +568,7 @@ describe('band-view', () => {
         await ui.press({ key: 'auto' })
         await clock.advance(60_000)
 
-        expect([await rangeOf(ui), await autoOf(ui)]).toEqual(['1–3 of 7', '▶ auto'])
+        expect([await rangeOf(ui), await autoOf(ui)]).toEqual(['1–3 of 7', '↻ auto'])
 
         await ui.press({ key: 'auto' })
         await clock.advance(20_000)
@@ -735,7 +735,7 @@ describe('band-view', () => {
       expect(await selectedOf(ui)).toBe('src 1')
     })
 
-    test(`on ${surface}: items from every enabled source, one source after another, newest first; when they shrink the page and selection come back inside`, async ($, on) => {
+    test(`on ${surface}: items from every enabled source, newest first across sources; when they shrink the page and selection come back inside`, async ($, on) => {
       mock.clock(on)
       Fixtures.bandOn(on, {
         sources: [Fixtures.sourceAt('old'), Fixtures.sourceAt('new')],
@@ -749,7 +749,7 @@ describe('band-view', () => {
 
       const ui = await $.ui.mount({ ...BAND, surface })
 
-      expect((await linksOf(ui)).map(([, text]) => text)).toEqual(['new 1', 'old 1', 'new 2'])
+      expect((await linksOf(ui)).map(([, text]) => text)).toEqual(['new 1', 'new 2', 'old 1'])
 
       await ui.press({ key: 'next' })
       await ui.press({ key: 'next' })
@@ -766,7 +766,6 @@ describe('band-view', () => {
 
       await ui.press({ key: 'next' })
       await ui.press({ key: 'up' })
-      await ui.press({ key: 'up' })
 
       expect(await selectedOf(ui)).toBe('https://example.com/old/1')
 
@@ -776,6 +775,43 @@ describe('band-view', () => {
         '1–2 of 2',
         'https://example.com/new/2',
       ])
+    })
+  }
+
+  for (const surface of SURFACES) {
+    test(`on ${surface}: /herald band off takes a source off the band, the page brought back inside; pane off leaves the band alone`, async ($, on) => {
+      mock.clock(on)
+      Fixtures.bandOn(on, {
+        sources: [Fixtures.sourceAt('old'), Fixtures.sourceAt('new')],
+        items: {
+          old: Fixtures.datedItemsOf('old', 5, 10),
+          new: Fixtures.datedItemsOf('new', 2),
+        },
+      })
+
+      await $.classic.SessionStart({ source: 'clear' })
+
+      const ui = await $.ui.mount({ ...BAND, surface })
+
+      await ui.press({ key: 'next' })
+      await ui.press({ key: 'next' })
+
+      expect(await rangeOf(ui)).toBe('7 of 7')
+
+      await $.command.run(Fixtures.heraldOf('band off old'))
+
+      expect([await rangeOf(ui), await selectedOf(ui)]).toEqual([
+        '1–2 of 2',
+        'https://example.com/new/1',
+      ])
+
+      await $.command.run(Fixtures.heraldOf('pane off new'))
+
+      expect(await rangeOf(ui)).toBe('1–2 of 2')
+
+      await $.command.run(Fixtures.heraldOf('band on old'))
+
+      expect(await rangeOf(ui)).toBe('7 of 7')
     })
   }
 
@@ -1054,7 +1090,7 @@ describe('band-view', () => {
     )
 
     test(
-      `on ${surface}: the first page shows the breaking and security releases of the stack, older than every news item, then the newest news item`,
+      `on ${surface}: the first page shows the breaking and security releases of the stack, older than every news item, then the newest of the rest`,
       { timeoutMs: 20_000 },
       async ($, on) => {
         const clock = mock.clock(on)
@@ -1075,20 +1111,20 @@ describe('band-view', () => {
         expect((await linksOf(ui)).map(([href]) => href)).toEqual([
           'https://github.com/owner/requests/releases/tag/v2.31.1',
           'https://github.com/owner/jsdom/releases/tag/v30.1.2',
-          'https://example.com/hn/1',
+          'https://github.com/owner/vite/releases/tag/v5.1.0',
         ])
         expect(
-          (await ui.findAll({ type: 'Text', text: /^(⚠|📦|requests|jsdom)$/ })).map(
+          (await ui.findAll({ type: 'Text', text: /^(⚠|📦|requests|jsdom|vite)$/ })).map(
             text => text.text,
           ),
-        ).toEqual(['⚠', 'requests', '⚠', 'jsdom'])
+        ).toEqual(['⚠', 'requests', '⚠', 'jsdom', '📦', 'vite'])
 
         await ui.press({ key: 'next' })
 
         expect((await linksOf(ui)).map(([href]) => href)).toEqual([
+          'https://example.com/hn/1',
+          'https://example.com/hn/2',
           'https://example.com/sdk/1',
-          'https://github.com/owner/vite/releases/tag/v5.1.0',
-          'https://example.com/anthropic/1',
         ])
       },
     )
@@ -1187,7 +1223,7 @@ describe('band-view', () => {
 
   for (const surface of SURFACES) {
     test(
-      `on ${surface}: a skewed store's pages each show different sources, at the same positions and total`,
+      `on ${surface}: a skewed store's pages follow the date order across sources, at the same positions and total`,
       { timeoutMs: 20_000 },
       async ($, on) => {
         const clock = mock.clock(on)
@@ -1206,10 +1242,10 @@ describe('band-view', () => {
         }
 
         expect(pages.slice(0, 4)).toEqual([
-          ['1–3 of 27', ['hn', 'sdk', 'stack']],
-          ['4–6 of 27', ['anthropic', 'willison', 'hn']],
-          ['7–9 of 27', ['sdk', 'anthropic', 'stack']],
-          ['10–12 of 27', ['hn', 'hn', 'hn']],
+          ['1–3 of 27', ['hn', 'hn', 'sdk']],
+          ['4–6 of 27', ['hn', 'sdk', 'stack']],
+          ['7–9 of 27', ['hn', 'anthropic', 'hn']],
+          ['10–12 of 27', ['anthropic', 'hn', 'hn']],
         ])
         expect(pages.map(page => (page as unknown[])[0])).toEqual(
           Array.from({ length: 9 }, (_, page) => `${page * 3 + 1}–${page * 3 + 3} of 27`),

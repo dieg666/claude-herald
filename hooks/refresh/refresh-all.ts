@@ -1,5 +1,7 @@
+import { isBandSource } from '../band/is-band-source.js'
 import type { Host } from '../host/host.js'
 import { mergeItems } from '../items/merge-items.js'
+import { isPaneSource } from '../pane/is-pane-source.js'
 import { loadSources } from '../store/load-sources.js'
 import { mapLimited } from './map-limited.js'
 import { messageOf } from './message-of.js'
@@ -26,7 +28,7 @@ function isOtherRunning(loop: RefreshLoop, controller: AbortController): boolean
 }
 
 /**
- * One run's work: every enabled source a few at a time, each within its deadline, then status (with when each clean source refreshed), the toast and `onRun` with the run's signal; never rejects.
+ * One run's work: every enabled source a few at a time, each within its deadline, then status (with when each clean source refreshed), the toast and `onRun` with the run's signal, both given only the new items of sources on the band or in the pane; never rejects.
  *
  * @param host the engine
  * @param loop the loop the run belongs to
@@ -56,8 +58,13 @@ async function runOf(
       ),
     )
 
+    const shown = new Set(
+      sources
+        .filter(source => isBandSource(source) || isPaneSource(source))
+        .map(source => source.id),
+    )
     const fresh = outcomes.flatMap(outcome => outcome.newItems)
-    const newItems = mergeItems([], fresh, fresh.length)
+    const newItems = mergeItems([], fresh, fresh.length).filter(item => shown.has(item.sourceId))
 
     const errors = Object.fromEntries(
       sources.flatMap((source, index) => {

@@ -5,7 +5,7 @@ export const BAND_LABELS = {
   prev: '◀',
   next: '▶',
   autoRunning: '⏸ auto',
-  autoPaused: '▶ auto',
+  autoPaused: '↻ auto',
   up: '↑',
   down: '↓',
 } as const

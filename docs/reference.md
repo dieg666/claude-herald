@@ -31,28 +31,58 @@ Every command replies with text as well as updating the drawing. A missing or in
 
 | Command | Argument | What it does |
 |---------|----------|--------------|
-| `/herald` | none | Opens the pane. Where no surface draws panes, lists the latest three items of each enabled source. |
+| `/herald` | none | Opens the pane. Where no surface draws panes, lists the latest three items of each source in the pane. |
 | `/herald add <url> [name]` | A feed address and an optional name | Follows an RSS or Atom feed after checking that it fetches and has entries. The name defaults to the feed's title. |
 | `/herald add-page <url> [name]` | A page address and an optional name | Follows a web page that fetches as HTML. Haiku reads its headlines when the page changes. |
 | `/herald remove <name\|url>` | A source's name (any case), id or address | Stops following the source and forgets its items, seen, read and viewed ids and page hash. Saved items stay. |
-| `/herald list` | none | Lists every source: on or off, kind, item count, name, address and its last error. |
+| `/herald list` | none | Lists every source: on or off, shown on the band or hidden (`band on` or `band off`), shown in the pane or hidden (`pane on` or `pane off`), kind, item count, name, address and its last error. |
 | `/herald enable <name>` | A source's name | Turns a source on and refreshes it. |
-| `/herald disable <name>` | A source's name | Turns a source off. It is kept but no longer fetched or shown. |
+| `/herald disable <name>` | A source's name | Turns a source off. It is kept but no longer fetched, and shows on neither the band nor the pane. |
+| `/herald band on\|off <name>` | `on` or `off`, then a source's name (any case), id or address | Shows a source on the band, the rotating lines above the prompt, or hides it from the band. The source stays on and is still fetched, and the pane is not affected. A source hidden from both the band and the pane is still fetched (a page source still uses Haiku to extract its items), but its new items raise no toast and get no automatic summary. `/herald disable` stops the fetching. |
+| `/herald pane on\|off <name>` | `on` or `off`, then a source's name (any case), id or address | Shows a source in the pane, the `/herald` window, or hides it from the pane: no tab and no rows in All. The source stays on and is still fetched, and the band is not affected. See the `band` row for a source hidden from both. |
 | `/herald interval <minutes>` | 1 to 1440, default 5 | Sets the minutes between refreshes and refreshes now. |
 | `/herald rotate <seconds>` | 5 to 3600, default 20 | Sets the seconds between band pages. |
 | `/herald summaries [on\|off]` | `on` or `off`, default `off`; none to see the current value | Turns [automatic summaries](#summaries-and-languages) on or off. On writes a one-line summary under the headlines shown at once. |
 | `/herald lang <feed\|user\|code>` | `feed`, `user` or a language code such as `es` or `pt-BR`, default `feed` | Sets the [summary language](#summaries-and-languages). |
 | `/herald template <text>` | Text with `{title}`, `{url}` or `{source}` | Sets the [copy template](#copy-template). |
 | `/herald deps [subcommand]` | A subcommand and its argument, or none | Shows and tunes [your stack](your-stack.md) for the project you are in. Every subcommand is in [Commands for your stack](your-stack.md#commands-for-your-stack). |
-| `/herald reset` | none | Restores the factory sources and the default settings, the release template included, so automatic summaries are off again. It keeps your saved items and your stack. |
+| `/herald reset` | none | Restores the factory sources, shown on both the band and the pane, and the default settings, the release template included, so automatic summaries are off again. It keeps your saved items and your stack. |
 | `/herald help` | none | Lists the commands. The `deps` line points to `/herald deps help`. |
 
 The mod refuses an address that another source already follows and a name that another source already has, and it says which. Quotes around a name are optional: `/herald disable Claude status` and `/herald disable "Claude status"` do the same. Quotes matter only when a name starts with a quote character: wrap it in the other kind of quote. A name is at most 60 characters.
+
+`/herald list` prints a header, then one line per source: on or off, `band on` or `band off`, `pane on` or `pane off`, the kind (`feed` or `page`), the item count, the name and the address. A failing source has its last error on a line below.
+
+```text
+2 of 3 sources enabled; band = the rotating lines above the prompt, pane = the /herald window:
+  on   band on   pane on   feed  30 items  Hacker News  https://hnrss.org/frontpage
+  on   band off  pane on   feed  30 items  Simon Willison  https://simonwillison.net/atom/everything/
+  off  band on   pane on   feed   0 items  Claude status  https://status.claude.com/history.rss
+```
 
 A feed added without a name takes the title the feed gives itself, or its host when it has none. A GitHub releases feed is titled `Release notes from REPO`, and a second source with the same name becomes `Release notes from claude-code (2)`. Pass a name to keep the list readable:
 
 ```text
 /herald add https://github.com/vercel/next.js/releases.atom Next.js
+```
+
+## Pasting several commands
+
+When you paste several `/herald` lines at once, each runs as its own command. Claude Code passes everything after the first `/herald` to the mod, line breaks included, and the mod splits it:
+
+- A line that starts with `/` starts a new command. Any other line continues the command above it, joined with a line break, so a `template` written over several lines is stored with its line breaks. A template line that starts with `/` starts a new command instead, so the template ends above it.
+- The commands run in order, each one finished before the next. A command that fails answers with its error, and the next one still runs.
+- A bare `/herald` counts as one of the commands, whether it is alone on the first line with commands on the lines after it or stands on a later line. It opens nothing and says so under its heading. Run it on its own to open the pane.
+- A line that starts with another slash command, such as `/help`, is reported as not a `/herald` command and skipped.
+- The reply has one block per command: the command on one line, then its answer.
+- If Claude Code interrupts `/herald` midway, the reply ends with the commands that did not run, under `Interrupted, so these commands did not run:`.
+
+For example, this block adds a source, hides one from the band and hides another from the pane:
+
+```text
+/herald add https://example.com/feed.xml Example
+/herald band off Hacker News
+/herald pane off Simon Willison
 ```
 
 ## Sources
@@ -78,7 +108,7 @@ To follow a GitHub repository's releases as a news source, add its feed: `/heral
 
 Each source keeps its 30 newest items. An item is identified by its source and its guid, id or link, so a repeated item appears once. Within a source, an entry with no guid (whose id comes from its link) folds into the entry with a guid at the same address (scheme and host in any case, no fragment, no trailing slash, query kept), keeping the id already stored (the guid entry's id when both are stored), so a source that falls back to its second address (such as Hacker News) does not list a story twice, and copies already stored fold together on the next refresh. Entries that each have a guid never fold, even when they share an address. A source whose fetch fails keeps its last items and retries at the next refresh; the reason shows in `/herald list`. A page source has no feed to parse: the mod turns the page into text and asks Haiku for a JSON list of `title`, `url`, `date` and `teaser`, only when the page text or the extraction prompt has changed, and drops malformed entries. The teaser is the one-line description the page shows under a headline, copied as written, at most 200 characters; it is the item's text, and an item from a page that shows none has no text.
 
-A refresh runs when the session starts and then every 5 minutes, fetching three sources at a time, and then refreshes your stack within its [limits](your-stack.md#limits-per-refresh). When it finds new items, one toast names them, for example `3 new: Title …`. A source's first load shows no toast.
+A refresh runs when the session starts and then every 5 minutes, fetching three sources at a time, and then refreshes your stack within its [limits](your-stack.md#limits-per-refresh). When it finds new items of sources on the band or in the pane, one toast names them, for example `3 new: Title …`. A source's first load shows no toast.
 
 ## Copy template
 
@@ -137,7 +167,7 @@ The mod keeps its data in `$.store`, which every Claude Code session on the mach
 
 | Key | Holds |
 |-----|-------|
-| `sources` | Every source, factory or added, with its on or off state. |
+| `sources` | Every source, factory or added, with its on or off state and, while it is hidden, `isOnBand: false` or `isInPane: false`. |
 | `settings` | Refresh interval, rotation seconds, summary language, whether automatic summaries are on (`autoSummaries`; missing means off), copy template and release template. |
 | `saved` | Your saved items. |
 | `seen` | The newest 300 item ids per source. |

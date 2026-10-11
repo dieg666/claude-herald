@@ -201,7 +201,7 @@ EOF
       for _ in $(seq 60); do [[ $(band_position) == Herald\ *1–* ]] && break; send p; sleep 0.4; done
     fi
     # a resumes a paused rotation.
-    if on_screen '^Herald .*a: ▶ auto'; then send a; sleep 0.4; fi
+    if on_screen '^Herald .*a: ↻ auto'; then send a; sleep 0.4; fi
     pos=$(band_position)
     record "$WORK/hero.mkv" 40
     started=$(date +%s.%N)

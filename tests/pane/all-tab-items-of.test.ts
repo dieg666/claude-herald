@@ -13,12 +13,12 @@ describe('all-tab-items-of', () => {
   const namesOf = (list: readonly Item[]) =>
     list.map(item => (Stack.isStackItem(item) ? item.release.name : item.id))
 
-  test("the band's list in the band's order: flagged stack releases lead, then the source mix, a release feed by its newest only, undated last", () => {
+  test("the band's list in the band's order: flagged stack releases lead, then newest first across sources, a release feed by its newest only, undated last", () => {
     const all = Pane.allTabItemsOf(sources, items, stack)
 
     expect(idsOf(all)).toEqual(idsOf(Band.bandItemsOf(sources, items, stack)))
     expect(namesOf(all.slice(0, 2))).toEqual(['requests', 'jsdom'])
-    expect(namesOf(all.slice(2, 5))).toEqual(['hn:1', 'sdk:1', 'vite'])
+    expect(namesOf(all.slice(2, 6))).toEqual(['vite', 'hn:1', 'hn:2', 'sdk:1'])
 
     const release = Fixtures.RELEASE_BAND
     const releases = Pane.allTabItemsOf(release.sources, release.items, release.stack)
@@ -47,6 +47,29 @@ describe('all-tab-items-of', () => {
     expect(Pane.allTabItemsOf(off, items, stack).some(item => item.sourceId === 'hn')).toBe(false)
     expect(Pane.allTabItemsOf(sources, items).some(item => item.sourceId === '@stack')).toBe(false)
     expect(Pane.allTabItemsOf([], items)).toEqual([])
+  })
+
+  test('a source hidden from the pane is left out while it stays on the band, and one hidden from the band stays here', () => {
+    const flagged = sources.map(source =>
+      source.id === 'hn'
+        ? { ...source, isInPane: false }
+        : source.id === 'sdk'
+          ? { ...source, isOnBand: false }
+          : source,
+    )
+    const sourceIdsOf = (list: readonly Item[]) => [...new Set(list.map(item => item.sourceId))]
+
+    expect(sourceIdsOf(Pane.allTabItemsOf(flagged, items)).sort()).toEqual([
+      'anthropic',
+      'sdk',
+      'willison',
+    ])
+    expect(sourceIdsOf(Band.bandItemsOf(flagged, items)).sort()).toEqual([
+      'anthropic',
+      'hn',
+      'willison',
+    ])
+    expect(Pane.allTabItemsOf(flagged, items, stack).filter(Stack.isStackItem)).toHaveLength(4)
   })
 
   test("a package's releases are one row, its target, as in the band", () => {

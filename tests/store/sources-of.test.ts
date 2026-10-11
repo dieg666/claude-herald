@@ -28,6 +28,18 @@ describe('sources-of', () => {
     ).toEqual([SOURCE])
   })
 
+  test('keeps a surface flag only when false, so a source stored without them shows on both', () => {
+    expect(
+      Store.sourcesOf([
+        { ...SOURCE, isOnBand: false, isInPane: true },
+        { ...SOURCE, isOnBand: 'no', isInPane: false },
+      ]),
+    ).toEqual([
+      { ...SOURCE, isOnBand: false },
+      { ...SOURCE, isInPane: false },
+    ])
+  })
+
   test('keeps a fallback URL', () => {
     expect(Store.sourcesOf([{ ...SOURCE, fallbackUrl: 'https://x.test/rss' }])).toEqual([
       { ...SOURCE, fallbackUrl: 'https://x.test/rss' },

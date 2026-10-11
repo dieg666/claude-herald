@@ -10,6 +10,7 @@ import { setLang } from './set-lang.js'
 import { setRefreshInterval } from './set-refresh-interval.js'
 import { setRotate } from './set-rotate.js'
 import { setSummaries } from './set-summaries.js'
+import { setSurface } from './set-surface.js'
 import { setTemplate } from './set-template.js'
 import type { Subcommand } from './subcommand.js'
 
@@ -37,7 +38,7 @@ export const SUBCOMMANDS: Readonly<Record<string, Subcommand>> = {
   },
   list: {
     usage: 'list',
-    summary: 'every source: on or off, kind, items, last error',
+    summary: 'every source: on or off, band and pane, kind, items, last error',
     needsArgument: false,
     run: listSources,
   },
@@ -52,6 +53,18 @@ export const SUBCOMMANDS: Readonly<Record<string, Subcommand>> = {
     summary: 'turn a source off, keeping it',
     needsArgument: true,
     run: (host, rest) => setEnabled(host, rest, false),
+  },
+  band: {
+    usage: 'band on|off <name>',
+    summary: 'show or hide a source in the band, the rotating lines above the prompt',
+    needsArgument: true,
+    run: (host, rest) => setSurface(host, rest, 'band'),
+  },
+  pane: {
+    usage: 'pane on|off <name>',
+    summary: `show or hide a source in the pane, the /${COMMAND_NAME} window`,
+    needsArgument: true,
+    run: (host, rest) => setSurface(host, rest, 'pane'),
   },
   interval: {
     usage: 'interval <minutes>',

@@ -21,6 +21,21 @@ describe('pane-tabs-of', () => {
     ])
   })
 
+  test('a source hidden from the pane gets no tab, and the digits run on over the tabs left', () => {
+    expect(
+      Pane.paneTabsOf([
+        Fixtures.sourceAt('a', { isInPane: false }),
+        Fixtures.sourceAt('b', { isOnBand: false }),
+        Fixtures.sourceAt('c', { isInPane: true }),
+      ]).map(tab => [tab.id, tab.hotkey]),
+    ).toEqual([
+      ['@all', 'l'],
+      ['b', '1'],
+      ['c', '2'],
+      ['saved', '0'],
+    ])
+  })
+
   test('no sources leaves the All and saved tabs alone', () => {
     expect(Pane.paneTabsOf([])).toEqual([
       { id: '@all', name: 'All', label: 'All', short: 'All', hotkey: 'l' },

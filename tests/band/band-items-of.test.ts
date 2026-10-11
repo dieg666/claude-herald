@@ -5,6 +5,12 @@ import Stack from '../../hooks/deps/stack'
 import Fixtures from '../fixtures'
 
 describe('band-items-of', () => {
+  const isNewestFirst = (list: readonly { publishedAt?: string }[]) => {
+    const times = list.map(item => Date.parse(item.publishedAt ?? ''))
+
+    return times.every((time, index) => index === 0 || time <= (times[index - 1] ?? time))
+  }
+
   test("every enabled source's items, newest first across sources", () => {
     const sources = [
       Fixtures.sourceAt('a'),
@@ -42,16 +48,16 @@ describe('band-items-of', () => {
     expect(Band.bandItemsOf([Fixtures.sourceAt('toString')], {})).toEqual([])
   })
 
-  test('read items are left out while an unread one remains, the rest mixed by source; all come back once all are read', () => {
+  test('read items are left out while an unread one remains, the rest newest first; all come back once all are read', () => {
     const sources = [Fixtures.sourceAt('a'), Fixtures.sourceAt('b')]
     const items = { a: Fixtures.datedItemsOf('a', 2), b: Fixtures.datedItemsOf('b', 2, 1) }
     const idsOf = (read: Record<string, string[]>) =>
       Band.bandItemsOf(sources, items, [], read).map(item => item.id)
 
-    expect(idsOf({})).toEqual(['a:1', 'b:1', 'a:2', 'b:2'])
+    expect(idsOf({})).toEqual(['a:1', 'a:2', 'b:1', 'b:2'])
     expect(idsOf({ a: ['a:1'], b: ['b:2', 'a:2'] })).toEqual(['a:2', 'b:1'])
     expect(idsOf({ a: ['a:1', 'a:2'], b: ['b:1'] })).toEqual(['b:2'])
-    expect(idsOf({ a: ['a:1', 'a:2'], b: ['b:1', 'b:2'] })).toEqual(['a:1', 'b:1', 'a:2', 'b:2'])
+    expect(idsOf({ a: ['a:1', 'a:2'], b: ['b:1', 'b:2'] })).toEqual(['a:1', 'a:2', 'b:1', 'b:2'])
   })
 
   test('a stack item is never read, so it keeps read news items out', () => {
@@ -65,60 +71,132 @@ describe('band-items-of', () => {
     ).toEqual([react?.id])
   })
 
-  test("a breaking stack release leads, and the stack's other releases take their turns by date as one source", () => {
+  test("a breaking stack release leads, and the stack's other releases go by date among the news", () => {
     const [react, vite] = Fixtures.STACK_SAMPLE
     const items = { a: Fixtures.datedItemsOf('a', 2, 24 * 4 + 12) }
 
     expect(
       Band.bandItemsOf([Fixtures.sourceAt('a')], items, [react!, vite!]).map(item => item.id),
-    ).toEqual([react?.id, 'a:1', vite?.id, 'a:2'])
+    ).toEqual([react?.id, vite?.id, 'a:1', 'a:2'])
     expect(Band.bandItemsOf([], {}, [vite!]).map(item => item.id)).toEqual([vite?.id])
   })
 
-  test('a skewed store: no page of three repeats a source while another has items, the stack one source', () => {
+  test('a skewed store: newest first across sources and the stack, a busy source filling the pages its items fall on', () => {
     const { sources, items, stack } = Fixtures.SKEWED_BAND
     const list = Band.bandItemsOf(sources, items, stack)
 
     expect(list).toHaveLength(27)
-    expect(Fixtures.pageRepeatsOf(list.map(item => item.sourceId))).toEqual([])
-    expect(list.slice(0, 3).map(item => item.sourceId)).toEqual(['hn', 'sdk', '@stack'])
-    expect(list.slice(9).every(item => item.sourceId === 'hn')).toBe(true)
+    expect(isNewestFirst(list)).toBe(true)
+    expect(list.slice(0, 9).map(item => item.id)).toEqual([
+      'hn:1',
+      'hn:2',
+      'sdk:1',
+      'hn:3',
+      'sdk:2',
+      stack[0]?.id,
+      'hn:4',
+      'anthropic:1',
+      'hn:5',
+    ])
+    expect(list.slice(11, 18).every(item => item.sourceId === 'hn')).toBe(true)
   })
 
-  test('read items are left out first, then the rest are mixed', () => {
+  test('equal dates go by source id, then in stored order, whatever the order of the sources', () => {
+    const at = '2026-01-01T10:00:00Z'
+    const dated = (sourceId: string, key: string) => ({
+      ...Fixtures.itemAt(key, at),
+      id: `${sourceId}:${key}`,
+      sourceId,
+    })
+    const items = {
+      b: [dated('b', 'z'), dated('b', 'a')],
+      a: [dated('a', 'y'), dated('a', 'x')],
+      c: [{ ...dated('c', 'w'), publishedAt: '2026-01-01T11:00:00Z' }],
+    }
+    const ids = (order: readonly string[]) =>
+      Band.bandItemsOf(
+        order.map(id => Fixtures.sourceAt(id)),
+        items,
+      ).map(item => item.id)
+
+    expect(ids(['b', 'a', 'c'])).toEqual(['c:w', 'a:y', 'a:x', 'b:z', 'b:a'])
+    expect(ids(['c', 'a', 'b'])).toEqual(ids(['b', 'a', 'c']))
+  })
+
+  test('a source hidden from the band leaves it, kept on the pane; a disabled one shows nowhere whatever its flags; one stored without the flags shows', () => {
+    const items = {
+      a: Fixtures.datedItemsOf('a', 2),
+      b: Fixtures.datedItemsOf('b', 2, 1),
+      c: Fixtures.datedItemsOf('c', 1, 2),
+    }
+    const sourceIdsOf = (sources: Parameters<typeof Band.bandItemsOf>[0]) => [
+      ...new Set(Band.bandItemsOf(sources, items).map(item => item.sourceId)),
+    ]
+
+    expect(
+      sourceIdsOf([
+        Fixtures.sourceAt('a', { isOnBand: false }),
+        Fixtures.sourceAt('b', { isInPane: false }),
+        Fixtures.sourceAt('c', { isEnabled: false, isOnBand: true }),
+      ]),
+    ).toEqual(['b'])
+    expect(
+      sourceIdsOf([
+        Fixtures.sourceAt('a', { isOnBand: true }),
+        Fixtures.sourceAt('b'),
+        Fixtures.sourceAt('c'),
+      ]),
+    ).toEqual(['a', 'b', 'c'])
+  })
+
+  test('with every news source hidden from the band, the stack still lists its packages', () => {
+    const [react, vite] = Fixtures.STACK_SAMPLE
+    const sources = [
+      Fixtures.sourceAt('a', { isOnBand: false }),
+      Fixtures.sourceAt('b', { isOnBand: false, isInPane: false }),
+    ]
+    const items = { a: Fixtures.datedItemsOf('a', 2), b: Fixtures.datedItemsOf('b', 2) }
+
+    expect(Band.bandItemsOf(sources, items, [react!, vite!]).map(item => item.id)).toEqual([
+      react?.id,
+      vite?.id,
+    ])
+    expect(Band.bandItemsOf(sources, items)).toEqual([])
+  })
+
+  test('read items are left out first, then the rest go newest first', () => {
     const { sources, items, stack } = Fixtures.SKEWED_BAND
     const read = { hn: ['hn:1', 'hn:3'], sdk: ['sdk:1', 'sdk:2'], willison: ['willison:1'] }
     const list = Band.bandItemsOf(sources, items, stack, read)
 
     expect(list).toHaveLength(22)
     expect(list.map(item => item.id).filter(id => read.hn.includes(id))).toEqual([])
-    expect(Fixtures.pageRepeatsOf(list.map(item => item.sourceId))).toEqual([])
+    expect(isNewestFirst(list)).toBe(true)
     expect(list.slice(0, 6).map(item => item.id)).toEqual([
       'hn:2',
       stack[0]?.id,
-      'anthropic:1',
       'hn:4',
-      stack[1]?.id,
+      'anthropic:1',
+      'hn:5',
       'anthropic:2',
     ])
   })
 
-  test('breaking and security stack releases lead, newest first, however old; the rest stay mixed with no page repeating a source after them', () => {
+  test('breaking and security stack releases lead, newest first, however old; the rest go newest first after them', () => {
     const { sources, items, stack } = Fixtures.FLAGGED_BAND
     const [vite, , requests, jsdom] = stack
     const list = Band.bandItemsOf(sources, items, stack)
-    const sourceIds = list.map(item => item.sourceId)
 
     expect(list).toHaveLength(29)
     expect(list.slice(0, 6).map(item => item.id)).toEqual([
       requests?.id,
       jsdom?.id,
-      'hn:1',
-      'sdk:1',
       vite?.id,
-      'anthropic:1',
+      'hn:1',
+      'hn:2',
+      'sdk:1',
     ])
-    expect(Fixtures.pageRepeatsOf(sourceIds)).toEqual(['page 1: @stack'])
+    expect(isNewestFirst(list.slice(2))).toBe(true)
     expect(Band.bandItemsOf(sources, items, [...stack].reverse())).toEqual(list)
   })
 
@@ -134,7 +212,7 @@ describe('band-items-of', () => {
     ).toEqual(list.map((_, index) => index < 2))
   })
 
-  test('at most two flagged releases lead, so page 1 keeps a place for another source; the others take the stack turns', () => {
+  test('at most two flagged releases lead; the others go by date', () => {
     const { sources, items, stack } = Fixtures.FLAGGED_BAND
     const lodash = Fixtures.stackItemAt('lodash', '5.0.0', {
       current: '4.17.21',
@@ -155,10 +233,10 @@ describe('band-items-of', () => {
     const stackIds = list.filter(item => item.sourceId === '@stack').map(item => item.id)
 
     expect(list).toHaveLength(31)
-    expect(ids.slice(0, 3)).toEqual([lodash.id, requests?.id, 'hn:1'])
+    expect(ids.slice(0, 4)).toEqual([lodash.id, requests?.id, vite?.id, 'hn:1'])
     expect(stackIds).toEqual([lodash.id, requests?.id, vite?.id, react?.id, undici.id, jsdom?.id])
-    expect(ids.indexOf(undici.id)).toBeGreaterThan(2)
-    expect(Fixtures.pageRepeatsOf(list.map(item => item.sourceId))).toEqual(['page 1: @stack'])
+    expect(ids.slice(-2)).toEqual([undici.id, jsdom?.id])
+    expect(isNewestFirst(list.slice(2))).toBe(true)
     expect(Band.bandItemsOf(sources, items, [...all].reverse())).toEqual(list)
   })
 
@@ -169,9 +247,9 @@ describe('band-items-of', () => {
     const list = Band.bandItemsOf(sources, items, stack, read)
 
     expect(list).toHaveLength(27)
-    expect(list.slice(0, 4).map(item => item.id)).toEqual([jsdom?.id, 'hn:2', 'sdk:1', vite?.id])
+    expect(list.slice(0, 4).map(item => item.id)).toEqual([jsdom?.id, vite?.id, 'hn:2', 'sdk:1'])
     expect(list.map(item => item.id)).not.toContain(requests?.id)
-    expect(Fixtures.pageRepeatsOf(list.map(item => item.sourceId))).toEqual([])
+    expect(isNewestFirst(list.slice(1))).toBe(true)
   })
 
   test('once every item is read, all come back with the breaking and security releases leading', () => {
@@ -186,10 +264,15 @@ describe('band-items-of', () => {
     const list = Band.bandItemsOf(sources, items, stack, read)
 
     expect(list).toEqual(Band.bandItemsOf(sources, items, stack))
-    expect(list.slice(0, 3).map(item => item.id)).toEqual([stack[2]?.id, stack[3]?.id, 'hn:1'])
+    expect(list.slice(0, 4).map(item => item.id)).toEqual([
+      stack[2]?.id,
+      stack[3]?.id,
+      stack[0]?.id,
+      'hn:1',
+    ])
   })
 
-  test('undated items come after the mixed dated ones, in source order', () => {
+  test('undated items come after the dated ones, in source order', () => {
     const { sources, items } = Fixtures.SKEWED_BAND
     const undated = (sourceId: string, key: string) => ({
       ...Fixtures.itemAt(key),
@@ -203,7 +286,7 @@ describe('band-items-of', () => {
     })
 
     expect(list.slice(-2).map(item => item.id)).toEqual(['hn:x', 'willison:y'])
-    expect(Fixtures.pageRepeatsOf(list.slice(0, -2).map(item => item.sourceId))).toEqual([])
+    expect(isNewestFirst(list.slice(0, -2))).toBe(true)
   })
 
   test('a release feed gives only its newest release by date, older ones left out; other sources keep all', () => {
@@ -221,7 +304,7 @@ describe('band-items-of', () => {
     expect(idsOf('willison')).toEqual(['willison:1', 'willison:2'])
     expect(idsOf('@stack')).toEqual([stack[0]?.id])
     expect(list.at(-1)?.id).toBe('py:v1.0.1')
-    expect(Fixtures.pageRepeatsOf(list.slice(0, -1).map(item => item.sourceId))).toEqual([])
+    expect(isNewestFirst(list.slice(0, -1))).toBe(true)
   })
 
   test('a read newest release leaves its source out of the band, never falling back to an older release', () => {
