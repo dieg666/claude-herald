@@ -15,6 +15,6 @@ The script runs these steps and stops at the first failure:
 
 The Claude Code types for your build live in `.claude-plugin/types` and are not committed. Claude Code writes them only when a trusted directory loads the mod in an interactive session, so on its first run, when the types are missing, the script opens `claude --plugin-dir .` on a pseudo-terminal, waits for the files and stops that session. This needs no sign-in and never edits `~/.claude.json`. If the directory is not trusted yet, the script stops with a message: open `claude --plugin-dir .` once in this directory, accept the trust prompt and rerun. The session loads the mod for a moment, so it uses your real `$.store`, like any other session.
 
-The CI workflow writes a `~/.claude.json` that marks the workspace as trusted before it runs the script.
+The CI workflow writes a `~/.claude.json` that marks the workspace as trusted before it runs the script. Every CI run, the maintainer's included, waits in the `ci` environment until a maintainer approves it under the run's *Review deployments*.
 
 Installed copies update only when `version` in `.claude-plugin/plugin.json` changes, because the manifest pins it. A new `calls:` entry in the output of `claude plugin validate .` needs a matching row in the [calls table](security.md#calls). `.claude/CLAUDE.md` describes the layout of `hooks/`, the rules the engine's static analysis enforces and the test conventions.
