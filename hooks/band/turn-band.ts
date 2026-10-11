@@ -19,7 +19,7 @@ function isSame(a: BandState, b: BandState): boolean {
 }
 
 /**
- * Applies a move to the band in state, over pages of the size the band shows (one while it last drew compact) (nothing written when it changes nothing) and, when the page changed, hands the new page to the rotation's `onPage`; never throws.
+ * Applies a move to the band in state, over pages of the size the band shows, which is one while it last drew compact; nothing is written when the move changes nothing, and when the page changed it hands the new page to the rotation's `onPage`; never throws.
  *
  * @param host the engine
  * @param rotation the rotation
