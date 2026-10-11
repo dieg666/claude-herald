@@ -28,11 +28,25 @@ describe('pasted-commands-of', () => {
     ])
   })
 
-  test('blank lines around commands are dropped, and so are commands left blank', () => {
-    expect(Commands.pastedCommandsOf('\n \t\r\n/herald list\n\n   \n/herald help\r\n\r\n')).toEqual(
-      ['/herald list', '/herald help'],
-    )
-    expect(Commands.pastedCommandsOf(' \n\r\n ')).toEqual([])
-    expect(Commands.pastedCommandsOf('')).toEqual([])
+  test('blank lines around commands are dropped from them', () => {
+    expect(Commands.pastedCommandsOf('list\n\n   \n/herald help\r\n\r\n')).toEqual([
+      'list',
+      '/herald help',
+    ])
+  })
+
+  test('the first line is always the first command, blank when /herald stood alone, a slash at its start included', () => {
+    expect(Commands.pastedCommandsOf('\n \t\r\n/herald list\n/herald help')).toEqual([
+      '',
+      '/herald list',
+      '/herald help',
+    ])
+    expect(Commands.pastedCommandsOf('/help\n/herald list')).toEqual(['/help', '/herald list'])
+    expect(Commands.pastedCommandsOf('\nlist')).toEqual(['list'])
+  })
+
+  test('nothing, or only blank lines, is one blank command', () => {
+    expect(Commands.pastedCommandsOf('')).toEqual([''])
+    expect(Commands.pastedCommandsOf(' \n\r\n ')).toEqual([''])
   })
 })

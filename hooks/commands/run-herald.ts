@@ -9,7 +9,7 @@ import { runHeraldLine } from './run-herald-line.js'
 import { runPastedCommand } from './run-pasted-command.js'
 
 /**
- * Runs `/herald` with what was typed after it: one command runs as typed, several (a pasted block whose later lines start with `/herald`) run one after another, each awaited before the next and each answer under its command, stopping between commands once `signal` aborts; never throws.
+ * Runs `/herald` with what was typed after it: one command runs as typed, several (a pasted block, a later line starting with `/`) run one after another, each awaited before the next and each answer under its command, stopping between commands once `signal` aborts; never throws.
  *
  * @param host the engine
  * @param args everything after `/herald`, line breaks kept

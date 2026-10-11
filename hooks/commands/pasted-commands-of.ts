@@ -1,12 +1,13 @@
 /**
- * The commands in what follows `/herald`, each trimmed and blank ones dropped: the first is the text before the first line that starts with `/`, and each such line starts the next, the lines after it that do not start with `/` joined to it with `\n`; any line break (`\n`, `\r\n` or `\r`) counts.
+ * The commands in what follows `/herald`, each trimmed: the first is the first line with the lines after it up to the next line that starts with `/` (blank when `/herald` stood alone on its line), and each such line starts the next, the lines after it that do not start with `/` joined to it with `\n`; any line break (`\n`, `\r\n` or `\r`) counts.
  *
  * @param args everything after `/herald`
  */
 export function pastedCommandsOf(args: string): string[] {
-  const commands: string[][] = [[]]
+  const [first = '', ...rest] = args.split(/\r\n|\r|\n/)
+  const commands: string[][] = [[first]]
 
-  for (const line of args.split(/\r\n|\r|\n/)) {
+  for (const line of rest) {
     if (line.trimStart().startsWith('/')) {
       commands.push([line])
     } else {
@@ -14,5 +15,5 @@ export function pastedCommandsOf(args: string): string[] {
     }
   }
 
-  return commands.map(lines => lines.join('\n').trim()).filter(command => command !== '')
+  return commands.map(lines => lines.join('\n').trim())
 }

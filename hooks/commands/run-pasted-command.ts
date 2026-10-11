@@ -9,7 +9,7 @@ import { runHeraldLine } from './run-herald-line.js'
  * Runs one command of a paste of several: a subcommand runs as it would alone, while a bare `/herald` and another slash command only say why they did not run; never throws.
  *
  * @param host the engine
- * @param command one trimmed, non-blank command of the paste, its continuation lines included
+ * @param command one trimmed command of the paste, its continuation lines included, blank for a bare `/herald` on the first line
  * @param stack the stack loop, whose queue orders the stack's store and state writes
  * @param size how many items the pane's window may show
  */

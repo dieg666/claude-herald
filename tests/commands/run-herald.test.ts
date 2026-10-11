@@ -282,15 +282,40 @@ describe('run-herald', () => {
     )
   })
 
-  test('one command among blank lines answers exactly as it does alone, a leading /herald included', async ($, on) => {
+  test('one command among blank lines answers exactly as it does alone', async ($, on) => {
     Fixtures.storeOn(on, { sources: [Fixtures.sourceAt('one')] })
 
     const alone = (await $.command.run(Fixtures.heraldOf('list'))).text
 
     expect((await $.command.run(Fixtures.heraldOf('\n  list  \r\n\n'))).text).toBe(alone)
-    expect((await $.command.run(Fixtures.heraldOf('/herald list\n'))).text).toBe(
-      (await $.command.run(Fixtures.heraldOf('/herald list'))).text,
+  })
+
+  test('a paste starting with a bare /herald line answers it, then runs the /herald lines after it', async ($, on) => {
+    const stored = Fixtures.storeOn(on, {
+      sources: [Fixtures.sourceAt('one'), Fixtures.sourceAt('two')],
+    })
+    const opened = Fixtures.paneOn(on, ['terminal'])
+    const BARE =
+      '/herald\n/herald alone opens the pane, which it does not do among several commands; run it on its own.'
+    const disabled = (id: string) =>
+      `/herald disable ${id}\nDisabled "${id}"; it is kept but no longer fetched or shown.`
+
+    expect((await $.command.run(Fixtures.heraldOf('\n/herald disable one'))).text).toBe(
+      [BARE, disabled('one')].join('\n\n'),
     )
+    const three = await $.command.run(
+      Fixtures.heraldOf('  \r\n/herald disable two\r\n/HERALD list'),
+    )
+
+    expect(
+      three.text?.startsWith(`${BARE}\n\n${disabled('two')}\n\n/herald list\n0 of 2 sources`),
+      three.text,
+    ).toBe(true)
+    expect(opened).toEqual([])
+    expect((stored.get('sources') as { isEnabled: boolean }[]).map(s => s.isEnabled)).toEqual([
+      false,
+      false,
+    ])
   })
 
   test('a paste asks for every follow-up its commands asked for', async () => {
