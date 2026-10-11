@@ -18,13 +18,13 @@ Items that arrive while a source is hidden from the pane count as new when you s
 
 ## Band
 
-The band appears above the prompt once at least one source on the band has items. It lists the items of the sources on the band and of [your stack](your-stack.md) in one list, three items a page, and turns the page every 20 seconds (`/herald rotate` changes it). Your stack has one row for each followed package rather than for each release.
+The band appears above the prompt once at least one source on the band has items. It lists the items of the sources on the band and of [your stack](your-stack.md) in one list, three items a page, and turns the page every 20 seconds. `/herald band size` changes the number of items and `/herald rotate` the seconds. To show more or fewer items, see [Show more or fewer items in the band](how-to.md#show-more-or-fewer-items-in-the-band). Your stack has one row for each followed package rather than for each release.
 
 ### Order of items
 
 The list is a timeline, newest first across all sources:
 
-- **Flagged packages first.** Packages of your stack with a release flagged breaking or security among the ones shown (drawn with `⚠`) lead the list. The newest two of them by their target's date come first, however old, so a row such as `⚠ jsdom 25.0.1 → 30.1.2` is on the first page even when every news item is newer. Since releases of your stack are never marked read, those two stay first until you upgrade past them. Further flagged packages sort by date like any other item.
+- **Flagged packages first.** Packages of your stack with a release flagged breaking or security among the ones shown (drawn with `⚠`) lead the list. The newest ones by their target's date come first, however old, one fewer than the band shows at once (two at the default size of three), so a row such as `⚠ jsdom 25.0.1 → 30.1.2` is on the first page even when every news item is newer. Since releases of your stack are never marked read, those stay first until you upgrade past them. Further flagged packages sort by date like any other item.
 - **Then by date.** Every other dated item, news and your stack's packages alike, comes newest first. Items with the same date sort by source, in a fixed order, then in the order the feed lists them.
 - **Undated items last.** Items without a date come after the dated ones, in source order, with your stack's packages at the end.
 
@@ -48,7 +48,7 @@ The header starts with the name, `Herald` in bold, then the position (`1–3 of 
 
 | Key | Button | What it does |
 |-----|--------|--------------|
-| `p` | ◀ | Shows the previous page of three items (one item in the compact band), wrapping at the start, and pauses the rotation. |
+| `p` | ◀ | Shows the previous page (one item in the compact band), wrapping at the start, and pauses the rotation. |
 | `n` | ▶ | Shows the next page, wrapping at the end, and pauses the rotation. |
 | `a` | ⏸ auto / ↻ auto | Pauses or resumes the rotation. |
 | `k` | ↑ | Selects the item above in the page and pauses the rotation. Not in the compact band. |
@@ -68,7 +68,7 @@ The rotation does nothing when all items fit on one page. For the actions line (
 
 ### Height
 
-The band's height depends only on the width, the item count and whether automatic summaries are on, never on the page or on whether the selected item is saved. With automatic summaries off (the default) each item takes one line. With them on, each takes a second line for its summary (see [Summaries and languages](reference.md#summaries-and-languages)).
+The band's height depends only on the width, the item count, the band size (`/herald band size`) and whether automatic summaries are on, never on the page or on whether the selected item is saved. With automatic summaries off (the default) each item takes one line. With them on, each takes a second line for its summary (see [Summaries and languages](reference.md#summaries-and-languages)).
 
 ### Age column
 
@@ -150,7 +150,7 @@ The pane shows a window of the active tab's items around the selection, one line
 
 ### All tab
 
-The pane opens on the All tab, first in the tab row, on `l` (the band's `a` is taken by auto, and `l` is a key no band or pane button uses). All lists what the band pages through, in the band's order and built by the same code, but from the sources in the pane: the newest two packages of your stack with a breaking or security release first, then every item newest first across the sources, a package of your stack as one row, a release source by its newest release only, and items without a date last. Unlike the band it keeps the items you have read, in their place, their headlines drawn dim.
+The pane opens on the All tab, first in the tab row, on `l` (the band's `a` is taken by auto, and `l` is a key no band or pane button uses). All lists what the band pages through, in the band's order and built by the same code, but from the sources in the pane: the newest two packages of your stack with a breaking or security release first, whatever the band's size, then every item newest first across the sources, a package of your stack as one row, a release source by its newest release only, and items without a date last. Unlike the band it keeps the items you have read, in their place, their headlines drawn dim.
 
 Each row starts with the band's source column, 12 cells wide: a news item's source as its short label, dim, or in the theme's Claude color for a release; a package of your stack its `📦` or `⚠` and its name, with `current → target` as its headline and the target's date. Then come the headline and, at the right end, the date (or the age of an item less than a day old), for example `› Hacker News   Margaret Hamilton has died   Oct 7` or `› Hacker News   Margaret Hamilton has died   2h`.
 

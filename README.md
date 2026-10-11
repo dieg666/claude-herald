@@ -4,6 +4,14 @@
 
 ![Claude Code 2.1.287 or later](https://img.shields.io/badge/Claude%20Code-2.1.287%2B-d97757) [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
+Like dangerous mode and can't be bothered to read? Paste this into Claude Code and let it do the reading:
+
+```text
+Check that `claude --version` is 2.1.287 or later. Then run `claude plugin marketplace add dieg666/claude-herald` and `claude plugin install herald@claude-herald`, and tell me to run /reload-plugins. Then fetch https://raw.githubusercontent.com/dieg666/claude-herald/main/docs/setup-with-claude.md and carry out the prompt in it to set Herald up for me.
+```
+
+Claude runs the install commands, then fetches and follows [setup-with-claude.md](docs/setup-with-claude.md) from this repository (read it first if you prefer). It ends by handing you a block of `/herald` lines to paste.
+
 Herald is a Claude Code mod, a plugin that draws its own interface inside Claude Code. It keeps you up to date on Claude, the tools around it and the packages your project depends on, without leaving the terminal.
 
 - The **band** is the rotating lines above the prompt. It shows the latest headlines and flags the releases of your dependencies that are breaking or security fixes.
@@ -51,6 +59,7 @@ To open an article, press `o` on the selected row, or Ctrl+click the headline (C
 ## Documentation
 
 - [How-to guides](docs/how-to.md): install, update, uninstall, delete stored data, cut Haiku calls and fix problems.
+- [Set up Herald with Claude](docs/setup-with-claude.md): a prompt that has Claude ask what you want and write the commands.
 - [Band and pane](docs/band-and-pane.md): what they draw, their keys and the item actions.
 - [Your stack](docs/your-stack.md): which packages Herald follows and how it classifies releases.
 - [Reference](docs/reference.md): terms, commands, sources, summaries, stored data and limitations.
