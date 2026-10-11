@@ -257,7 +257,7 @@ describe('compact-band-view', () => {
 
       expect([await positionOf(ui), await buttonsOf(ui)]).toEqual([
         '2/7',
-        ['p: ◀', 'n: ▶', 'a: ▶ auto'],
+        ['p: ◀', 'n: ▶', 'a: ↻ auto'],
       ])
       expect(await linksOf(ui)).toEqual([['https://example.com/src/2', 'src 2']])
 

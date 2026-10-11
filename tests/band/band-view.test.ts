@@ -479,7 +479,7 @@ describe('band-view', () => {
 
       await ui.press({ key: 'next' })
 
-      expect([await rangeOf(ui), await autoOf(ui)]).toEqual(['4–6 of 7', '▶ auto'])
+      expect([await rangeOf(ui), await autoOf(ui)]).toEqual(['4–6 of 7', '↻ auto'])
 
       await ui.press({ key: 'next' })
 
@@ -500,7 +500,7 @@ describe('band-view', () => {
 
       await ui.press({ key: 'prev' })
 
-      expect([await rangeOf(ui), await autoOf(ui)]).toEqual(['4–6 of 7', '▶ auto'])
+      expect([await rangeOf(ui), await autoOf(ui)]).toEqual(['4–6 of 7', '↻ auto'])
 
       await ui.press({ key: 'auto' })
 
@@ -519,7 +519,7 @@ describe('band-view', () => {
 
       expect([await selectedOf(ui), await autoOf(ui)]).toEqual([
         'https://example.com/src/2',
-        '▶ auto',
+        '↻ auto',
       ])
 
       await ui.press({ key: 'down' })
@@ -568,7 +568,7 @@ describe('band-view', () => {
         await ui.press({ key: 'auto' })
         await clock.advance(60_000)
 
-        expect([await rangeOf(ui), await autoOf(ui)]).toEqual(['1–3 of 7', '▶ auto'])
+        expect([await rangeOf(ui), await autoOf(ui)]).toEqual(['1–3 of 7', '↻ auto'])
 
         await ui.press({ key: 'auto' })
         await clock.advance(20_000)
